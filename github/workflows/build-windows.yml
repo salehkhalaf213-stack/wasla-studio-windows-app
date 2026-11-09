@@ -1,0 +1,46 @@
+
+name: Build WASLA STUDIO for Windows
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        working-directory: WASLA_STUDIO_Desktop
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: WASLA_STUDIO_Desktop/package.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build Windows EXE
+        run: npm run tauri -- build --bundles nsis
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: WASLA-STUDIO-Windows-Installer
+          path: WASLA_STUDIO_Desktop/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
