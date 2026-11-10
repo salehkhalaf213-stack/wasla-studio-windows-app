@@ -45,6 +45,7 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
 .employee-empty{background:#fff;border:1px dashed #cbd4c3;border-radius:14px;padding:35px;text-align:center;color:var(--muted)}
 
 .notification-item{padding:11px 0;border-bottom:1px solid var(--line);font-size:12px;line-height:1.8}.notification-item:last-child{border:0}.performance-bar{height:7px;background:#edf1e8;border-radius:8px;overflow:hidden;min-width:90px}.performance-bar span{display:block;height:100%;background:var(--lime)}
+.client-shell{min-height:100vh;background:var(--bg);padding:22px}.client-wrap{max-width:1050px;margin:auto}.client-project-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px}.client-project-card h3{margin:7px 0;font-size:17px}.client-project-card p{font-size:13px;line-height:1.8;color:#566050}.task-overdue{color:#a33b2c;background:#fff0ed}.task-filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.task-filters input,.task-filters select{border:1px solid var(--line);border-radius:8px;padding:10px;background:white}.task-detail{white-space:pre-wrap;line-height:1.8;font-size:13px}
 </style></head>
 <body>
 <section class="auth-screen" id="authScreen">
@@ -107,7 +108,7 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
 <div class="head"><h2>إدارة الموظفين والتكليفات</h2><button class="btn lime" onclick="openAssignment()">＋ تكليف جديد</button></div>
 <div class="grid stats"><div class="card"><div class="stat-label">عدد الموظفين</div><div class="stat-value" id="adminEmployeeCount">0</div></div><div class="card"><div class="stat-label">إجمالي التكليفات</div><div class="stat-value" id="adminAssignmentCount">0</div></div><div class="card"><div class="stat-label">قيد التنفيذ</div><div class="stat-value" id="adminActiveCount">0</div></div><div class="card"><div class="stat-label">تحديثات جديدة</div><div class="stat-value" id="adminUpdatesCount">0</div></div></div>
 <div class="card" style="margin-bottom:14px"><div class="head"><h2>أداء الموظفين</h2><button class="btn soft sm" onclick="loadAdminEmployees()">تحديث البيانات</button></div><div class="table-wrap" id="adminEmployeesTable"><div class="empty">اضغط تحديث البيانات لعرض الأداء.</div></div></div>
-<div class="card"><div class="head"><h2>التكليفات ومتابعة التنفيذ</h2></div><div class="table-wrap" id="adminAssignmentsTable"><div class="empty">جارٍ تحميل التكليفات…</div></div></div>
+<div class="card"><div class="head"><h2>التكليفات ومتابعة التنفيذ</h2></div><div class="task-filters"><input id="assignmentSearch" placeholder="ابحث باسم المهمة أو العميل..." oninput="renderAdminAssignments()"><select id="assignmentStatusFilter" onchange="renderAdminAssignments()"><option value="">كل الحالات</option><option>لم يبدأ</option><option>قيد التنفيذ</option><option>قيد المراجعة</option><option>مكتمل</option></select><select id="assignmentDueFilter" onchange="renderAdminAssignments()"><option value="">كل المواعيد</option><option value="overdue">متأخرة</option><option value="today">تسليم اليوم</option><option value="upcoming">قادمة</option></select></div><div class="table-wrap" id="adminAssignmentsTable"><div class="empty">جارٍ تحميل التكليفات…</div></div></div>
 </section>
 <section class="page" id="settings"><div class="card"><h2 style="font-size:17px">النسخ الاحتياطي واستعادة البيانات</h2><p class="muted" style="font-size:13px;line-height:1.8">بيانات WASLA STUDIO تتم مزامنتها مع قاعدة بيانات Supabase عند تسجيل دخول المدير. احتفظ بنسخة احتياطية دورية كإجراء إضافي.</p><div class="actions"><button class="btn lime" onclick="exportData()">تنزيل نسخة احتياطية JSON</button><label class="btn soft" for="importFile">استعادة نسخة احتياطية</label><input id="importFile" type="file" accept="application/json" hidden onchange="importData(event)"></div><div class="note">تُحفظ التغييرات محلياً فوراً ثم تُرفع إلى السحابة تلقائياً. استخدم «مزامنة الآن» بعد الانتقال بين الأجهزة. عند تعديل البيانات من جهازين في الوقت نفسه، اعتمد جهازاً واحداً للتعديل لتجنب استبدال آخر تحديث.</div></div></section>
 <footer>WASLA STUDIO · Cloud Workspace · مزامنة Supabase</footer>
@@ -128,6 +129,14 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
     <div class="assignment-grid" id="employeeAssignments"><div class="employee-empty">جارٍ تحميل التكليفات…</div></div>
   </div>
 </section>
+<section class="client-shell" id="clientShell" style="display:none">
+ <div class="client-wrap">
+  <header class="employee-top"><div><div class="employee-brand">WASLA <span>STUDIO</span></div><div class="muted tiny" id="clientWelcome">بوابة العميل</div></div><div class="actions"><span class="sync-pill" id="clientSync">● متصل</span><button class="btn soft sm" onclick="loadClientPortal()">تحديث المشاريع</button><button class="btn sm" onclick="logout()">خروج</button></div></header>
+  <div class="hero"><h2>مساحة مشاريعك</h2><p>تابع المشاريع المرتبطة بحسابك من مكان واحد. لا يمكن لهذا الحساب الاطلاع على مشاريع العملاء الآخرين.</p></div>
+  <div class="grid stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="card"><div class="stat-label">المشاريع المرتبطة بحسابك</div><div class="stat-value" id="clientProjectCount">0</div></div><div class="card"><div class="stat-label">حالة الحساب</div><div class="stat-value" style="font-size:18px">موثّق</div></div></div>
+  <div class="head"><h2>مشاريعي</h2><span class="muted tiny" id="clientLastUpdated"></span></div><div class="assignment-grid" id="clientProjects"><div class="employee-empty">جارٍ تحميل المشاريع…</div></div>
+ </div>
+</section>
 <div class="modal" id="adminNotificationsModal"><div class="dialog"><h2>إشعارات مستجدات الموظفين</h2><div id="adminNotificationsList"></div><div class="dialog-actions"><button class="btn soft" onclick="closeAdminNotifications()">إغلاق</button></div></div></div>
 <div class="modal" id="modal"><div class="dialog"><h2 id="modalTitle">إضافة سجل</h2><div id="modalBody"></div><div class="dialog-actions"><button class="btn lime" id="saveBtn">حفظ</button><button class="btn soft" onclick="closeModal()">إلغاء</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0"></script>
@@ -145,20 +154,23 @@ function scheduleCloudSave(){clearTimeout(cloudSaveTimer);setSync('● حفظ ا
 async function saveCloudData(){if(!currentUser)return;if(cloudBusy){scheduleCloudSave();return}cloudBusy=true;setSync('● جارٍ الحفظ…');try{const {error}=await sb.from('workspace_data').upsert({id:1,payload:data,updated_by:currentUser.id,updated_at:new Date().toISOString()},{onConflict:'id'});if(error)throw error;setSync('● تمت المزامنة')}catch(e){console.error(e);setSync('تعذر الحفظ السحابي',true);alert('تم حفظ التغيير على هذا الجهاز، لكن تعذر رفعه إلى السحابة. تحقق من الاتصال ثم اضغط «مزامنة الآن».')}finally{cloudBusy=false}}
 async function loadCloudData(showMessage=false){if(!currentUser)return;setSync('● جارٍ تحميل البيانات…');try{const {data:row,error}=await sb.from('workspace_data').select('payload,updated_at').eq('id',1).maybeSingle();if(error)throw error;if(row&&row.payload){const d=row.payload;if(!d.clients||!d.projects||!d.contents||!d.finance)throw new Error('صيغة بيانات السحابة غير مكتملة');data=d;localStorage.setItem(KEY,JSON.stringify(data));refresh();setSync('● البيانات محدثة من السحابة');if(showMessage)alert('تم تحميل أحدث نسخة من السحابة.')}else{const {error:saveError}=await sb.from('workspace_data').insert({id:1,payload:data,updated_by:currentUser.id});if(saveError)throw saveError;setSync('● تم إنشاء نسخة السحابة');if(showMessage)alert('تم إنشاء مساحة البيانات السحابية بنجاح.')}}catch(e){console.error(e);setSync('خطأ في المزامنة',true);if(showMessage)alert('تعذر تحميل البيانات السحابية: '+(e.message||'خطأ غير معروف'));}}
 async function enterWorkspace(session){
-  if(!session?.user){currentUser=null;currentRole=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';return}
+  if(!session?.user){currentUser=null;currentRole=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';return}
   const {data:profile,error}=await sb.from('profiles').select('full_name,role').eq('id',session.user.id).single();
-  if(error||!['owner','admin','employee'].includes(profile?.role)){
-    await sb.auth.signOut();$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';
+  if(error||!['owner','admin','employee','user'].includes(profile?.role)){
+    await sb.auth.signOut();$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';
     $('authMessage').textContent='هذا الحساب غير مفعّل كمدير أو موظف. تواصل مع مدير WASLA STUDIO.';return;
   }
   currentUser=session.user;currentRole=profile.role;$('authScreen').style.display='none';
   const name=profile.full_name||session.user.email;
   if(currentRole==='admin'||currentRole==='owner'){
-    $('employeeShell').style.display='none';$('appShell').style.display='grid';$('pageTitle').textContent='لوحة التحكم — '+name;
+    $('employeeShell').style.display='none';$('clientShell').style.display='none';$('appShell').style.display='grid';$('pageTitle').textContent='لوحة التحكم — '+name;
     await loadCloudData(false);await loadAdminEmployees();await pollAdminNotifications();clearInterval(adminNotificationTimer);adminNotificationTimer=setInterval(pollAdminNotifications,20000);
-  }else{
-    $('appShell').style.display='none';$('employeeShell').style.display='block';$('employeeWelcome').textContent='مرحباً، '+name;
+  }else if(currentRole==='employee'){
+    $('appShell').style.display='none';$('clientShell').style.display='none';$('employeeShell').style.display='block';$('employeeWelcome').textContent='مرحباً، '+name;
     await loadEmployeeAssignments();
+  }else{
+    $('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='block';$('clientWelcome').textContent='مرحباً، '+name;
+    await loadClientPortal();
   }
 }
 let employeeAssignments=[];
@@ -186,7 +198,7 @@ async function loadEmployeeAssignments(){
       return `<article class="assignment-card" id="assignment-${esc(a.id)}">
         <div class="actions"><span class="pill">${esc(a.project_ref)}</span><span class="pill ${a.employee_status==='مكتمل'?'green':a.employee_status==='قيد التنفيذ'?'amber':''}">${esc(a.employee_status)}</span></div>
         <h3>${esc(a.project_name)}</h3>
-        <p><b>العميل:</b> ${esc(a.client_label||'—')}<br><b>موعد التسليم:</b> ${esc(a.due_date||'غير محدد')}</p>
+        <p><b>العميل:</b> ${esc(a.client_label||'—')}<br><b>موعد التسليم:</b> ${esc(a.due_date||'غير محدد')} ${assignmentDueClass(a)?'<span class="pill task-overdue">متأخرة</span>':''}</p>
         <p><b>تعليمات المدير:</b><br>${esc(a.instructions||'لا توجد تعليمات إضافية.')}</p>
         <label class="tiny muted" for="status-${esc(a.id)}">حالة التنفيذ</label>
         <select id="status-${esc(a.id)}"><option ${a.employee_status==='لم يبدأ'?'selected':''}>لم يبدأ</option><option ${a.employee_status==='قيد التنفيذ'?'selected':''}>قيد التنفيذ</option><option ${a.employee_status==='قيد المراجعة'?'selected':''}>قيد المراجعة</option><option ${a.employee_status==='مكتمل'?'selected':''}>مكتمل</option></select>
@@ -215,6 +227,30 @@ async function sendEmployeeUpdate(id){
 }
 $('employeeRefresh').addEventListener('click',loadEmployeeAssignments);
 
+// Client portal: read only the authenticated client's mapping and mapped projects.
+let clientProjectRows=[];
+async function loadClientPortal(){
+ if(!currentUser||currentRole!=='user')return;
+ const box=$('clientProjects');box.innerHTML='<div class="employee-empty">جارٍ تحميل مشاريع حسابك…</div>';$('clientSync').textContent='● جارٍ التحديث';
+ try{
+  const {data:account,error:accountError}=await sb.from('client_accounts').select('legacy_client_id').eq('auth_user_id',currentUser.id).maybeSingle();
+  if(accountError)throw accountError;if(!account)throw new Error('لا يوجد ربط لهذا الحساب بملف عميل. يرجى التواصل مع إدارة WASLA STUDIO.');
+  const {data:projects,error:projectsError}=await sb.from('client_projects').select('legacy_project_id,legacy_client_id,project_name,created_at').eq('legacy_client_id',account.legacy_client_id).order('created_at',{ascending:false});
+  if(projectsError)throw projectsError;clientProjectRows=projects||[];$('clientProjectCount').textContent=clientProjectRows.length;$('clientLastUpdated').textContent='آخر تحديث: '+new Date().toLocaleString('ar-EG');
+  box.innerHTML=clientProjectRows.length?clientProjectRows.map(project=>`<article class="client-project-card"><span class="pill green">مشروع مرتبط بحسابك</span><h3>${esc(project.project_name)}</h3><p><b>رقم المشروع:</b> ${esc(project.legacy_project_id)}<br><b>تاريخ إضافته:</b> ${project.created_at?esc(new Date(project.created_at).toLocaleDateString('ar-EG')):'—'}</p><p class="muted tiny">تفاصيل مراحل التنفيذ وطلبات التعديل ستظهر عند تفعيل سجل متابعة العميل.</p></article>`).join(''):'<div class="employee-empty">لا توجد مشاريع مرتبطة بحسابك حتى الآن.</div>';
+  $('clientSync').textContent='● تم التحديث';
+ }catch(e){console.error(e);box.innerHTML='<div class="employee-empty">تعذر تحميل مشاريع حسابك: '+esc(e.message||'خطأ غير معروف')+'</div>';$('clientSync').textContent='تعذر الاتصال';}
+}
+function localDateKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function assignmentDueClass(a){return a.due_date&&a.due_date<localDateKey()&&a.employee_status!=='مكتمل'}
+function renderAdminAssignments(){
+ const box=$('adminAssignmentsTable');if(!box)return;const q=($('assignmentSearch')?.value||'').trim().toLowerCase(),status=$('assignmentStatusFilter')?.value||'',due=$('assignmentDueFilter')?.value||'',today=localDateKey();
+ const rows=adminAssignments.filter(a=>{const text=(a.project_name+' '+(a.client_label||'')).toLowerCase();if(q&&!text.includes(q))return false;if(status&&a.employee_status!==status)return false;if(due==='overdue'&&!assignmentDueClass(a))return false;if(due==='today'&&a.due_date!==today)return false;if(due==='upcoming'&&(!a.due_date||a.due_date<today||a.employee_status==='مكتمل'))return false;return true;});
+ const byId=Object.fromEntries(adminEmployees.map(e=>[e.id,e]));
+ box.innerHTML=rows.length?table(['المهمة / المشروع','الموظف','العميل','موعد التسليم','الحالة','آخر تحديث','التفاصيل'],rows.map(a=>{const last=adminUpdates.find(u=>u.assignment_id===a.id);return `<tr><td>${esc(a.project_name)}</td><td>${esc(byId[a.assigned_to]?.full_name||'موظف غير معروف')}</td><td>${esc(a.client_label||'—')}</td><td>${esc(a.due_date||'—')} ${assignmentDueClass(a)?'<span class="pill task-overdue">متأخرة</span>':''}</td><td><span class="pill ${a.employee_status==='مكتمل'?'green':a.employee_status==='قيد التنفيذ'?'amber':''}">${esc(a.employee_status||'لم يبدأ')}</span></td><td>${last?esc(new Date(last.created_at).toLocaleString('ar-EG')):'—'}</td><td><button class="btn soft sm" onclick="viewAssignmentDetails('${esc(a.id)}')">عرض التفاصيل</button></td></tr>`})): '<div class="empty">لا توجد مهام تطابق عوامل التصفية.</div>';
+}
+function viewAssignmentDetails(id){const a=adminAssignments.find(x=>String(x.id)===String(id));if(!a)return;const updates=adminUpdates.filter(u=>String(u.assignment_id)===String(id));openModal('تفاصيل التكليف',`<div class="task-detail"><b>${esc(a.project_name)}</b>\nالعميل: ${esc(a.client_label||'—')}\nموعد التسليم: ${esc(a.due_date||'غير محدد')}\nالحالة: ${esc(a.employee_status)}\n\nتعليمات المدير:\n${esc(a.instructions||'—')}\n\nسجل التحديثات:\n${updates.length?updates.map(u=>new Date(u.created_at).toLocaleString('ar-EG')+' — '+u.body).map(esc).join('\n\n'):'لا توجد تحديثات بعد.'}</div>`,()=>closeModal());}
+
 // Manager tools: employee performance, assignment management, and update notifications.
 let adminEmployees=[], adminAssignments=[], adminUpdates=[], adminNotificationTimer=null;
 const ADMIN_SEEN_KEY='wasla_admin_seen_updates_v1';
@@ -242,10 +278,7 @@ async function loadAdminEmployees(){
       const last=(updateByEmployee[e.id]||[])[0];const pct=list.length?Math.round(done/list.length*100):0;
       return `<tr><td>${esc(e.full_name||e.id)}</td><td>${list.length}</td><td>${working}</td><td>${done}</td><td>${last?esc(new Date(last.created_at).toLocaleString('ar-EG')):'لا يوجد'}</td></tr>`;
     })):'<div class="empty">لا يوجد موظفون مسجلون بدور employee.</div>';
-    if(assignBox)assignBox.innerHTML=adminAssignments.length?table(['المشروع','الموظف','العميل','موعد التسليم','الحالة','آخر تحديث','إجراء'],adminAssignments.map(a=>{
-      const emp=byId[a.assigned_to];const last=adminUpdates.find(u=>u.assignment_id===a.id);
-      return `<tr><td>${esc(a.project_name)}</td><td>${esc(emp?.full_name||'موظف غير معروف')}</td><td>${esc(a.client_label||'—')}</td><td>${esc(a.due_date||'—')}</td><td><span class="pill ${a.employee_status==='مكتمل'?'green':a.employee_status==='قيد التنفيذ'?'amber':''}">${esc(a.employee_status||'لم يبدأ')}</span></td><td>${last?esc(new Date(last.created_at).toLocaleString('ar-EG')):'—'}</td><td><button class="btn soft sm" onclick="viewAssignmentUpdates('${esc(a.id)}')">المستجدات</button></td></tr>`;
-    })):'<div class="empty">لا توجد تكليفات حتى الآن. أنشئ أول تكليف للموظفين.</div>';
+    if(assignBox)renderAdminAssignments();
   }catch(e){console.error(e);if(empBox)empBox.innerHTML='<div class="empty">تعذر تحميل بيانات الموظفين: '+esc(e.message||'خطأ غير معروف')+'</div>';}
 }
 function openAssignment(){
@@ -331,13 +364,13 @@ function getRecoveryUrlState(){
 }
 let recoveryMode=getRecoveryUrlState().isRecovery;
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('loginButton');button.disabled=true;button.textContent='جارٍ التحقق…';$('authMessage').textContent='';try{const {data:result,error}=await sb.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});if(error)throw error;await enterWorkspace(result.session)}catch(err){$('authMessage').textContent=err.message||'تعذر تسجيل الدخول.'}finally{button.disabled=false;button.textContent='دخول إلى مساحة العمل'}});
-async function logout(){clearTimeout(cloudSaveTimer);clearInterval(adminNotificationTimer);if(currentUser&&(currentRole==='admin'||currentRole==='owner'))await saveCloudData();await sb.auth.signOut();currentUser=null;currentRole=null;$('appShell').style.display='none';$('employeeShell').style.display='none';$('authScreen').style.display='grid';$('loginPassword').value='';showAuthView('login','تم تسجيل الخروج.')}
+async function logout(){clearTimeout(cloudSaveTimer);clearInterval(adminNotificationTimer);if(currentUser&&(currentRole==='admin'||currentRole==='owner'))await saveCloudData();await sb.auth.signOut();currentUser=null;currentRole=null;$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';$('authScreen').style.display='grid';$('loginPassword').value='';showAuthView('login','تم تسجيل الخروج.')}
 // Register the listener before reading the session so recovery links are handled first.
 sb.auth.onAuthStateChange((event,session)=>{
   if(event==='PASSWORD_RECOVERY'){
     recoveryMode=true;$('authScreen').style.display='grid';$('appShell').style.display='none';showAuthView('update','تم التحقق من رابط الاستعادة. أدخل كلمة المرور الجديدة.');
   }else if(event==='SIGNED_OUT'){
-    currentUser=null;currentRole=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';
+    currentUser=null;currentRole=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';
   }
 });
 (async()=>{
@@ -346,7 +379,7 @@ sb.auth.onAuthStateChange((event,session)=>{
   if(error){$('authScreen').style.display='grid';$('appShell').style.display='none';showAuthView('login','تعذر التحقق من جلسة الدخول. أعد تحميل الصفحة وحاول مرة أخرى.');return}
   if(urlState.error){
     $('authScreen').style.display='grid';$('appShell').style.display='none';
-    showAuthView('login','تعذر تفعيل رابط الاستعادة: '+decodeURIComponent(urlState.error.replace(/\+/g,' '))+' — اطلب رابطاً جديداً.');
+    showAuthView('login','تعذر تفعيل رابط الاستعادة: '+safeDecode(urlState.error)+' — اطلب رابطاً جديداً.');
     return;
   }
   if(urlState.isRecovery){
@@ -358,6 +391,7 @@ sb.auth.onAuthStateChange((event,session)=>{
   await enterWorkspace(session);
 })();
 
+function safeDecode(v){try{return decodeURIComponent(String(v||'').replace(/\+/g,' '))}catch(e){return String(v||'')}}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function money(v){return Number(v||0).toLocaleString('ar-EG')+' ج.م'}
 function go(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('pageTitle').textContent=({dashboard:'لوحة التحكم',clients:'العملاء وفرص البيع',projects:'المشاريع',content:'تقويم المحتوى',finance:'الحسابات',settings:'النسخ الاحتياطي',employeePortal:'الموظفون والتكليفات'})[id];refresh();if(id==='employeePortal')loadAdminEmployees()}
