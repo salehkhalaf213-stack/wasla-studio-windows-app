@@ -7,7 +7,6 @@ const checks = [
   ['Employee performance', html.includes('loadAdminEmployees')],
   ['Notifications', html.includes('pollAdminNotifications')],
   ['Cloud workspace sync', html.includes('loadCloudData')],
- ['Desktop password recovery redirect', html.includes('resetPasswordForEmail') && html.includes('const redirectTo=window.location.origin+window.location.pathname')]
-];
+  ['Desktop password recovery redirect', /resetPasswordForEmail\s*\(\s*email\s*,\s*\{\s*redirectTo\s*\}\s*\)/.test(html) && /const\s+redirectTo\s*=\s*window\.location\.origin\s*\+\s*window\.location\.pathname/.test(html)]];
 for (const [label, ok] of checks) console.log(`${ok ? 'OK' : 'MISSING'}  ${label}`);
 if (checks.some(([, ok]) => !ok)) process.exit(1);
