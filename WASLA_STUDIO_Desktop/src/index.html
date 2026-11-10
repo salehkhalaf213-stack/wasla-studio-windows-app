@@ -1,8 +1,9 @@
+```
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#111411"><title>WASLA STUDIO | نظام الإدارة</title>
+<meta name="theme-color" content="#111411"><title>WASLA STUDIO V7 | نظام الإدارة وبوابة العميل</title>
 
 <style>
 :root{--dark:#111411;--lime:#b7f34a;--bg:#f4f5f1;--panel:#fff;--ink:#1b2118;--muted:#788174;--line:#e4e8df}
@@ -45,6 +46,14 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
 
 .notification-item{padding:11px 0;border-bottom:1px solid var(--line);font-size:12px;line-height:1.8}.notification-item:last-child{border:0}.performance-bar{height:7px;background:#edf1e8;border-radius:8px;overflow:hidden;min-width:90px}.performance-bar span{display:block;height:100%;background:var(--lime)}
 .client-shell{min-height:100vh;background:var(--bg);padding:22px}.client-wrap{max-width:1050px;margin:auto}.client-project-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px}.client-project-card h3{margin:7px 0;font-size:17px}.client-project-card p{font-size:13px;line-height:1.8;color:#566050}.task-overdue{color:#a33b2c;background:#fff0ed}.task-filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.task-filters input,.task-filters select{border:1px solid var(--line);border-radius:8px;padding:10px;background:white}.task-detail{white-space:pre-wrap;line-height:1.8;font-size:13px}
+
+.client-feature{margin-top:14px}.milestone{padding:10px 0;border-bottom:1px solid var(--line)}.milestone:last-child{border:0}
+.progress-track{height:8px;background:#edf1e8;border-radius:9px;overflow:hidden;margin:8px 0}.progress-track span{display:block;height:100%;background:var(--lime)}
+.portal-section{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.portal-section h4{margin:0 0 8px;font-size:13px}
+.comment{padding:9px;background:#f7f8f5;border-radius:8px;margin:7px 0;font-size:12px;white-space:pre-wrap;line-height:1.7}
+.design-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px}
+.admin-portal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.admin-portal-grid .card{min-width:0}
+@media(max-width:700px){.admin-portal-grid{grid-template-columns:1fr}}
 </style></head>
 <body>
 <section class="auth-screen" id="authScreen">
@@ -78,7 +87,7 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
       <button class="btn lime" id="updatePasswordButton" type="submit">حفظ كلمة المرور الجديدة</button>
     </form>
     <div id="authMessage" role="status"></div>
-    <p class="tiny">الدخول متاح للمدير والموظفين الذين أضافهم المدير فقط.</p>
+    <p class="tiny">الدخول متاح للحسابات المفعّلة من إدارة WASLA STUDIO.</p>
   </div>
 </section>
 <div class="layout" id="appShell" style="display:none">
@@ -90,6 +99,7 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
 <button data-page="content">▤　المحتوى</button>
 <button data-page="finance">＄　الحسابات</button>
 <button data-page="employeePortal">♟　الموظفون والتكليفات</button>
+<button data-page="clientManagement">▣　بوابة العملاء</button>
 <button data-page="settings">⚙　النسخ الاحتياطي</button>
 </nav><div class="side-note">Growth Starts With The Right Connection.<br>إصدار تجريبي قابل للاستخدام المحلي</div></aside>
 <main>
@@ -108,6 +118,39 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
 <div class="grid stats"><div class="card"><div class="stat-label">عدد الموظفين</div><div class="stat-value" id="adminEmployeeCount">0</div></div><div class="card"><div class="stat-label">إجمالي التكليفات</div><div class="stat-value" id="adminAssignmentCount">0</div></div><div class="card"><div class="stat-label">قيد التنفيذ</div><div class="stat-value" id="adminActiveCount">0</div></div><div class="card"><div class="stat-label">تحديثات جديدة</div><div class="stat-value" id="adminUpdatesCount">0</div></div></div>
 <div class="card" style="margin-bottom:14px"><div class="head"><h2>أداء الموظفين</h2><button class="btn soft sm" onclick="loadAdminEmployees()">تحديث البيانات</button></div><div class="table-wrap" id="adminEmployeesTable"><div class="empty">اضغط تحديث البيانات لعرض الأداء.</div></div></div>
 <div class="card"><div class="head"><h2>التكليفات ومتابعة التنفيذ</h2></div><div class="task-filters"><input id="assignmentSearch" placeholder="ابحث باسم المهمة أو العميل..." oninput="renderAdminAssignments()"><select id="assignmentStatusFilter" onchange="renderAdminAssignments()"><option value="">كل الحالات</option><option>لم يبدأ</option><option>قيد التنفيذ</option><option>قيد المراجعة</option><option>مكتمل</option></select><select id="assignmentDueFilter" onchange="renderAdminAssignments()"><option value="">كل المواعيد</option><option value="overdue">متأخرة</option><option value="today">تسليم اليوم</option><option value="upcoming">قادمة</option></select></div><div class="table-wrap" id="adminAssignmentsTable"><div class="empty">جارٍ تحميل التكليفات…</div></div></div>
+</section>
+
+<section class="page" id="clientManagement">
+ <div class="head"><h2>إدارة بوابة العملاء</h2><button class="btn soft sm" onclick="loadAdminClientPortal()">تحديث</button></div>
+ <div class="note">اختر مشروعاً مرتبطاً بملف عميل في جدول client_projects لإدارة المراحل والتصميمات والتعليقات. لن تظهر المشاريع غير المرتبطة بحساب عميل.</div>
+ <div class="admin-portal-grid" style="margin-top:14px">
+  <div class="card">
+   <h3 style="margin-top:0;font-size:15px">المشروع</h3>
+   <div class="field"><label>اختر المشروع</label><select id="adminPortalProject" onchange="loadAdminPortalProject()"><option value="">تحميل المشاريع…</option></select></div>
+   <div id="adminPortalProjectInfo" class="muted tiny">اختر مشروعاً لعرض بياناته.</div>
+  </div>
+  <div class="card">
+   <h3 style="margin-top:0;font-size:15px">إضافة مرحلة تنفيذ</h3>
+   <div class="field"><label>اسم المرحلة</label><input id="milestoneTitle" maxlength="160" placeholder="مثال: اعتماد الهوية البصرية"></div>
+   <div class="field"><label>الوصف</label><textarea id="milestoneDescription" rows="2" maxlength="1000"></textarea></div>
+   <div class="field"><label>الحالة</label><select id="milestoneStatus"><option value="pending">لم تبدأ</option><option value="in_progress">قيد التنفيذ</option><option value="review">قيد المراجعة</option><option value="completed">مكتملة</option></select></div>
+   <div class="field"><label>نسبة الإنجاز %</label><input id="milestoneProgress" type="number" min="0" max="100" value="0"></div>
+   <div class="field"><label>تاريخ مستهدف</label><input id="milestoneDate" type="date"></div>
+   <button class="btn lime" onclick="addClientMilestone()">حفظ المرحلة</button>
+  </div>
+  <div class="card">
+   <h3 style="margin-top:0;font-size:15px">رفع تصميم أو ملف للعميل</h3>
+   <div class="field"><label>عنوان الملف</label><input id="designTitle" maxlength="160" placeholder="مثال: النسخة الأولى من التصميم"></div>
+   <div class="field"><label>وصف مختصر</label><textarea id="designDescription" rows="2" maxlength="1000"></textarea></div>
+   <div class="field"><label>الملف (PNG / JPG / WEBP / PDF — حتى 20MB)</label><input id="designFile" type="file" accept="image/png,image/jpeg,image/webp,application/pdf"></div>
+   <label class="tiny"><input id="designVisible" type="checkbox" checked> إظهار الملف للعميل بعد الرفع</label>
+   <div style="margin-top:12px"><button class="btn lime" onclick="uploadClientDesign()">رفع التصميم</button></div>
+  </div>
+  <div class="card">
+   <h3 style="margin-top:0;font-size:15px">مراحل المشروع والتصميمات</h3>
+   <div id="adminPortalDetails" class="empty">اختر مشروعاً لعرض التفاصيل.</div>
+  </div>
+ </div>
 </section>
 <section class="page" id="settings"><div class="card"><h2 style="font-size:17px">النسخ الاحتياطي واستعادة البيانات</h2><p class="muted" style="font-size:13px;line-height:1.8">بيانات WASLA STUDIO تتم مزامنتها مع قاعدة بيانات Supabase عند تسجيل دخول المدير. احتفظ بنسخة احتياطية دورية كإجراء إضافي.</p><div class="actions"><button class="btn lime" onclick="exportData()">تنزيل نسخة احتياطية JSON</button><label class="btn soft" for="importFile">استعادة نسخة احتياطية</label><input id="importFile" type="file" accept="application/json" hidden onchange="importData(event)"></div><div class="note">تُحفظ التغييرات محلياً فوراً ثم تُرفع إلى السحابة تلقائياً. استخدم «مزامنة الآن» بعد الانتقال بين الأجهزة. عند تعديل البيانات من جهازين في الوقت نفسه، اعتمد جهازاً واحداً للتعديل لتجنب استبدال آخر تحديث.</div></div></section>
 <footer>WASLA STUDIO · Cloud Workspace · مزامنة Supabase</footer>
@@ -236,10 +279,101 @@ async function loadClientPortal(){
   if(accountError)throw accountError;if(!account)throw new Error('لا يوجد ربط لهذا الحساب بملف عميل. يرجى التواصل مع إدارة WASLA STUDIO.');
   const {data:projects,error:projectsError}=await sb.from('client_projects').select('legacy_project_id,legacy_client_id,project_name,created_at').eq('legacy_client_id',account.legacy_client_id).order('created_at',{ascending:false});
   if(projectsError)throw projectsError;clientProjectRows=projects||[];$('clientProjectCount').textContent=clientProjectRows.length;$('clientLastUpdated').textContent='آخر تحديث: '+new Date().toLocaleString('ar-EG');
-  box.innerHTML=clientProjectRows.length?clientProjectRows.map(project=>`<article class="client-project-card"><span class="pill green">مشروع مرتبط بحسابك</span><h3>${esc(project.project_name)}</h3><p><b>رقم المشروع:</b> ${esc(project.legacy_project_id)}<br><b>تاريخ إضافته:</b> ${project.created_at?esc(new Date(project.created_at).toLocaleDateString('ar-EG')):'—'}</p><p class="muted tiny">تفاصيل مراحل التنفيذ وطلبات التعديل ستظهر عند تفعيل سجل متابعة العميل.</p></article>`).join(''):'<div class="employee-empty">لا توجد مشاريع مرتبطة بحسابك حتى الآن.</div>';
+  box.innerHTML=clientProjectRows.length?clientProjectRows.map(project=>`<article class="client-project-card"><span class="pill green">مشروع مرتبط بحسابك</span><h3>${esc(project.project_name)}</h3><p><b>رقم المشروع:</b> ${esc(project.legacy_project_id)}<br><b>تاريخ إضافته:</b> ${project.created_at?esc(new Date(project.created_at).toLocaleDateString('ar-EG')):'—'}</p><div class="client-feature" id="clientProjectFeature-${esc(project.legacy_project_id)}"><div class="muted tiny">جارٍ تحميل مراحل المشروع…</div></div></article>`).join(''):'<div class="employee-empty">لا توجد مشاريع مرتبطة بحسابك حتى الآن.</div>';
   $('clientSync').textContent='● تم التحديث';
  }catch(e){console.error(e);box.innerHTML='<div class="employee-empty">تعذر تحميل مشاريع حسابك: '+esc(e.message||'خطأ غير معروف')+'</div>';$('clientSync').textContent='تعذر الاتصال';}
 }
+
+// V7 client project portal: milestones, comments, private designs and client reviews.
+let adminClientProjects=[], activeAdminPortalProject=null;
+const milestoneLabels={pending:'لم تبدأ',in_progress:'قيد التنفيذ',review:'قيد المراجعة',completed:'مكتملة'};
+async function loadClientProjectFeatures(project){
+ const host=$('clientProjectFeature-'+project.legacy_project_id);if(!host)return;
+ try{
+  const pid=project.legacy_project_id;
+  const [m,c,d]=await Promise.all([
+   sb.from('client_project_milestones').select('id,title,description,status,progress_percent,target_date,sort_order').eq('legacy_project_id',pid).order('sort_order').order('created_at'),
+   sb.from('client_project_comments').select('id,author_id,body,created_at').eq('legacy_project_id',pid).order('created_at',{ascending:false}).limit(50),
+   sb.from('client_project_designs').select('id,title,description,storage_path,version,visible_to_client,created_at').eq('legacy_project_id',pid).eq('visible_to_client',true).order('created_at',{ascending:false})
+  ]);
+  if(m.error)throw m.error;if(c.error)throw c.error;if(d.error)throw d.error;
+  const milestones=m.data||[],comments=c.data||[],designs=d.data||[];
+  const pct=milestones.length?Math.round(milestones.reduce((a,x)=>a+Number(x.progress_percent||0),0)/milestones.length):0;
+  host.innerHTML=`<div class="portal-section"><h4>مراحل التنفيذ — ${pct}% متوسط الإنجاز</h4>${milestones.length?milestones.map(x=>`<div class="milestone"><div class="actions" style="justify-content:space-between"><b>${esc(x.title)}</b><span class="pill">${esc(milestoneLabels[x.status]||x.status)}</span></div><div class="progress-track"><span style="width:${Math.max(0,Math.min(100,Number(x.progress_percent)||0))}%"></span></div><div class="muted tiny">${esc(x.description||'')}${x.target_date?' · الموعد: '+esc(x.target_date):''} · ${Number(x.progress_percent)||0}%</div></div>`).join(''):'<div class="muted tiny">لم تُضف مراحل لهذا المشروع بعد.</div>'}</div>
+  <div class="portal-section"><h4>التصميمات والملفات</h4>${designs.length?designs.map(x=>`<div class="design-row"><span><b>${esc(x.title)}</b><br><span class="muted">${esc(x.description||'')} · إصدار ${esc(x.version||1)}</span></span><button class="btn soft sm" onclick="openClientDesign('${esc(x.id)}','${esc(x.storage_path)}')">فتح الملف</button></div><div class="actions"><button class="btn soft sm" onclick="reviewClientDesign('${esc(x.id)}','approved')">اعتماد</button><button class="btn soft sm" onclick="reviewClientDesign('${esc(x.id)}','revision_requested')">طلب تعديل</button></div>`).join(''):'<div class="muted tiny">لا توجد ملفات متاحة للمراجعة حالياً.</div>'}</div>
+  <div class="portal-section"><h4>التواصل مع فريق العمل</h4><div>${comments.length?comments.map(x=>`<div class="comment">${esc(x.body)}<div class="muted tiny">${esc(new Date(x.created_at).toLocaleString('ar-EG'))}</div></div>`).join(''):'<div class="muted tiny">لا توجد رسائل بعد.</div>'}</div><textarea id="clientComment-${pid}" rows="2" maxlength="3000" placeholder="اكتب تعليقك أو ملاحظاتك…"></textarea><button class="btn lime sm" onclick="sendClientProjectComment(${pid})">إرسال التعليق</button></div>`;
+ }catch(e){console.error(e);host.innerHTML='<div class="note">تعذر تحميل تفاصيل المشروع: '+esc(e.message||'خطأ غير معروف')+'</div>'}
+}
+async function sendClientProjectComment(pid){
+ const field=$('clientComment-'+pid),body=field?.value.trim();if(!body)return alert('اكتب التعليق أولاً.');
+ try{const {error}=await sb.from('client_project_comments').insert({legacy_project_id:pid,author_id:currentUser.id,body});if(error)throw error;field.value='';const p=clientProjectRows.find(x=>Number(x.legacy_project_id)===Number(pid));if(p)await loadClientProjectFeatures(p);alert('تم إرسال تعليقك.');}
+ catch(e){alert('تعذر إرسال التعليق: '+(e.message||'خطأ غير معروف'))}
+}
+async function openClientDesign(id,path){
+ try{const {data,error}=await sb.storage.from('client-designs').createSignedUrl(path,300);if(error)throw error;if(!data?.signedUrl)throw new Error('لم يتم إنشاء رابط آمن للملف.');window.open(data.signedUrl,'_blank','noopener');}
+ catch(e){alert('تعذر فتح الملف: '+(e.message||'خطأ غير معروف'))}
+}
+async function reviewClientDesign(id,decision){
+ const comment=prompt(decision==='approved'?'ملاحظة الاعتماد (اختياري):':'اكتب التعديلات المطلوبة:','');if(comment===null)return;
+ if(decision==='revision_requested'&&!comment.trim())return alert('اكتب ملاحظات التعديل حتى يتمكن الفريق من تنفيذها.');
+ try{const {error}=await sb.from('client_design_reviews').insert({design_id:id,reviewer_id:currentUser.id,decision,comment:comment.trim()||null});if(error)throw error;alert(decision==='approved'?'تم تسجيل اعتماد التصميم.':'تم إرسال طلب التعديل.');}
+ catch(e){alert('تعذر تسجيل المراجعة: '+(e.message||'خطأ غير معروف'))}
+}
+async function loadAdminClientPortal(){
+ if(!isAdminRole())return;
+ const sel=$('adminPortalProject');if(!sel)return;sel.innerHTML='<option value="">جارٍ تحميل المشاريع…</option>';
+ try{const {data,error}=await sb.from('client_projects').select('legacy_project_id,legacy_client_id,project_name,created_at').order('created_at',{ascending:false});if(error)throw error;adminClientProjects=data||[];
+  sel.innerHTML='<option value="">اختر المشروع</option>'+adminClientProjects.map(x=>`<option value="${esc(x.legacy_project_id)}">${esc(x.project_name)} — #${esc(x.legacy_project_id)}</option>`).join('');
+  if(!adminClientProjects.length)$('adminPortalProjectInfo').textContent='لا توجد مشاريع مرتبطة بملفات العملاء في client_projects.';
+ }catch(e){sel.innerHTML='<option value="">تعذر تحميل المشاريع</option>';alert('تعذر تحميل مشاريع بوابة العملاء: '+(e.message||'خطأ غير معروف'))}
+}
+async function loadAdminPortalProject(){
+ const pid=Number($('adminPortalProject')?.value);if(!pid){activeAdminPortalProject=null;$('adminPortalDetails').textContent='اختر مشروعاً لعرض التفاصيل.';return}
+ activeAdminPortalProject=adminClientProjects.find(x=>Number(x.legacy_project_id)===pid);if(!activeAdminPortalProject)return;
+ $('adminPortalProjectInfo').textContent=activeAdminPortalProject.project_name+' · رقم المشروع '+pid;
+ await renderAdminPortalDetails();
+}
+async function renderAdminPortalDetails(){
+ const pid=Number(activeAdminPortalProject?.legacy_project_id);if(!pid)return;
+ const box=$('adminPortalDetails');box.textContent='جارٍ تحميل البيانات…';
+ try{
+  const [m,d,c]=await Promise.all([
+   sb.from('client_project_milestones').select('*').eq('legacy_project_id',pid).order('sort_order').order('created_at'),
+   sb.from('client_project_designs').select('*').eq('legacy_project_id',pid).order('created_at',{ascending:false}),
+   sb.from('client_project_comments').select('*').eq('legacy_project_id',pid).order('created_at',{ascending:false}).limit(30)
+  ]);if(m.error)throw m.error;if(d.error)throw d.error;if(c.error)throw c.error;
+  const designIds=(d.data||[]).map(x=>x.id);let reviewRows=[];if(designIds.length){const {data:rr,error:re}=await sb.from('client_design_reviews').select('id,design_id,reviewer_id,decision,comment,created_at').in('design_id',designIds).order('created_at',{ascending:false});if(re)throw re;reviewRows=rr||[];}
+  box.innerHTML='<h4>المراحل</h4>'+(m.data?.length?m.data.map(x=>`<div class="milestone"><b>${esc(x.title)}</b> · ${esc(milestoneLabels[x.status]||x.status)} · ${Number(x.progress_percent)||0}%<div class="progress-track"><span style="width:${Math.max(0,Math.min(100,Number(x.progress_percent)||0))}%"></span></div><button class="btn danger sm" onclick="deleteClientMilestone('${esc(x.id)}')">حذف المرحلة</button></div>`).join(''):'<div class="muted tiny">لا توجد مراحل.</div>')+
+  '<div class="portal-section"><h4>الملفات المرفوعة</h4>'+(d.data?.length?d.data.map(x=>`<div class="design-row"><span>${esc(x.title)} · ${x.visible_to_client?'ظاهر للعميل':'مخفي عن العميل'}</span><button class="btn soft sm" onclick="toggleDesignVisibility('${esc(x.id)}',${!x.visible_to_client})">${x.visible_to_client?'إخفاء':'إظهار'}</button></div>`).join(''):'<div class="muted tiny">لا توجد ملفات.</div>')+'</div>'+
+  '<div class="portal-section"><h4>مراجعات واعتمادات العميل</h4>'+(reviewRows.length?reviewRows.map(x=>`<div class="comment"><b>${x.decision==='approved'?'تم اعتماد التصميم':'طلب تعديل'}</b> — ${esc(x.comment||'بدون ملاحظة')}<div class="muted tiny">${esc(new Date(x.created_at).toLocaleString('ar-EG'))}</div></div>`).join(''):'<div class="muted tiny">لا توجد مراجعات بعد.</div>')+'</div>'+
+  '<div class="portal-section"><h4>تعليقات العميل</h4>'+(c.data?.length?c.data.map(x=>`<div class="comment">${esc(x.body)}<div class="muted tiny">${esc(new Date(x.created_at).toLocaleString('ar-EG'))}</div></div>`).join(''):'<div class="muted tiny">لا توجد تعليقات.</div>')+'</div>';
+ }catch(e){box.textContent='تعذر تحميل التفاصيل: '+(e.message||'خطأ غير معروف')}
+}
+async function addClientMilestone(){
+ const pid=Number(activeAdminPortalProject?.legacy_project_id),title=$('milestoneTitle').value.trim(),progress=Number($('milestoneProgress').value);
+ if(!pid)return alert('اختر مشروعاً أولاً.');if(!title)return alert('اكتب اسم المرحلة.');if(!Number.isInteger(progress)||progress<0||progress>100)return alert('نسبة الإنجاز يجب أن تكون من 0 إلى 100.');
+ try{const {error}=await sb.from('client_project_milestones').insert({legacy_project_id:pid,title,description:$('milestoneDescription').value.trim(),status:$('milestoneStatus').value,progress_percent:progress,target_date:$('milestoneDate').value||null,created_by:currentUser.id});if(error)throw error;
+ $('milestoneTitle').value='';$('milestoneDescription').value='';$('milestoneProgress').value=0;$('milestoneDate').value='';await renderAdminPortalDetails();alert('تمت إضافة المرحلة.');}
+ catch(e){alert('تعذر إضافة المرحلة: '+(e.message||'خطأ غير معروف'))}
+}
+async function deleteClientMilestone(id){if(!confirm('هل تريد حذف هذه المرحلة؟'))return;try{const {error}=await sb.from('client_project_milestones').delete().eq('id',id);if(error)throw error;await renderAdminPortalDetails()}catch(e){alert('تعذر حذف المرحلة: '+(e.message||'خطأ غير معروف'))}}
+async function toggleDesignVisibility(id,visible){
+ try{const {error}=await sb.from('client_project_designs').update({visible_to_client:visible}).eq('id',id);if(error)throw error;await renderAdminPortalDetails();alert(visible?'أصبح الملف ظاهراً للعميل.':'تم إخفاء الملف عن العميل.')}
+ catch(e){alert('تعذر تحديث ظهور الملف: '+(e.message||'خطأ غير معروف'))}
+}
+async function uploadClientDesign(){
+ const pid=Number(activeAdminPortalProject?.legacy_project_id),file=$('designFile').files?.[0],title=$('designTitle').value.trim();
+ if(!pid)return alert('اختر مشروعاً أولاً.');if(!file||!title)return alert('أدخل عنوان الملف واختر الملف.');
+ const allowed=['image/png','image/jpeg','image/webp','application/pdf'];if(!allowed.includes(file.type))return alert('نوع الملف غير مدعوم.');if(file.size>20*1024*1024)return alert('الحد الأقصى لحجم الملف 20MB.');
+ const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(-100),path=pid+'/'+Date.now()+'_'+safeName;
+ try{
+  const {error:uploadError}=await sb.storage.from('client-designs').upload(path,file,{contentType:file.type,upsert:false});if(uploadError)throw uploadError;
+  const {error:metaError}=await sb.from('client_project_designs').insert({legacy_project_id:pid,title,description:$('designDescription').value.trim(),storage_path:path,version:1,uploaded_by:currentUser.id,visible_to_client:$('designVisible').checked});
+  if(metaError){await sb.storage.from('client-designs').remove([path]);throw metaError;}
+  $('designTitle').value='';$('designDescription').value='';$('designFile').value='';await renderAdminPortalDetails();alert('تم رفع الملف وربطه بالمشروع.');
+ }catch(e){alert('تعذر رفع الملف: '+(e.message||'خطأ غير معروف'))}
+}
+
 function localDateKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function assignmentDueClass(a){return a.due_date&&a.due_date<localDateKey()&&a.employee_status!=='مكتمل'}
 function renderAdminAssignments(){
@@ -393,7 +527,7 @@ sb.auth.onAuthStateChange((event,session)=>{
 function safeDecode(v){try{return decodeURIComponent(String(v||'').replace(/\+/g,' '))}catch(e){return String(v||'')}}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function money(v){return Number(v||0).toLocaleString('ar-EG')+' ج.م'}
-function go(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('pageTitle').textContent=({dashboard:'لوحة التحكم',clients:'العملاء وفرص البيع',projects:'المشاريع',content:'تقويم المحتوى',finance:'الحسابات',settings:'النسخ الاحتياطي',employeePortal:'الموظفون والتكليفات'})[id];refresh();if(id==='employeePortal')loadAdminEmployees()}
+function go(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('pageTitle').textContent=({dashboard:'لوحة التحكم',clients:'العملاء وفرص البيع',projects:'المشاريع',content:'تقويم المحتوى',finance:'الحسابات',settings:'النسخ الاحتياطي',employeePortal:'الموظفون والتكليفات',clientManagement:'بوابة العملاء'})[id];refresh();if(id==='employeePortal')loadAdminEmployees();if(id==='clientManagement')loadAdminClientPortal()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.page));
 function table(headers,rows){return rows.length?'<table><thead><tr>'+headers.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>':'<div class="empty">لا توجد سجلات بعد. أضف أول سجل للبدء.</div>'}
 function refresh(){let income=data.finance.filter(x=>x.kind==='إيراد').reduce((a,x)=>a+Number(x.amount),0),expense=data.finance.filter(x=>x.kind==='مصروف').reduce((a,x)=>a+Number(x.amount),0);$('sClients').textContent=data.clients.length;$('sLeads').textContent=data.clients.filter(x=>['عميل محتمل','تم التواصل'].includes(x.status)).length;$('sProjects').textContent=data.projects.filter(x=>x.status==='قيد التنفيذ').length;$('sBalance').textContent=money(income-expense);$('recentClients').innerHTML=table(['العميل','الحالة'],data.clients.slice(-5).reverse().map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.status)}</td></tr>`));$('income').textContent=money(income);$('expense').textContent=money(expense);$('balance').textContent=money(income-expense);$('transactions').textContent=data.finance.length;renderClients();renderProjects();renderContent();renderFinance()}
@@ -416,3 +550,4 @@ function importData(e){let file=e.target.files[0];if(!file)return;let r=new File
 refresh();
 
 </script></body></html>
+```
