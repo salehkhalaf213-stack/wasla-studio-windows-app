@@ -3,7 +3,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#111411"><title>WASLA STUDIO V7 | نظام الإدارة وبوابة العميل</title>
+<meta name="theme-color" content="#111411"><title>WASLA STUDIO V8 | الإشعارات الموحدة</title>
 
 <style>
 :root{--dark:#111411;--lime:#b7f34a;--bg:#f4f5f1;--panel:#fff;--ink:#1b2118;--muted:#788174;--line:#e4e8df}
@@ -44,7 +44,7 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
 .update-item{border-top:1px solid var(--line);padding:9px 0;font-size:12px;line-height:1.7;white-space:pre-wrap}
 .employee-empty{background:#fff;border:1px dashed #cbd4c3;border-radius:14px;padding:35px;text-align:center;color:var(--muted)}
 
-.notification-item{padding:11px 0;border-bottom:1px solid var(--line);font-size:12px;line-height:1.8}.notification-item:last-child{border:0}.performance-bar{height:7px;background:#edf1e8;border-radius:8px;overflow:hidden;min-width:90px}.performance-bar span{display:block;height:100%;background:var(--lime)}
+.unified-notification{padding:12px;margin:8px 0;border:1px solid var(--line);border-radius:10px;background:#fff}.unified-notification.unread{border-color:#b7d879;background:#f8fced}.unified-notification .meta{font-size:10px;color:var(--muted);margin-top:6px}.unified-notification .body{font-size:12px;line-height:1.8;white-space:pre-wrap;margin-top:5px}.notification-item{padding:11px 0;border-bottom:1px solid var(--line);font-size:12px;line-height:1.8}.notification-item:last-child{border:0}.performance-bar{height:7px;background:#edf1e8;border-radius:8px;overflow:hidden;min-width:90px}.performance-bar span{display:block;height:100%;background:var(--lime)}
 .client-shell{min-height:100vh;background:var(--bg);padding:22px}.client-wrap{max-width:1050px;margin:auto}.client-project-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px}.client-project-card h3{margin:7px 0;font-size:17px}.client-project-card p{font-size:13px;line-height:1.8;color:#566050}.task-overdue{color:#a33b2c;background:#fff0ed}.task-filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.task-filters input,.task-filters select{border:1px solid var(--line);border-radius:8px;padding:10px;background:white}.task-detail{white-space:pre-wrap;line-height:1.8;font-size:13px}
 
 .client-feature{margin-top:14px}.milestone{padding:10px 0;border-bottom:1px solid var(--line)}.milestone:last-child{border:0}
@@ -103,7 +103,7 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
 <button data-page="settings">⚙　النسخ الاحتياطي</button>
 </nav><div class="side-note">Growth Starts With The Right Connection.<br>إصدار تجريبي قابل للاستخدام المحلي</div></aside>
 <main>
-<header class="top"><div><div class="muted tiny">مساحة عملك الرقمية</div><h1 id="pageTitle">لوحة التحكم</h1></div><div class="actions"><span class="sync-pill" id="syncStatus">● متصل بالسحابة</span><button class="btn soft sm" id="adminNotificationsButton" onclick="openAdminNotifications()">🔔 الإشعارات <span id="adminNotificationCount">0</span></button><button class="btn soft sm" onclick="loadCloudData(true)">مزامنة الآن</button><button class="btn lime" onclick="openClient()">＋ عميل جديد</button><button class="btn soft sm" onclick="logout()">خروج</button></div></header>
+<header class="top"><div><div class="muted tiny">مساحة عملك الرقمية</div><h1 id="pageTitle">لوحة التحكم</h1></div><div class="actions"><span class="sync-pill" id="syncStatus">● متصل بالسحابة</span><button class="btn soft sm" id="adminNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="adminNotificationCount">0</span></button><button class="btn soft sm" onclick="loadCloudData(true)">مزامنة الآن</button><button class="btn lime" onclick="openClient()">＋ عميل جديد</button><button class="btn soft sm" onclick="logout()">خروج</button></div></header>
 <section class="page active" id="dashboard">
 <div class="hero"><h2>مرحباً بك في <b>WASLA STUDIO</b></h2><p>تابع العملاء وفرص البيع والمشاريع والمحتوى والحسابات من مكان واحد.</p></div>
 <div class="grid stats"><div class="card"><div class="stat-label">إجمالي العملاء</div><div class="stat-value" id="sClients">0</div><div class="muted tiny">كل السجلات</div></div><div class="card"><div class="stat-label">فرص مفتوحة</div><div class="stat-value" id="sLeads">0</div><div class="muted tiny">تحتاج متابعة</div></div><div class="card"><div class="stat-label">مشاريع نشطة</div><div class="stat-value" id="sProjects">0</div><div class="muted tiny">قيد التنفيذ</div></div><div class="card"><div class="stat-label">صافي الحسابات</div><div class="stat-value" id="sBalance">0 ج.م</div><div class="muted tiny">حسب العمليات المسجلة</div></div></div>
@@ -159,7 +159,7 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
   <div class="employee-wrap">
     <header class="employee-top">
       <div><div class="employee-brand">WASLA <span>STUDIO</span></div><div class="muted tiny" id="employeeWelcome">مساحة الموظف</div></div>
-      <div class="actions"><span class="sync-pill" id="employeeSync">● متصل</span><button class="btn soft sm" id="employeeRefresh">تحديث التكليفات</button><button class="btn sm" onclick="logout()">خروج</button></div>
+      <div class="actions"><span class="sync-pill" id="employeeSync">● متصل</span><button class="btn soft sm" id="employeeNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="employeeNotificationCount">0</span></button><button class="btn soft sm" id="employeeRefresh">تحديث التكليفات</button><button class="btn sm" onclick="logout()">خروج</button></div>
     </header>
     <div class="hero"><h2>لوحة مهامي</h2><p>تابع التكليفات المسندة إليك، حدّث حالة التنفيذ، وأرسل مستجداتك للمدير.</p></div>
     <div class="grid stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
@@ -173,12 +173,13 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
 </section>
 <section class="client-shell" id="clientShell" style="display:none">
  <div class="client-wrap">
-  <header class="employee-top"><div><div class="employee-brand">WASLA <span>STUDIO</span></div><div class="muted tiny" id="clientWelcome">بوابة العميل</div></div><div class="actions"><span class="sync-pill" id="clientSync">● متصل</span><button class="btn soft sm" onclick="loadClientPortal()">تحديث المشاريع</button><button class="btn sm" onclick="logout()">خروج</button></div></header>
+  <header class="employee-top"><div><div class="employee-brand">WASLA <span>STUDIO</span></div><div class="muted tiny" id="clientWelcome">بوابة العميل</div></div><div class="actions"><span class="sync-pill" id="clientSync">● متصل</span><button class="btn soft sm" id="clientNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="clientNotificationCount">0</span></button><button class="btn soft sm" onclick="loadClientPortal()">تحديث المشاريع</button><button class="btn sm" onclick="logout()">خروج</button></div></header>
   <div class="hero"><h2>مساحة مشاريعك</h2><p>تابع المشاريع المرتبطة بحسابك من مكان واحد. لا يمكن لهذا الحساب الاطلاع على مشاريع العملاء الآخرين.</p></div>
   <div class="grid stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="card"><div class="stat-label">المشاريع المرتبطة بحسابك</div><div class="stat-value" id="clientProjectCount">0</div></div><div class="card"><div class="stat-label">حالة الحساب</div><div class="stat-value" style="font-size:18px">موثّق</div></div></div>
   <div class="head"><h2>مشاريعي</h2><span class="muted tiny" id="clientLastUpdated"></span></div><div class="assignment-grid" id="clientProjects"><div class="employee-empty">جارٍ تحميل المشاريع…</div></div>
  </div>
 </section>
+<div class="modal" id="notificationsModal" onclick="if(event.target===this)closeUnifiedNotifications()"><div class="dialog"><div class="head"><h2>مركز الإشعارات</h2><button class="btn soft sm" onclick="refreshUnifiedNotifications()">تحديث</button></div><div id="notificationsList"><div class="empty">جارٍ تحميل الإشعارات…</div></div><div class="dialog-actions"><button class="btn soft" onclick="closeUnifiedNotifications()">إغلاق</button></div></div></div>
 <div class="modal" id="adminNotificationsModal"><div class="dialog"><h2>إشعارات مستجدات الموظفين</h2><div id="adminNotificationsList"></div><div class="dialog-actions"><button class="btn soft" onclick="closeAdminNotifications()">إغلاق</button></div></div></div>
 <div class="modal" id="modal"><div class="dialog"><h2 id="modalTitle">إضافة سجل</h2><div id="modalBody"></div><div class="dialog-actions"><button class="btn lime" id="saveBtn">حفظ</button><button class="btn soft" onclick="closeModal()">إلغاء</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0"></script>
@@ -206,13 +207,13 @@ async function enterWorkspace(session){
   const name=profile.full_name||session.user.email;
   if(currentRole==='admin'||currentRole==='owner'){
     $('employeeShell').style.display='none';$('clientShell').style.display='none';$('appShell').style.display='grid';$('pageTitle').textContent='لوحة التحكم — '+name;
-    await loadCloudData(false);await loadAdminEmployees();await pollAdminNotifications();clearInterval(adminNotificationTimer);adminNotificationTimer=setInterval(pollAdminNotifications,20000);
+    await loadCloudData(false);await loadAdminEmployees();await pollAdminNotifications();clearInterval(adminNotificationTimer);adminNotificationTimer=setInterval(pollAdminNotifications,20000);await startUnifiedNotifications();
   }else if(currentRole==='employee'){
     $('appShell').style.display='none';$('clientShell').style.display='none';$('employeeShell').style.display='block';$('employeeWelcome').textContent='مرحباً، '+name;
-    await loadEmployeeAssignments();
+    await loadEmployeeAssignments();await startUnifiedNotifications();
   }else{
     $('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='block';$('clientWelcome').textContent='مرحباً، '+name;
-    await loadClientPortal();
+    await loadClientPortal();await startUnifiedNotifications();
   }
 }
 let employeeAssignments=[];
@@ -384,6 +385,62 @@ function renderAdminAssignments(){
 }
 function viewAssignmentDetails(id){const a=adminAssignments.find(x=>String(x.id)===String(id));if(!a)return;const updates=adminUpdates.filter(u=>String(u.assignment_id)===String(id));openModal('تفاصيل التكليف',`<div class="task-detail"><b>${esc(a.project_name)}</b>\nالعميل: ${esc(a.client_label||'—')}\nموعد التسليم: ${esc(a.due_date||'غير محدد')}\nالحالة: ${esc(a.employee_status)}\n\nتعليمات المدير:\n${esc(a.instructions||'—')}\n\nسجل التحديثات:\n${updates.length?updates.map(u=>new Date(u.created_at).toLocaleString('ar-EG')+' — '+u.body).map(esc).join('\n\n'):'لا توجد تحديثات بعد.'}</div>`,()=>closeModal());}
 
+// Unified role-scoped notifications (V8). Uses the existing RLS policies and 20-second polling.
+let unifiedNotifications=[], unifiedNotificationsTimer=null, unifiedNotificationsBusy=false;
+const NOTIFICATION_POLL_MS=20000;
+function notificationDate(value){try{return new Date(value).toLocaleString('ar-EG')}catch{return ''}}
+function updateNotificationBadges(){
+  const unread=unifiedNotifications.filter(n=>!n.is_read).length;
+  ['adminNotificationCount','employeeNotificationCount','clientNotificationCount'].forEach(id=>{const el=$(id);if(el)el.textContent=String(unread)});
+  ['adminNotificationsButton','employeeNotificationsButton','clientNotificationsButton'].forEach(id=>{const el=$(id);if(el)el.title=unread?`لديك ${unread} إشعارات غير مقروءة`:'لا توجد إشعارات غير مقروءة'});
+}
+async function refreshUnifiedNotifications(){
+  if(!currentUser||unifiedNotificationsBusy)return;
+  unifiedNotificationsBusy=true;
+  try{
+    const {data:rows,error}=await sb.from('notifications').select('id,event_type,title,body,entity_type,entity_id,is_read,created_at,metadata').order('created_at',{ascending:false}).limit(50);
+    if(error)throw error;
+    unifiedNotifications=rows||[];updateNotificationBadges();
+    const host=$('notificationsList');
+    if(host&&$('notificationsModal')?.classList.contains('show'))renderUnifiedNotifications();
+  }catch(e){console.warn('Unified notifications unavailable:',e);const host=$('notificationsList');if(host&&$('notificationsModal')?.classList.contains('show'))host.innerHTML='<div class="empty">تعذر تحميل الإشعارات. تحقق من اتصال الحساب ثم حاول التحديث.</div>';}
+  finally{unifiedNotificationsBusy=false;}
+}
+async function startUnifiedNotifications(){
+  clearInterval(unifiedNotificationsTimer);await refreshUnifiedNotifications();
+  unifiedNotificationsTimer=setInterval(refreshUnifiedNotifications,NOTIFICATION_POLL_MS);
+}
+function renderUnifiedNotifications(){
+  const host=$('notificationsList');if(!host)return;
+  if(!unifiedNotifications.length){host.innerHTML='<div class="empty">لا توجد إشعارات حتى الآن.</div>';return;}
+  host.innerHTML=unifiedNotifications.map(n=>`<article class="unified-notification ${n.is_read?'':'unread'}"><div class="actions" style="justify-content:space-between"><b>${esc(n.title||'إشعار جديد')}</b><span class="pill ${n.is_read?'':'green'}">${n.is_read?'مقروء':'جديد'}</span></div><div class="body">${esc(n.body||'')}</div><div class="meta">${esc(notificationDate(n.created_at))}</div><div class="actions" style="margin-top:8px">${n.is_read?'':`<button class="btn soft sm" onclick="markUnifiedNotificationRead('${esc(n.id)}')">تحديد كمقروء</button>`}${n.entity_type&&n.entity_id?`<button class="btn soft sm" onclick="openNotificationTarget('${esc(n.entity_type)}','${esc(n.entity_id)}','${esc(n.id)}')">فتح المرتبط</button>`:''}</div></article>`).join('');
+}
+function openUnifiedNotifications(){ $('notificationsModal')?.classList.add('show');renderUnifiedNotifications();refreshUnifiedNotifications(); }
+function closeUnifiedNotifications(){ $('notificationsModal')?.classList.remove('show'); }
+async function markUnifiedNotificationRead(id){
+  const item=unifiedNotifications.find(n=>String(n.id)===String(id));if(!item||item.is_read)return;
+  const {error}=await sb.from('notifications').update({is_read:true}).eq('id',id);
+  if(error){console.error(error);alert('تعذر تحديث حالة الإشعار: '+(error.message||'خطأ غير معروف'));return;}
+  item.is_read=true;updateNotificationBadges();renderUnifiedNotifications();
+}
+async function openNotificationTarget(type,id,notificationId){
+  await markUnifiedNotificationRead(notificationId);
+  closeUnifiedNotifications();
+  if(type==='assignment'){
+    if(currentRole==='employee'){
+      const el=$('assignment-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.outline='2px solid #b7f34a';setTimeout(()=>el.style.outline='',2500);}
+      else await loadEmployeeAssignments();
+    }else if(isAdminRole()){
+      go('employeePortal');const row=adminAssignments.find(a=>String(a.id)===String(id));if(row)viewAssignmentDetails(id);
+    }
+  }else if(type==='project'){
+    if(currentRole==='user'){
+      const el=$('clientProjectFeature-'+id);
+      if(el)el.scrollIntoView({behavior:'smooth',block:'center'});else await loadClientPortal();
+    }else if(isAdminRole())go('clientManagement');
+  }else if(type==='design'&&isAdminRole())go('clientManagement');
+}
+
 // Manager tools: employee performance, assignment management, and update notifications.
 let adminEmployees=[], adminAssignments=[], adminUpdates=[], adminNotificationTimer=null;
 const ADMIN_SEEN_KEY='wasla_admin_seen_updates_v1';
@@ -430,7 +487,7 @@ function viewAssignmentUpdates(id){const a=adminAssignments.find(x=>String(x.id)
 function unseenAdminUpdates(){let seen=[];try{seen=JSON.parse(localStorage.getItem(ADMIN_SEEN_KEY)||'[]')}catch{}return adminUpdates.filter(u=>!seen.includes(String(u.id)));}
 async function pollAdminNotifications(){
   if(!currentUser||!isAdminRole())return;
-  try{const {data:rows,error}=await sb.from('employee_updates').select('id,assignment_id,employee_id,body,created_at').order('created_at',{ascending:false}).limit(100);if(error)throw error;adminUpdates=rows||[];const unseen=unseenAdminUpdates();const badge=$('adminNotificationCount');if(badge)badge.textContent=unseen.length;const count=$('adminUpdatesCount');if(count)count.textContent=unseen.length;
+  try{const {data:rows,error}=await sb.from('employee_updates').select('id,assignment_id,employee_id,body,created_at').order('created_at',{ascending:false}).limit(100);if(error)throw error;adminUpdates=rows||[];const unseen=unseenAdminUpdates();const count=$('adminUpdatesCount');if(count)count.textContent=unseen.length;
     const btn=$('adminNotificationsButton');if(btn)btn.title=unseen.length?`لديك ${unseen.length} تحديثات جديدة`:'لا توجد إشعارات جديدة';
   }catch(e){console.warn('Notification polling failed',e)}
 }
@@ -497,13 +554,13 @@ function getRecoveryUrlState(){
 }
 let recoveryMode=getRecoveryUrlState().isRecovery;
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('loginButton');button.disabled=true;button.textContent='جارٍ التحقق…';$('authMessage').textContent='';try{const {data:result,error}=await sb.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});if(error)throw error;await enterWorkspace(result.session)}catch(err){$('authMessage').textContent=err.message||'تعذر تسجيل الدخول.'}finally{button.disabled=false;button.textContent='دخول إلى مساحة العمل'}});
-async function logout(){clearTimeout(cloudSaveTimer);clearInterval(adminNotificationTimer);if(currentUser&&(currentRole==='admin'||currentRole==='owner'))await saveCloudData();await sb.auth.signOut();currentUser=null;currentRole=null;$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';$('authScreen').style.display='grid';$('loginPassword').value='';showAuthView('login','تم تسجيل الخروج.')}
+async function logout(){clearTimeout(cloudSaveTimer);clearInterval(adminNotificationTimer);clearInterval(unifiedNotificationsTimer);if(currentUser&&(currentRole==='admin'||currentRole==='owner'))await saveCloudData();await sb.auth.signOut();currentUser=null;currentRole=null;$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';$('authScreen').style.display='grid';$('loginPassword').value='';showAuthView('login','تم تسجيل الخروج.')}
 // Register the listener before reading the session so recovery links are handled first.
 sb.auth.onAuthStateChange((event,session)=>{
   if(event==='PASSWORD_RECOVERY'){
     recoveryMode=true;$('authScreen').style.display='grid';$('appShell').style.display='none';showAuthView('update','تم التحقق من رابط الاستعادة. أدخل كلمة المرور الجديدة.');
   }else if(event==='SIGNED_OUT'){
-    currentUser=null;currentRole=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';
+    clearInterval(unifiedNotificationsTimer);currentUser=null;currentRole=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';
   }
 });
 (async()=>{
