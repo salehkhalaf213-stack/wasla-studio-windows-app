@@ -1,4 +1,3 @@
-```
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -45,6 +44,32 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
 .employee-empty{background:#fff;border:1px dashed #cbd4c3;border-radius:14px;padding:35px;text-align:center;color:var(--muted)}
 
 .notification-item{padding:11px 0;border-bottom:1px solid var(--line);font-size:12px;line-height:1.8}.notification-item:last-child{border:0}.performance-bar{height:7px;background:#edf1e8;border-radius:8px;overflow:hidden;min-width:90px}.performance-bar span{display:block;height:100%;background:var(--lime)}
+
+/* Client portal */
+.client-shell{min-height:100vh;background:var(--bg);padding:22px}
+.client-wrap{max-width:1180px;margin:auto}
+.client-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.client-brand{font-size:21px;font-weight:900;letter-spacing:2px}
+.client-brand span{color:#789d2d}
+.client-hero{background:var(--dark);color:#fff;padding:24px;border-radius:16px;margin-bottom:16px}
+.client-hero h1{font-size:22px;margin:0 0 8px}
+.client-hero p{color:#d1d8ca;font-size:13px;line-height:1.8;margin:0}
+.client-project-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin:14px 0}
+.client-project-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.client-project-card h2{font-size:18px;margin:0 0 8px}
+.client-progress{height:9px;background:#edf1e8;border-radius:9px;overflow:hidden;margin:10px 0 16px}
+.client-progress span{display:block;height:100%;background:var(--lime)}
+.client-columns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:15px}
+.client-subcard{border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.client-subcard h3{font-size:14px;margin:0 0 10px}
+.client-milestone,.client-comment,.client-design{padding:10px 0;border-bottom:1px solid var(--line);font-size:12px;line-height:1.8}
+.client-milestone:last-child,.client-comment:last-child,.client-design:last-child{border-bottom:0}
+.client-subcard textarea{width:100%;min-height:78px;padding:10px;border:1px solid var(--line);border-radius:8px;margin:8px 0}
+.client-design-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.client-file{display:inline-block;color:#587a24;font-weight:bold;font-size:12px;margin:7px 0}
+.client-empty{background:#fff;border:1px dashed #cbd4c3;border-radius:14px;padding:30px;text-align:center;color:var(--muted);line-height:1.9}
+@media(max-width:700px){.client-columns{grid-template-columns:1fr}.client-shell{padding:14px}.client-project-card{padding:14px}}
+
 </style></head>
 <body>
 <section class="auth-screen" id="authScreen">
@@ -78,7 +103,7 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
       <button class="btn lime" id="updatePasswordButton" type="submit">حفظ كلمة المرور الجديدة</button>
     </form>
     <div id="authMessage" role="status"></div>
-    <p class="tiny">الدخول متاح للمدير والموظفين الذين أضافهم المدير فقط.</p>
+    <p class="tiny">الدخول متاح لحسابات المدير والموظفين والعملاء المفعّلة.</p>
   </div>
 </section>
 <div class="layout" id="appShell" style="display:none">
@@ -128,6 +153,18 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
     <div class="assignment-grid" id="employeeAssignments"><div class="employee-empty">جارٍ تحميل التكليفات…</div></div>
   </div>
 </section>
+
+<section class="client-shell" id="clientShell" style="display:none">
+  <div class="client-wrap">
+    <header class="client-top">
+      <div><div class="client-brand">WASLA <span>STUDIO</span></div><div class="muted tiny" id="clientWelcome">بوابة العميل</div></div>
+      <div class="actions"><span class="sync-pill" id="clientSync">● بوابة العميل</span><button class="btn soft sm" id="clientRefresh">تحديث المشروع</button><button class="btn sm" onclick="logout()">خروج</button></div>
+    </header>
+    <section class="client-hero"><h1>مرحباً بك في بوابة مشروعك</h1><p>تابع تقدم العمل، راجع مراحل المشروع والتصميمات، واعتمد التصميم أو أرسل ملاحظاتك مباشرة إلى فريق WASLA STUDIO.</p></section>
+    <div id="clientProjects"><div class="client-empty">جارٍ تحميل مشاريعك…</div></div>
+  </div>
+</section>
+
 <div class="modal" id="adminNotificationsModal"><div class="dialog"><h2>إشعارات مستجدات الموظفين</h2><div id="adminNotificationsList"></div><div class="dialog-actions"><button class="btn soft" onclick="closeAdminNotifications()">إغلاق</button></div></div></div>
 <div class="modal" id="modal"><div class="dialog"><h2 id="modalTitle">إضافة سجل</h2><div id="modalBody"></div><div class="dialog-actions"><button class="btn lime" id="saveBtn">حفظ</button><button class="btn soft" onclick="closeModal()">إلغاء</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0"></script>
@@ -145,20 +182,29 @@ function scheduleCloudSave(){clearTimeout(cloudSaveTimer);setSync('● حفظ ا
 async function saveCloudData(){if(!currentUser)return;if(cloudBusy){scheduleCloudSave();return}cloudBusy=true;setSync('● جارٍ الحفظ…');try{const {error}=await sb.from('workspace_data').upsert({id:1,payload:data,updated_by:currentUser.id,updated_at:new Date().toISOString()},{onConflict:'id'});if(error)throw error;setSync('● تمت المزامنة')}catch(e){console.error(e);setSync('تعذر الحفظ السحابي',true);alert('تم حفظ التغيير على هذا الجهاز، لكن تعذر رفعه إلى السحابة. تحقق من الاتصال ثم اضغط «مزامنة الآن».')}finally{cloudBusy=false}}
 async function loadCloudData(showMessage=false){if(!currentUser)return;setSync('● جارٍ تحميل البيانات…');try{const {data:row,error}=await sb.from('workspace_data').select('payload,updated_at').eq('id',1).maybeSingle();if(error)throw error;if(row&&row.payload){const d=row.payload;if(!d.clients||!d.projects||!d.contents||!d.finance)throw new Error('صيغة بيانات السحابة غير مكتملة');data=d;localStorage.setItem(KEY,JSON.stringify(data));refresh();setSync('● البيانات محدثة من السحابة');if(showMessage)alert('تم تحميل أحدث نسخة من السحابة.')}else{const {error:saveError}=await sb.from('workspace_data').insert({id:1,payload:data,updated_by:currentUser.id});if(saveError)throw saveError;setSync('● تم إنشاء نسخة السحابة');if(showMessage)alert('تم إنشاء مساحة البيانات السحابية بنجاح.')}}catch(e){console.error(e);setSync('خطأ في المزامنة',true);if(showMessage)alert('تعذر تحميل البيانات السحابية: '+(e.message||'خطأ غير معروف'));}}
 async function enterWorkspace(session){
-  if(!session?.user){currentUser=null;currentRole=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';return}
+  if(!session?.user){currentUser=null;currentRole=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';return}
   const {data:profile,error}=await sb.from('profiles').select('full_name,role').eq('id',session.user.id).single();
-  if(error||!['owner','admin','employee'].includes(profile?.role)){
-    await sb.auth.signOut();$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';
-    $('authMessage').textContent='هذا الحساب غير مفعّل كمدير أو موظف. تواصل مع مدير WASLA STUDIO.';return;
+  if(error||!['owner','admin','employee','user'].includes(profile?.role)){
+    await sb.auth.signOut();$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';
+    $('authMessage').textContent='هذا الحساب غير مفعّل. تواصل مع مدير WASLA STUDIO.';return;
   }
   currentUser=session.user;currentRole=profile.role;$('authScreen').style.display='none';
   const name=profile.full_name||session.user.email;
   if(currentRole==='admin'||currentRole==='owner'){
-    $('employeeShell').style.display='none';$('appShell').style.display='grid';$('pageTitle').textContent='لوحة التحكم — '+name;
+    $('employeeShell').style.display='none';$('clientShell').style.display='none';$('appShell').style.display='grid';$('pageTitle').textContent='لوحة التحكم — '+name;
     await loadCloudData(false);await loadAdminEmployees();await pollAdminNotifications();clearInterval(adminNotificationTimer);adminNotificationTimer=setInterval(pollAdminNotifications,20000);
-  }else{
-    $('appShell').style.display='none';$('employeeShell').style.display='block';$('employeeWelcome').textContent='مرحباً، '+name;
+  }else if(currentRole==='employee'){
+    $('appShell').style.display='none';$('clientShell').style.display='none';$('employeeShell').style.display='block';$('employeeWelcome').textContent='مرحباً، '+name;
     await loadEmployeeAssignments();
+  }else{
+    $('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='block';$('clientWelcome').textContent='مرحباً، '+name;
+    try{
+      const ready=await loadClientPortal();
+      if(!ready)throw new Error('هذا الحساب غير مرتبط بملف عميل. تواصل مع فريق WASLA STUDIO لتفعيل الربط.');
+    }catch(clientError){
+      await sb.auth.signOut();currentUser=null;currentRole=null;$('clientShell').style.display='none';$('authScreen').style.display='grid';
+      $('authMessage').textContent=clientError.message||'تعذر تحميل بوابة العميل.';return;
+    }
   }
 }
 let employeeAssignments=[];
@@ -276,6 +322,103 @@ function openAdminNotifications(){
 function closeAdminNotifications(){$('adminNotificationsModal').classList.remove('show')}
 
 
+
+// Client portal: all data access is constrained by the existing Supabase RLS policies.
+let clientPortalProjects=[],clientPortalMilestones=[],clientPortalDesigns=[],clientPortalComments=[],clientPortalReviews=[];
+async function loadClientPortal(){
+  if(!currentUser||currentRole!=='user')return false;
+  $('clientSync').textContent='● جارٍ تحميل مشاريعك';
+  const {data:account,error:accountError}=await sb.from('client_accounts').select('legacy_client_id').eq('auth_user_id',currentUser.id).maybeSingle();
+  if(accountError)throw accountError;
+  if(!account)return false;
+  const {data:projects,error:projectError}=await sb.from('client_projects').select('legacy_project_id,project_name').eq('legacy_client_id',account.legacy_client_id).order('created_at',{ascending:false});
+  if(projectError)throw projectError;
+  clientPortalProjects=projects||[];
+  const projectIds=clientPortalProjects.map(p=>String(p.legacy_project_id));
+  clientPortalMilestones=[];clientPortalDesigns=[];clientPortalComments=[];clientPortalReviews=[];
+  if(projectIds.length){
+    const [milestonesResult,designsResult,commentsResult]=await Promise.all([
+      sb.from('client_project_milestones').select('id,legacy_project_id,title,description,status,progress_percent,target_date,sort_order').in('legacy_project_id',projectIds).order('sort_order',{ascending:true}),
+      sb.from('client_project_designs').select('id,legacy_project_id,title,description,storage_path,version,visible_to_client,created_at').in('legacy_project_id',projectIds).eq('visible_to_client',true).order('created_at',{ascending:false}),
+      sb.from('client_project_comments').select('id,legacy_project_id,author_id,body,created_at').in('legacy_project_id',projectIds).order('created_at',{ascending:true})
+    ]);
+    if(milestonesResult.error)throw milestonesResult.error;
+    if(designsResult.error)throw designsResult.error;
+    if(commentsResult.error)throw commentsResult.error;
+    clientPortalMilestones=milestonesResult.data||[];
+    clientPortalDesigns=designsResult.data||[];
+    clientPortalComments=commentsResult.data||[];
+    const designIds=clientPortalDesigns.map(d=>d.id);
+    if(designIds.length){
+      const {data:reviews,error:reviewError}=await sb.from('client_design_reviews').select('id,design_id,reviewer_id,decision,comment,created_at').in('design_id',designIds).order('created_at',{ascending:false});
+      if(reviewError)throw reviewError;
+      clientPortalReviews=reviews||[];
+    }
+    for(const design of clientPortalDesigns){
+      if(design.storage_path){
+        try{
+          const {data:signed,error:signedError}=await sb.storage.from('client-designs').createSignedUrl(design.storage_path,3600);
+          design.signedUrl=signedError?null:signed?.signedUrl||null;
+        }catch(_){design.signedUrl=null}
+      }
+    }
+  }
+  renderClientPortal();
+  $('clientSync').textContent='● تم تحديث بيانات المشروع';
+  return true;
+}
+function clientStatusLabel(status){
+  return ({pending:'لم تبدأ',in_progress:'قيد التنفيذ',review:'بانتظار المراجعة',completed:'مكتملة'})[status]||status||'—';
+}
+function renderClientPortal(){
+  const box=$('clientProjects');
+  if(!clientPortalProjects.length){box.innerHTML='<div class="client-empty">لا توجد مشاريع مرتبطة بحسابك حالياً.<br>سيتواصل معك فريق WASLA STUDIO عند إضافة مشروعك.</div>';return}
+  box.innerHTML=clientPortalProjects.map(function(project){
+    const pid=String(project.legacy_project_id);
+    const milestones=clientPortalMilestones.filter(x=>String(x.legacy_project_id)===pid);
+    const designs=clientPortalDesigns.filter(x=>String(x.legacy_project_id)===pid);
+    const comments=clientPortalComments.filter(x=>String(x.legacy_project_id)===pid);
+    const progress=milestones.length?Math.round(milestones.reduce((sum,x)=>sum+Number(x.progress_percent||0),0)/milestones.length):0;
+    const milestoneHtml=milestones.length?milestones.map(function(m){
+      return '<div class="client-milestone"><div class="client-project-head"><b>'+esc(m.title)+'</b><span class="pill">'+esc(clientStatusLabel(m.status))+'</span></div><div class="muted">'+esc(m.description||'')+'</div><div class="client-progress"><span style="width:'+Math.max(0,Math.min(100,Number(m.progress_percent||0)))+'%"></span></div><span class="tiny muted">الإنجاز: '+Number(m.progress_percent||0)+'%'+(m.target_date?' · الموعد: '+esc(m.target_date):'')+'</span></div>';
+    }).join(''):'<div class="empty">لم تتم إضافة مراحل لهذا المشروع بعد.</div>';
+    const designHtml=designs.length?designs.map(function(d){
+      const latest=clientPortalReviews.find(function(r){return r.design_id===d.id});
+      const decision=latest?(latest.decision==='approved'?'تم الاعتماد':'طُلب تعديل'):'بانتظار رأيك';
+      const file=d.signedUrl?'<a class="client-file" href="'+esc(d.signedUrl)+'" target="_blank" rel="noopener">عرض / تنزيل الملف</a>':'<div class="tiny muted">لا يوجد ملف متاح للعرض حالياً.</div>';
+      const review=latest?'<div class="tiny muted">آخر رد: '+esc(decision)+(latest.comment?' — '+esc(latest.comment):'')+'</div>':'';
+      return '<div class="client-design"><b>'+esc(d.title)+'</b> <span class="pill">نسخة '+Number(d.version||1)+'</span><div class="muted">'+esc(d.description||'')+'</div>'+file+review+'<textarea id="client-review-comment-'+esc(d.id)+'" maxlength="2000" placeholder="ملاحظاتك على التصميم (اختياري)"></textarea><div class="client-design-actions"><button class="btn lime sm" onclick="submitClientDesignReview(\''+esc(d.id)+'\',\'approved\')">اعتماد التصميم</button><button class="btn soft sm" onclick="submitClientDesignReview(\''+esc(d.id)+'\',\'revision_requested\')">طلب تعديل</button></div></div>';
+    }).join(''):'<div class="empty">لا توجد تصميمات منشورة للمراجعة حالياً.</div>';
+    const commentHtml=comments.length?comments.map(function(c){
+      return '<div class="client-comment"><b>'+(c.author_id===currentUser.id?'أنت':'فريق WASLA STUDIO')+'</b><div>'+esc(c.body)+'</div><span class="tiny muted">'+esc(new Date(c.created_at).toLocaleString('ar-EG'))+'</span></div>';
+    }).join(''):'<div class="empty">لا توجد رسائل بعد. يمكنك إرسال أول استفسار للفريق.</div>';
+    return '<article class="client-project-card"><div class="client-project-head"><div><h2>'+esc(project.project_name)+'</h2><div class="tiny muted">رقم المشروع: '+esc(pid)+'</div></div><span class="pill green">'+progress+'% إنجاز تقريبي</span></div><div class="client-progress"><span style="width:'+progress+'%"></span></div><div class="client-columns"><section class="client-subcard"><h3>مراحل المشروع</h3>'+milestoneHtml+'</section><section class="client-subcard"><h3>التصميمات والاعتمادات</h3>'+designHtml+'</section></div><div class="client-columns"><section class="client-subcard"><h3>المراسلات مع الفريق</h3>'+commentHtml+'<textarea id="client-comment-'+esc(pid)+'" maxlength="3000" placeholder="اكتب استفسارك أو ملاحظتك للفريق…"></textarea><button class="btn lime sm" onclick="sendClientComment(\''+esc(pid)+'\')">إرسال الرسالة</button></section><section class="client-subcard"><h3>معلومات المتابعة</h3><p class="muted" style="font-size:12px;line-height:1.9">تظهر هنا المراحل والتصميمات التي أتاحها فريق العمل لحسابك. اعتماد التصميم أو طلب التعديل يُسجّل باسم حسابك ويظهر للفريق للمراجعة.</p><button class="btn soft sm" onclick="loadClientPortal()">تحديث بيانات المشروع</button></section></div></article>';
+  }).join('');
+}
+async function sendClientComment(projectId){
+  const project=clientPortalProjects.find(p=>String(p.legacy_project_id)===String(projectId));
+  const field=$('client-comment-'+projectId),body=field?.value.trim();
+  if(!project||!body){alert('اكتب رسالتك أولاً.');return}
+  if(body.length>3000){alert('الحد الأقصى 3000 حرف.');return}
+  try{
+    const {error}=await sb.from('client_project_comments').insert({legacy_project_id:project.legacy_project_id,author_id:currentUser.id,body});
+    if(error)throw error;
+    field.value='';await loadClientPortal();alert('تم إرسال رسالتك إلى فريق WASLA STUDIO.');
+  }catch(e){alert('تعذر إرسال الرسالة: '+(e.message||'خطأ غير معروف'))}
+}
+async function submitClientDesignReview(designId,decision){
+  const design=clientPortalDesigns.find(d=>d.id===designId&&d.visible_to_client);
+  if(!design||!['approved','revision_requested'].includes(decision))return;
+  const field=$('client-review-comment-'+designId),comment=field?.value.trim()||'';
+  if(decision==='revision_requested'&&!comment){alert('اكتب الملاحظات المطلوبة قبل إرسال طلب التعديل.');return}
+  try{
+    const {error}=await sb.from('client_design_reviews').insert({design_id:designId,reviewer_id:currentUser.id,decision,comment});
+    if(error)throw error;
+    await loadClientPortal();alert(decision==='approved'?'تم تسجيل اعتماد التصميم.':'تم إرسال طلب التعديل إلى الفريق.');
+  }catch(e){alert('تعذر تسجيل ردك: '+(e.message||'خطأ غير معروف'))}
+}
+$('clientRefresh').addEventListener('click',loadClientPortal);
+
 function showAuthView(view,message=''){
   $('loginForm').classList.toggle('auth-hidden',view!=='login');
   $('forgotPasswordButton').classList.toggle('auth-hidden',view!=='login');
@@ -331,13 +474,13 @@ function getRecoveryUrlState(){
 }
 let recoveryMode=getRecoveryUrlState().isRecovery;
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('loginButton');button.disabled=true;button.textContent='جارٍ التحقق…';$('authMessage').textContent='';try{const {data:result,error}=await sb.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});if(error)throw error;await enterWorkspace(result.session)}catch(err){$('authMessage').textContent=err.message||'تعذر تسجيل الدخول.'}finally{button.disabled=false;button.textContent='دخول إلى مساحة العمل'}});
-async function logout(){clearTimeout(cloudSaveTimer);clearInterval(adminNotificationTimer);if(currentUser&&(currentRole==='admin'||currentRole==='owner'))await saveCloudData();await sb.auth.signOut();currentUser=null;currentRole=null;$('appShell').style.display='none';$('employeeShell').style.display='none';$('authScreen').style.display='grid';$('loginPassword').value='';showAuthView('login','تم تسجيل الخروج.')}
+async function logout(){clearTimeout(cloudSaveTimer);clearInterval(adminNotificationTimer);if(currentUser&&(currentRole==='admin'||currentRole==='owner'))await saveCloudData();await sb.auth.signOut();currentUser=null;currentRole=null;$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';$('authScreen').style.display='grid';$('loginPassword').value='';showAuthView('login','تم تسجيل الخروج.')}
 // Register the listener before reading the session so recovery links are handled first.
 sb.auth.onAuthStateChange((event,session)=>{
   if(event==='PASSWORD_RECOVERY'){
-    recoveryMode=true;$('authScreen').style.display='grid';$('appShell').style.display='none';showAuthView('update','تم التحقق من رابط الاستعادة. أدخل كلمة المرور الجديدة.');
+    recoveryMode=true;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';showAuthView('update','تم التحقق من رابط الاستعادة. أدخل كلمة المرور الجديدة.');
   }else if(event==='SIGNED_OUT'){
-    currentUser=null;currentRole=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';
+    currentUser=null;currentRole=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';
   }
 });
 (async()=>{
