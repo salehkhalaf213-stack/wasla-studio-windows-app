@@ -9,7 +9,7 @@ const checks = [
   ['Employee performance', html.includes('loadAdminEmployees')],
   ['Notifications', html.includes('pollAdminNotifications')],
   ['Cloud workspace sync', html.includes('loadCloudData')],
-  ['Desktop password recovery redirect', /resetPasswordForEmail\\s*\\(\\s*email\\s*,\\s*\\{\\s*redirectTo\\s*\\}\\s*\\)/.test(html) && /const\\s+redirectTo\\s*=\\s*window\\.location\\.origin\\s*\\+\\s*window\\.location\\.pathname/.test(html)],
+  ['Desktop password recovery redirect', /resetPasswordForEmail\s*\(\s*email\s*,\s*\{\s*redirectTo\s*\}\s*\)/.test(html) && /const\s+redirectTo\s*=\s*window\.location\.origin\s*\+\s*window\.location\.pathname/.test(html)],
   ['Client portal shell', html.includes('id="clientShell"')],
   ['Client role routing', html.includes("['owner','admin','employee','user']")],
   ['Client project mapping', html.includes(".from('client_accounts').select('legacy_client_id')")],
@@ -21,11 +21,11 @@ const checks = [
   ['No service-role key in frontend', !html.includes('service_role')]
 ];
 
-const inlineScripts = [...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi)]
+const inlineScripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
   .map(match => match[1])
   .filter(script => script.trim());
 try {
-  if (inlineScripts.length !== 1) throw new Error(`Expected one inline application script, found ${inlineScripts.length}`);
+  if (inlineScripts.length !== 1) throw new Error('Expected one inline application script, found ' + inlineScripts.length);
   new vm.Script(inlineScripts[0], { filename: 'WASLA_STUDIO/src/index.html' });
   checks.push(['Inline JavaScript syntax', true]);
 } catch (error) {
@@ -33,5 +33,5 @@ try {
   console.error(error.message);
 }
 
-for (const [label, ok] of checks) console.log(`${ok ? 'OK' : 'MISSING'}  ${label}`);
+for (const [label, ok] of checks) console.log((ok ? 'OK' : 'MISSING') + '  ' + label);
 if (checks.some(([, ok]) => !ok)) process.exit(1);
