@@ -35,6 +35,9 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Verify application and client portal
+        run: npm run build
+
       - name: Build Windows EXE
         run: npm run tauri -- build --bundles nsis
 
