@@ -281,6 +281,7 @@ async function loadClientPortal(){
   const {data:projects,error:projectsError}=await sb.from('client_projects').select('legacy_project_id,legacy_client_id,project_name,created_at').eq('legacy_client_id',account.legacy_client_id).order('created_at',{ascending:false});
   if(projectsError)throw projectsError;clientProjectRows=projects||[];$('clientProjectCount').textContent=clientProjectRows.length;$('clientLastUpdated').textContent='آخر تحديث: '+new Date().toLocaleString('ar-EG');
   box.innerHTML=clientProjectRows.length?clientProjectRows.map(project=>`<article class="client-project-card"><span class="pill green">مشروع مرتبط بحسابك</span><h3>${esc(project.project_name)}</h3><p><b>رقم المشروع:</b> ${esc(project.legacy_project_id)}<br><b>تاريخ إضافته:</b> ${project.created_at?esc(new Date(project.created_at).toLocaleDateString('ar-EG')):'—'}</p><div class="client-feature" id="clientProjectFeature-${esc(project.legacy_project_id)}"><div class="muted tiny">جارٍ تحميل مراحل المشروع…</div></div></article>`).join(''):'<div class="employee-empty">لا توجد مشاريع مرتبطة بحسابك حتى الآن.</div>';
+  await Promise.all(clientProjectRows.map(loadClientProjectFeatures));
   $('clientSync').textContent='● تم التحديث';
  }catch(e){console.error(e);box.innerHTML='<div class="employee-empty">تعذر تحميل مشاريع حسابك: '+esc(e.message||'خطأ غير معروف')+'</div>';$('clientSync').textContent='تعذر الاتصال';}
 }
