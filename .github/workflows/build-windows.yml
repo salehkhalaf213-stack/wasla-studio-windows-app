@@ -4,6 +4,8 @@ name: Build WASLA STUDIO for Windows
 on:
   workflow_dispatch:
   push:
+    branches:
+      - 'feature/wasla-v6'
     tags:
       - 'v*'
 
