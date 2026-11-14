@@ -388,7 +388,7 @@ async function renderAdminPortalDetails(){
   ]);if(m.error)throw m.error;if(d.error)throw d.error;if(c.error)throw c.error;
   const designIds=(d.data||[]).map(x=>x.id);let reviewRows=[];if(designIds.length){const {data:rr,error:re}=await sb.from('client_design_reviews').select('id,design_id,reviewer_id,decision,comment,created_at').in('design_id',designIds).order('created_at',{ascending:false});if(re)throw re;reviewRows=rr||[];}
   box.innerHTML='<h4>المراحل</h4>'+(m.data?.length?m.data.map(x=>`<div class="milestone"><b>${esc(x.title)}</b> · ${esc(milestoneLabels[x.status]||x.status)} · ${Number(x.progress_percent)||0}%<div class="progress-track"><span style="width:${Math.max(0,Math.min(100,Number(x.progress_percent)||0))}%"></span></div><button class="btn danger sm" onclick="deleteClientMilestone('${esc(x.id)}')">حذف المرحلة</button></div>`).join(''):'<div class="muted tiny">لا توجد مراحل.</div>')+
-  '<div class="portal-section"><h4>الملفات المرفوعة</h4>'+(d.data?.length?d.data.map(x=>`<div class="design-row"><span>${esc(x.title)} · ${x.visible_to_client?'ظاهر للعميل':'مخفي عن العميل'}</span><button class="btn soft sm" onclick="toggleDesignVisibility('${esc(x.id)}',${!x.visible_to_client})">${x.visible_to_client?'إخفاء':'إظهار'}</button></div>`).join(''):'<div class="muted tiny">لا توجد ملفات.</div>')+'</div>'+
+  '<div class="portal-section"><h4>الملفات المرفوعة</h4>'+(d.data?.length?d.data.map(x=>`<div class="design-row" id="adminDesign-${esc(x.id)}"><span>${esc(x.title)} · ${x.visible_to_client?'ظاهر للعميل':'مخفي عن العميل'}</span><button class="btn soft sm" onclick="toggleDesignVisibility('${esc(x.id)}',${!x.visible_to_client})">${x.visible_to_client?'إخفاء':'إظهار'}</button></div>`).join(''):'<div class="muted tiny">لا توجد ملفات.</div>')+'</div>'+
   '<div class="portal-section"><h4>مراجعات واعتمادات العميل</h4>'+(reviewRows.length?reviewRows.map(x=>`<div class="comment"><b>${x.decision==='approved'?'تم اعتماد التصميم':'طلب تعديل'}</b> — ${esc(x.comment||'بدون ملاحظة')}<div class="muted tiny">${esc(new Date(x.created_at).toLocaleString('ar-EG'))}</div></div>`).join(''):'<div class="muted tiny">لا توجد مراجعات بعد.</div>')+'</div>'+
   '<div class="portal-section"><h4>تعليقات العميل</h4>'+(c.data?.length?c.data.map(x=>`<div class="comment">${esc(x.body)}<div class="muted tiny">${esc(new Date(x.created_at).toLocaleString('ar-EG'))}</div></div>`).join(''):'<div class="muted tiny">لا توجد تعليقات.</div>')+'</div>';
  }catch(e){box.textContent='تعذر تحميل التفاصيل: '+(e.message||'خطأ غير معروف')}
@@ -466,6 +466,22 @@ async function markUnifiedNotificationRead(id){
   if(error){console.error(error);alert('تعذر تحديث حالة الإشعار: '+(error.message||'خطأ غير معروف'));return;}
   item.is_read=true;updateNotificationBadges();renderUnifiedNotifications();
 }
+async function openAdminClientProjectFromNotification(projectId,designId=null){
+  // Open the client-management workspace and load the exact linked project.
+  go('clientManagement',true);
+  await loadAdminClientPortal();
+  const select=$('adminPortalProject');
+  const option=[...(select?.options||[])].find(o=>String(o.value)===String(projectId));
+  if(!option){alert('تعذر العثور على المشروع المرتبط بهذا الإشعار.');return;}
+  select.value=option.value;
+  await loadAdminPortalProject();
+  if(designId){
+    const row=$('adminDesign-'+designId);
+    if(row){row.scrollIntoView({behavior:'smooth',block:'center'});row.style.outline='2px solid #b7f34a';setTimeout(()=>row.style.outline='',3000);}
+  }else{
+    $('adminPortalProjectInfo')?.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+}
 async function openNotificationTarget(type,id,notificationId){
   await markUnifiedNotificationRead(notificationId);
   closeUnifiedNotifications();
@@ -480,8 +496,17 @@ async function openNotificationTarget(type,id,notificationId){
     if(currentRole==='user'){
       const el=$('clientProjectFeature-'+id);
       if(el)el.scrollIntoView({behavior:'smooth',block:'center'});else await loadClientPortal();
-    }else if(isAdminRole())go('clientManagement');
-  }else if(type==='design'&&isAdminRole())go('clientManagement');
+    }else if(isAdminRole()){
+      await openAdminClientProjectFromNotification(id);
+    }
+  }else if(type==='design'&&isAdminRole()){
+    try{
+      const {data:design,error}=await sb.from('client_project_designs').select('id,legacy_project_id').eq('id',id).maybeSingle();
+      if(error)throw error;
+      if(!design){alert('لم يعد التصميم المرتبط بهذا الإشعار متاحاً.');return;}
+      await openAdminClientProjectFromNotification(design.legacy_project_id,design.id);
+    }catch(e){alert('تعذر فتح التصميم المرتبط: '+(e.message||'خطأ غير معروف'))}
+  }
 }
 
 // Manager tools: employee performance, assignment management, and update notifications.
@@ -627,7 +652,7 @@ sb.auth.onAuthStateChange((event,session)=>{
 function safeDecode(v){try{return decodeURIComponent(String(v||'').replace(/\+/g,' '))}catch(e){return String(v||'')}}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function money(v){return Number(v||0).toLocaleString('ar-EG')+' ج.م'}
-function go(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('pageTitle').textContent=({dashboard:'لوحة التحكم',clients:'العملاء وفرص البيع',projects:'المشاريع',content:'تقويم المحتوى',finance:'الحسابات',settings:'النسخ الاحتياطي',employeePortal:'الموظفون والتكليفات',clientManagement:'بوابة العملاء'})[id];refresh();if(id==='employeePortal')loadAdminEmployees();if(id==='clientManagement')loadAdminClientPortal()}
+function go(id,skipClientPortalLoad=false){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('pageTitle').textContent=({dashboard:'لوحة التحكم',clients:'العملاء وفرص البيع',projects:'المشاريع',content:'تقويم المحتوى',finance:'الحسابات',settings:'النسخ الاحتياطي',employeePortal:'الموظفون والتكليفات',clientManagement:'بوابة العملاء'})[id];refresh();if(id==='employeePortal')loadAdminEmployees();if(id==='clientManagement'&&!skipClientPortalLoad)loadAdminClientPortal()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.page));
 function table(headers,rows){return rows.length?'<table><thead><tr>'+headers.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>':'<div class="empty">لا توجد سجلات بعد. أضف أول سجل للبدء.</div>'}
 function refresh(){let income=data.finance.filter(x=>x.kind==='إيراد').reduce((a,x)=>a+Number(x.amount),0),expense=data.finance.filter(x=>x.kind==='مصروف').reduce((a,x)=>a+Number(x.amount),0);$('sClients').textContent=data.clients.length;$('sLeads').textContent=data.clients.filter(x=>['عميل محتمل','تم التواصل'].includes(x.status)).length;$('sProjects').textContent=data.projects.filter(x=>x.status==='قيد التنفيذ').length;$('sBalance').textContent=money(income-expense);$('recentClients').innerHTML=table(['العميل','الحالة'],data.clients.slice(-5).reverse().map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.status)}</td></tr>`));$('income').textContent=money(income);$('expense').textContent=money(expense);$('balance').textContent=money(income-expense);$('transactions').textContent=data.finance.length;renderClients();renderProjects();renderContent();renderFinance()}
