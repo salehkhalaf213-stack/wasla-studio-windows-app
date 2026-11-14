@@ -360,7 +360,7 @@ async function openClientDesign(id,path){
 async function reviewClientDesign(id,decision){
  const comment=prompt(decision==='approved'?'ملاحظة الاعتماد (اختياري):':'اكتب التعديلات المطلوبة:','');if(comment===null)return;
  if(decision==='revision_requested'&&!comment.trim())return alert('اكتب ملاحظات التعديل حتى يتمكن الفريق من تنفيذها.');
- try{const {error}=await sb.from('client_design_reviews').insert({design_id:id,reviewer_id:currentUser.id,decision,comment:comment.trim()||null});if(error)throw error;alert(decision==='approved'?'تم تسجيل اعتماد التصميم.':'تم إرسال طلب التعديل.');}
+ try{const {error}=await sb.from('client_design_reviews').insert({design_id:id,reviewer_id:currentUser.id,decision,comment:comment.trim()});if(error)throw error;alert(decision==='approved'?'تم تسجيل اعتماد التصميم.':'تم إرسال طلب التعديل.');}
  catch(e){alert('تعذر تسجيل المراجعة: '+(e.message||'خطأ غير معروف'))}
 }
 async function loadAdminClientPortal(){
