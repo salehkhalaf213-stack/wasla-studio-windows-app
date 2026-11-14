@@ -312,8 +312,50 @@ async function sendClientProjectComment(pid){
  catch(e){alert('تعذر إرسال التعليق: '+(e.message||'خطأ غير معروف'))}
 }
 async function openClientDesign(id,path){
- try{const {data,error}=await sb.storage.from('client-designs').createSignedUrl(path,300);if(error)throw error;if(!data?.signedUrl)throw new Error('لم يتم إنشاء رابط آمن للملف.');window.open(data.signedUrl,'_blank','noopener');}
- catch(e){alert('تعذر فتح الملف: '+(e.message||'خطأ غير معروف'))}
+ // Render the private file inside the app. Avoid window.open after an await:
+ // WebView2 may treat that as a popup and silently block it.
+ let overlay=document.getElementById('clientDesignViewer');
+ if(overlay)overlay.remove();
+ overlay=document.createElement('div');
+ overlay.id='clientDesignViewer';
+ overlay.style.cssText='position:fixed;inset:0;z-index:10000;background:#0b100df2;display:flex;flex-direction:column;padding:12px;gap:10px;';
+ const bar=document.createElement('div');
+ bar.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;color:#fff;flex-wrap:wrap;';
+ const title=document.createElement('strong');title.textContent='معاينة الملف';
+ const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;align-items:center;';
+ const openLink=document.createElement('a');openLink.textContent='فتح في المتصفح';openLink.href='#';openLink.target='_blank';openLink.rel='noopener noreferrer';openLink.style.cssText='display:none;color:#b7f34a;font-size:13px;';
+ const close=document.createElement('button');close.type='button';close.textContent='إغلاق';close.className='btn soft sm';
+ close.onclick=()=>overlay.remove();
+ actions.append(openLink,close);bar.append(title,actions);
+ const stage=document.createElement('div');
+ stage.style.cssText='flex:1;min-height:0;background:#fff;border-radius:10px;overflow:auto;display:flex;align-items:center;justify-content:center;';
+ const status=document.createElement('div');status.textContent='جارٍ إنشاء رابط آمن للملف…';status.style.cssText='color:#66705f;padding:20px;text-align:center;';
+ stage.append(status);overlay.append(bar,stage);document.body.append(overlay);
+ try{
+  if(!path)throw new Error('مسار الملف غير متوفر.');
+  const {data,error}=await sb.storage.from('client-designs').createSignedUrl(path,300);
+  if(error)throw error;
+  if(!data?.signedUrl)throw new Error('لم يتم إنشاء رابط آمن للملف.');
+  if(!document.body.contains(overlay))return;
+  openLink.href=data.signedUrl;openLink.style.display='inline';
+  const ext=String(path).split('?')[0].split('.').pop().toLowerCase();
+  stage.replaceChildren();
+  if(['png','jpg','jpeg','webp'].includes(ext)){
+   const img=document.createElement('img');img.alt='معاينة التصميم';img.src=data.signedUrl;
+   img.style.cssText='display:block;max-width:100%;max-height:100%;object-fit:contain;margin:auto;';
+   img.onerror=()=>{stage.replaceChildren();const msg=document.createElement('p');msg.textContent='تعذر عرض الصورة داخل التطبيق. استخدم زر «فتح في المتصفح».';msg.style.cssText='padding:20px;color:#66705f;text-align:center;';stage.append(msg);};
+   stage.append(img);
+  }else if(ext==='pdf'){
+   const frame=document.createElement('iframe');frame.title='معاينة ملف PDF';frame.src=data.signedUrl;
+   frame.style.cssText='width:100%;height:100%;min-height:70vh;border:0;background:#fff;';
+   stage.append(frame);
+  }else{
+   const msg=document.createElement('p');msg.textContent='لا تتوفر معاينة لهذا النوع من الملفات. استخدم زر «فتح في المتصفح».';
+   msg.style.cssText='padding:20px;color:#66705f;text-align:center;';stage.append(msg);
+  }
+ }catch(e){
+  if(document.body.contains(overlay)){stage.replaceChildren();const msg=document.createElement('p');msg.textContent='تعذر فتح الملف: '+(e.message||'خطأ غير معروف');msg.style.cssText='padding:20px;color:#a33b2c;text-align:center;';stage.append(msg);}
+ }
 }
 async function reviewClientDesign(id,decision){
  const comment=prompt(decision==='approved'?'ملاحظة الاعتماد (اختياري):':'اكتب التعديلات المطلوبة:','');if(comment===null)return;
