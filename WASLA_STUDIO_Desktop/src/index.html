@@ -45,7 +45,25 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
 .employee-empty{background:#fff;border:1px dashed #cbd4c3;border-radius:14px;padding:35px;text-align:center;color:var(--muted)}
 
 .unified-notification{padding:12px;margin:8px 0;border:1px solid var(--line);border-radius:10px;background:#fff}.unified-notification.unread{border-color:#b7d879;background:#f8fced}.unified-notification .meta{font-size:10px;color:var(--muted);margin-top:6px}.unified-notification .body{font-size:12px;line-height:1.8;white-space:pre-wrap;margin-top:5px}.notification-item{padding:11px 0;border-bottom:1px solid var(--line);font-size:12px;line-height:1.8}.notification-item:last-child{border:0}.performance-bar{height:7px;background:#edf1e8;border-radius:8px;overflow:hidden;min-width:90px}.performance-bar span{display:block;height:100%;background:var(--lime)}
-.client-shell{min-height:100vh;background:var(--bg);padding:22px}.client-wrap{max-width:1050px;margin:auto}.client-project-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px}.client-project-card h3{margin:7px 0;font-size:17px}.client-project-card p{font-size:13px;line-height:1.8;color:#566050}.task-overdue{color:#a33b2c;background:#fff0ed}.task-filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.task-filters input,.task-filters select{border:1px solid var(--line);border-radius:8px;padding:10px;background:white}.task-detail{white-space:pre-wrap;line-height:1.8;font-size:13px}
+.client-shell{min-height:100vh;background:var(--bg);padding:22px}.client-wrap{max-width:1250px;margin:auto}
+#clientProjects{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px;align-items:start}
+.client-project-card{min-width:0;overflow:hidden;background:#fff;border:1px solid #e1e7ef;border-radius:17px;padding:0;box-shadow:0 9px 24px rgba(17,31,49,.08);transition:transform .2s,box-shadow .2s}
+.client-project-card:hover{transform:translateY(-3px);box-shadow:0 15px 32px rgba(17,31,49,.13)}
+.client-project-cover{height:145px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#e8c88f;background:linear-gradient(135deg,#18283c 0%,#344b62 58%,#a27b48 145%)}
+.client-project-cover:before,.client-project-cover:after{content:"";position:absolute;border:1px solid rgba(255,255,255,.14);transform:rotate(-25deg);width:170%;height:85px;left:-30%;top:23px}
+.client-project-cover:after{top:68px;left:-10%;opacity:.55}
+.client-project-cover svg{position:relative;z-index:1;width:80%;height:90%;filter:drop-shadow(0 8px 10px rgba(0,0,0,.2))}
+.cover-mark{position:absolute;top:9px;right:13px;font-size:22px;font-weight:900;letter-spacing:2px;color:rgba(255,255,255,.28)}
+.cover-caption{position:absolute;bottom:8px;left:12px;font-size:8px;letter-spacing:2px;color:rgba(255,255,255,.68)}
+.client-project-body{padding:14px 15px 16px}
+.client-project-topline{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.client-project-card h3{margin:11px 0 5px;font-size:16px;color:#17263b;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.client-project-card p{font-size:12px;line-height:1.8;color:#758195;margin:0 0 12px}
+.client-project-open{width:100%;display:flex;justify-content:space-between;align-items:center;background:#f5f7fa;border:1px solid #e7ebf1;color:#26364c}
+.client-feature{display:none;border-top:1px solid #edf0f4;padding:14px}
+.client-feature.is-open{display:block;animation:waslaFade .2s ease}
+@media(max-width:900px){#clientProjects{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.client-shell{padding:14px 10px}.client-wrap{width:100%}#clientProjects{display:flex;overflow-x:auto;gap:12px;padding:3px 2px 14px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}#clientProjects>.client-project-card{flex:0 0 min(78vw,285px);scroll-snap-align:start}.client-project-cover{height:132px}.client-project-body{padding:12px}.client-project-card h3{font-size:15px}}.task-overdue{color:#a33b2c;background:#fff0ed}.task-filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.task-filters input,.task-filters select{border:1px solid var(--line);border-radius:8px;padding:10px;background:white}.task-detail{white-space:pre-wrap;line-height:1.8;font-size:13px}
 
 .client-feature{margin-top:14px}.milestone{padding:10px 0;border-bottom:1px solid var(--line)}.milestone:last-child{border:0}
 .progress-track{height:8px;background:#edf1e8;border-radius:9px;overflow:hidden;margin:8px 0}.progress-track span{display:block;height:100%;background:var(--lime)}
@@ -391,7 +409,13 @@ async function loadClientPortal(){
   if(accountError)throw accountError;if(!account)throw new Error('لا يوجد ربط لهذا الحساب بملف عميل. يرجى التواصل مع إدارة WASLA STUDIO.');
   const {data:projects,error:projectsError}=await sb.from('client_projects').select('legacy_project_id,legacy_client_id,project_name,created_at').eq('legacy_client_id',account.legacy_client_id).order('created_at',{ascending:false});
   if(projectsError)throw projectsError;clientProjectRows=projects||[];$('clientProjectCount').textContent=clientProjectRows.length;$('clientLastUpdated').textContent='آخر تحديث: '+new Date().toLocaleString('ar-EG');
-  box.innerHTML=clientProjectRows.length?clientProjectRows.map(project=>`<article class="client-project-card"><span class="pill green">مشروع مرتبط بحسابك</span><h3>${esc(project.project_name)}</h3><p><b>رقم المشروع:</b> ${esc(project.legacy_project_id)}<br><b>تاريخ إضافته:</b> ${project.created_at?esc(new Date(project.created_at).toLocaleDateString('ar-EG')):'—'}</p><div class="client-feature" id="clientProjectFeature-${esc(project.legacy_project_id)}"><div class="muted tiny">جارٍ تحميل مراحل المشروع…</div></div></article>`).join(''):'<div class="employee-empty">لا توجد مشاريع مرتبطة بحسابك حتى الآن.</div>';
+  box.innerHTML=clientProjectRows.length?clientProjectRows.map(project=>`<article class="client-project-card">
+   <div class="client-project-cover" aria-hidden="true"><span class="cover-mark">W</span><svg viewBox="0 0 320 150" role="presentation"><path d="M25 125V73L112 22l87 51v52M112 22v103M199 73h91v52M214 73V46l38-22 38 22v27M214 125V94h76v31" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M0 126h320" stroke="currentColor" stroke-width="3" opacity=".5"/></svg><span class="cover-caption">WASLA STUDIO · PROJECT</span></div>
+   <div class="client-project-body"><div class="client-project-topline"><span class="pill green">نشط</span><span class="muted tiny">مشروع رقم ${esc(project.legacy_project_id)}</span></div>
+   <h3>${esc(project.project_name)}</h3><p>تاريخ الإضافة: ${project.created_at?esc(new Date(project.created_at).toLocaleDateString('ar-EG')):'—'}</p>
+   <button class="btn soft sm client-project-open" type="button" aria-expanded="false" onclick="toggleClientProjectDetails(${Number(project.legacy_project_id)})">عرض تفاصيل المشروع <span aria-hidden="true">←</span></button></div>
+   <div class="client-feature" id="clientProjectFeature-${esc(project.legacy_project_id)}"><div class="muted tiny">جارٍ تحميل مراحل المشروع…</div></div>
+  </article>`).join(''):'<div class="employee-empty">لا توجد مشاريع مرتبطة بحسابك حتى الآن.</div>';
   await Promise.all(clientProjectRows.map(loadClientProjectFeatures));
   $('clientSync').textContent='● تم التحديث';
  }catch(e){console.error(e);box.innerHTML='<div class="employee-empty">تعذر تحميل مشاريع حسابك: '+esc(e.message||'خطأ غير معروف')+'</div>';$('clientSync').textContent='تعذر الاتصال';}
@@ -400,6 +424,13 @@ async function loadClientPortal(){
 // V7 client project portal: milestones, comments, private designs and client reviews.
 let adminClientProjects=[], activeAdminPortalProject=null;
 const milestoneLabels={pending:'لم تبدأ',in_progress:'قيد التنفيذ',review:'قيد المراجعة',completed:'مكتملة'};
+function toggleClientProjectDetails(pid){
+ const host=$('clientProjectFeature-'+pid),button=host?.parentElement?.querySelector('.client-project-open');
+ if(!host||!button)return;
+ const opening=host.classList.toggle('is-open');
+ button.setAttribute('aria-expanded',String(opening));
+ button.innerHTML=opening?'إخفاء التفاصيل <span aria-hidden="true">↑</span>':'عرض تفاصيل المشروع <span aria-hidden="true">←</span>';
+}
 async function loadClientProjectFeatures(project){
  const host=$('clientProjectFeature-'+project.legacy_project_id);if(!host)return;
  try{
