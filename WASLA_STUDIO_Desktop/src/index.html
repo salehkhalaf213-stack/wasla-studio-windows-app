@@ -639,7 +639,7 @@ async function loadAdminEmployees(){
     ]);
     if(profileError)throw profileError;if(assignmentError)throw assignmentError;if(updateError)throw updateError;if(pendingError)throw pendingError;
     const pendingBox=$('pendingSignupTable');
-    if(pendingBox)pendingBox.innerHTML=(pending||[]).length?table(['الاسم','نوع الحساب','تاريخ الطلب','الإجراء'],pending.map(p=>`<tr><td>${esc(p.full_name||'—')}</td><td><span class="pill amber">${p.requested_role==='employee'?'موظف':'عميل'}</span></td><td>${esc(new Date(p.created_at).toLocaleString('ar-EG'))}</td><td><button class="btn lime sm" onclick="approvePendingSignup('${esc(p.id)}')">موافقة وتفعيل</button></td></tr>`).join('')):'<div class="empty">لا توجد طلبات معلقة حالياً.</div>';
+    if(pendingBox)pendingBox.innerHTML=(pending||[]).length?table(['الاسم','نوع الحساب','تاريخ الطلب','الإجراء'],pending.map(p=>`<tr><td>${esc(p.full_name||'—')}</td><td><span class="pill amber">${p.requested_role==='employee'?'موظف':'عميل'}</span></td><td>${esc(new Date(p.created_at).toLocaleString('ar-EG'))}</td><td><button class="btn lime sm" onclick="approvePendingSignup('${esc(p.id)}')">موافقة وتفعيل</button></td></tr>`)):'<div class="empty">لا توجد طلبات معلقة حالياً.</div>';
     adminEmployees=profiles||[];adminAssignments=assignments||[];adminUpdates=updates||[];
     const byId=Object.fromEntries(adminEmployees.map(e=>[e.id,e]));
     const updateByEmployee={};adminUpdates.forEach(u=>{(updateByEmployee[u.employee_id]??=[]).push(u)});
