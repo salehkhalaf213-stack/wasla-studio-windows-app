@@ -28,7 +28,7 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
 .auth-brand{font-size:24px;font-weight:900;letter-spacing:2px;margin-bottom:8px}.auth-brand span{color:#789d2d}
 .auth-card h1{font-size:19px;margin:18px 0 7px}.auth-card p{font-size:13px;color:var(--muted);line-height:1.8}
 .auth-card input{width:100%;padding:13px;border:1px solid var(--line);border-radius:9px;margin:6px 0 13px;direction:ltr;text-align:left}
-.auth-card label{font-size:12px;color:var(--muted)}.auth-card button{width:100%;margin-top:8px}.auth-link{border:0;background:transparent;color:#587a24;text-decoration:underline;font-size:12px;padding:8px}.auth-hidden{display:none!important}
+.auth-card label{font-size:12px;color:var(--muted)}.auth-card button{width:100%;margin-top:8px}.auth-card select{width:100%;padding:13px;border:1px solid var(--line);border-radius:9px;margin:6px 0 13px;background:#fff}.auth-link{border:0;background:transparent;color:#98702f;text-decoration:underline;font-size:12px;padding:8px}.auth-hidden{display:none!important}
 #authMessage{font-size:12px;line-height:1.8;margin-top:12px;color:#a33b2c;min-height:20px}
 .sync-pill{display:inline-block;border-radius:30px;background:#e7f5d6;color:#496b1d;padding:6px 9px;font-size:11px}
 @media(max-width:480px){.auth-card{padding:21px}}
@@ -153,6 +153,26 @@ footer{color:#8290a2}
       <button class="btn lime" id="loginButton" type="submit">دخول إلى مساحة العمل</button>
     </form>
     <button class="auth-link" id="forgotPasswordButton" type="button">نسيت كلمة المرور؟</button>
+    <button class="btn soft" id="showSignupButton" type="button" style="width:100%;margin-top:8px">إنشاء حساب جديد</button>
+    <form id="signupForm" class="auth-hidden">
+      <h1>إنشاء حساب جديد</h1>
+      <p>أنشئ حسابك، ثم ينتظر تفعيل المدير قبل استخدام مساحة العمل.</p>
+      <label for="signupName">الاسم الكامل</label>
+      <input id="signupName" type="text" autocomplete="name" maxlength="100" placeholder="الاسم الكامل" required>
+      <label for="signupEmail">البريد الإلكتروني</label>
+      <input id="signupEmail" type="email" autocomplete="email" placeholder="name@example.com" required>
+      <label for="signupRole">نوع الحساب</label>
+      <select id="signupRole" required>
+        <option value="user">عميل — بوابة متابعة المشاريع</option>
+        <option value="employee">موظف — المهام والتكليفات</option>
+      </select>
+      <label for="signupPassword">كلمة المرور</label>
+      <input id="signupPassword" type="password" autocomplete="new-password" minlength="8" placeholder="8 أحرف على الأقل" required>
+      <label for="signupConfirmPassword">تأكيد كلمة المرور</label>
+      <input id="signupConfirmPassword" type="password" autocomplete="new-password" minlength="8" placeholder="أعد كتابة كلمة المرور" required>
+      <button class="btn lime" id="signupButton" type="submit">إنشاء الحساب</button>
+      <button class="auth-link" id="signupBackButton" type="button">العودة إلى تسجيل الدخول</button>
+    </form>
     <form id="recoveryRequestForm" class="auth-hidden">
       <h1>استعادة كلمة المرور</h1>
       <p>أدخل بريد المدير، وسنرسل لك رابطاً آمناً لإنشاء كلمة مرور جديدة.</p>
@@ -200,6 +220,7 @@ footer{color:#8290a2}
 <section class="page" id="employeePortal">
 <div class="head"><h2>إدارة الموظفين والتكليفات</h2><button class="btn lime" onclick="openAssignment()">＋ تكليف جديد</button></div>
 <div class="grid stats"><div class="card"><div class="stat-label">عدد الموظفين</div><div class="stat-value" id="adminEmployeeCount">0</div></div><div class="card"><div class="stat-label">إجمالي التكليفات</div><div class="stat-value" id="adminAssignmentCount">0</div></div><div class="card"><div class="stat-label">قيد التنفيذ</div><div class="stat-value" id="adminActiveCount">0</div></div><div class="card"><div class="stat-label">تحديثات جديدة</div><div class="stat-value" id="adminUpdatesCount">0</div></div></div>
+<div class="card" style="margin-bottom:14px"><div class="head"><h2>طلبات الحسابات الجديدة</h2><button class="btn soft sm" onclick="loadAdminEmployees()">تحديث</button></div><div class="muted tiny" style="margin-bottom:10px">طلبات العملاء والموظفين الجديدة تظهر هنا، ولا تحصل على صلاحية الدخول قبل موافقة المدير.</div><div class="table-wrap" id="pendingSignupTable"><div class="empty">جارٍ تحميل الطلبات…</div></div></div>
 <div class="card" style="margin-bottom:14px"><div class="head"><h2>أداء الموظفين</h2><button class="btn soft sm" onclick="loadAdminEmployees()">تحديث البيانات</button></div><div class="table-wrap" id="adminEmployeesTable"><div class="empty">اضغط تحديث البيانات لعرض الأداء.</div></div></div>
 <div class="card"><div class="head"><h2>التكليفات ومتابعة التنفيذ</h2></div><div class="task-filters"><input id="assignmentSearch" placeholder="ابحث باسم المهمة أو العميل..." oninput="renderAdminAssignments()"><select id="assignmentStatusFilter" onchange="renderAdminAssignments()"><option value="">كل الحالات</option><option>لم يبدأ</option><option>قيد التنفيذ</option><option>قيد المراجعة</option><option>مكتمل</option></select><select id="assignmentDueFilter" onchange="renderAdminAssignments()"><option value="">كل المواعيد</option><option value="overdue">متأخرة</option><option value="today">تسليم اليوم</option><option value="upcoming">قادمة</option></select></div><div class="table-wrap" id="adminAssignmentsTable"><div class="empty">جارٍ تحميل التكليفات…</div></div></div>
 </section>
@@ -282,10 +303,16 @@ async function saveCloudData(){if(!currentUser)return;if(cloudBusy){scheduleClou
 async function loadCloudData(showMessage=false){if(!currentUser)return;setSync('● جارٍ تحميل البيانات…');try{const {data:row,error}=await sb.from('workspace_data').select('payload,updated_at').eq('id',1).maybeSingle();if(error)throw error;if(row&&row.payload){const d=row.payload;if(!d.clients||!d.projects||!d.contents||!d.finance)throw new Error('صيغة بيانات السحابة غير مكتملة');data=d;localStorage.setItem(KEY,JSON.stringify(data));refresh();setSync('● البيانات محدثة من السحابة');if(showMessage)alert('تم تحميل أحدث نسخة من السحابة.')}else{const {error:saveError}=await sb.from('workspace_data').insert({id:1,payload:data,updated_by:currentUser.id});if(saveError)throw saveError;setSync('● تم إنشاء نسخة السحابة');if(showMessage)alert('تم إنشاء مساحة البيانات السحابية بنجاح.')}}catch(e){console.error(e);setSync('خطأ في المزامنة',true);if(showMessage)alert('تعذر تحميل البيانات السحابية: '+(e.message||'خطأ غير معروف'));}}
 async function enterWorkspace(session){
   if(!session?.user){currentUser=null;currentRole=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';return}
-  const {data:profile,error}=await sb.from('profiles').select('full_name,role').eq('id',session.user.id).single();
-  if(error||!['owner','admin','employee','user'].includes(profile?.role)){
+  const {data:profile,error}=await sb.from('profiles').select('full_name,role,approval_status').eq('id',session.user.id).single();
+  if(!error&&profile?.approval_status==='pending'&&profile?.role==='pending'){
     await sb.auth.signOut();$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';
-    $('authMessage').textContent='هذا الحساب غير مفعّل كمدير أو موظف. تواصل مع مدير WASLA STUDIO.';return;
+    showAuthView('login','حسابك قيد مراجعة المدير. ستتمكن من الدخول بعد الموافقة على طلبك.');
+    return;
+  }
+  if(error||!['owner','admin','employee','user'].includes(profile?.role)||profile?.approval_status==='rejected'){
+    await sb.auth.signOut();$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';
+    showAuthView('login',profile?.approval_status==='rejected'?'تم رفض طلب الحساب. تواصل مع إدارة WASLA STUDIO.':'هذا الحساب غير مفعّل. تواصل مع إدارة WASLA STUDIO.');
+    return;
   }
   currentUser=session.user;currentRole=profile.role;$('authScreen').style.display='none';
   const name=profile.full_name||session.user.email;
@@ -604,12 +631,15 @@ async function loadAdminEmployees(){
   const empBox=$('adminEmployeesTable'),assignBox=$('adminAssignmentsTable');
   if(empBox)empBox.innerHTML='<div class="empty">جارٍ تحميل بيانات الموظفين…</div>';
   try{
-    const [{data:profiles,error:profileError},{data:assignments,error:assignmentError},{data:updates,error:updateError}]=await Promise.all([
+    const [{data:profiles,error:profileError},{data:assignments,error:assignmentError},{data:updates,error:updateError},{data:pending,error:pendingError}]=await Promise.all([
       sb.from('profiles').select('id,full_name,role').eq('role','employee').order('full_name'),
       sb.from('employee_assignments').select('id,project_ref,project_name,client_label,due_date,instructions,employee_status,assigned_to,created_at').order('created_at',{ascending:false}),
-      sb.from('employee_updates').select('id,assignment_id,employee_id,body,created_at').order('created_at',{ascending:false}).limit(100)
+      sb.from('employee_updates').select('id,assignment_id,employee_id,body,created_at').order('created_at',{ascending:false}).limit(100),
+      sb.from('profiles').select('id,full_name,requested_role,created_at').eq('approval_status','pending').eq('role','pending').order('created_at',{ascending:true})
     ]);
-    if(profileError)throw profileError;if(assignmentError)throw assignmentError;if(updateError)throw updateError;
+    if(profileError)throw profileError;if(assignmentError)throw assignmentError;if(updateError)throw updateError;if(pendingError)throw pendingError;
+    const pendingBox=$('pendingSignupTable');
+    if(pendingBox)pendingBox.innerHTML=(pending||[]).length?table(['الاسم','نوع الحساب','تاريخ الطلب','الإجراء'],pending.map(p=>`<tr><td>${esc(p.full_name||'—')}</td><td><span class="pill amber">${p.requested_role==='employee'?'موظف':'عميل'}</span></td><td>${esc(new Date(p.created_at).toLocaleString('ar-EG'))}</td><td><button class="btn lime sm" onclick="approvePendingSignup('${esc(p.id)}')">موافقة وتفعيل</button></td></tr>`).join('')):'<div class="empty">لا توجد طلبات معلقة حالياً.</div>';
     adminEmployees=profiles||[];adminAssignments=assignments||[];adminUpdates=updates||[];
     const byId=Object.fromEntries(adminEmployees.map(e=>[e.id,e]));
     const updateByEmployee={};adminUpdates.forEach(u=>{(updateByEmployee[u.employee_id]??=[]).push(u)});
@@ -622,6 +652,16 @@ async function loadAdminEmployees(){
     })):'<div class="empty">لا يوجد موظفون مسجلون بدور employee.</div>';
     if(assignBox)renderAdminAssignments();
   }catch(e){console.error(e);if(empBox)empBox.innerHTML='<div class="empty">تعذر تحميل بيانات الموظفين: '+esc(e.message||'خطأ غير معروف')+'</div>';}
+}
+async function approvePendingSignup(userId){
+  if(!isAdminRole())return alert('غير مصرح.');
+  if(!confirm('هل تريد الموافقة على هذا الحساب وتفعيل نوع الصلاحية المطلوب؟'))return;
+  try{
+    const {error}=await sb.rpc('approve_signup',{p_user_id:userId});
+    if(error)throw error;
+    alert('تمت الموافقة على الحساب. يمكن للمستخدم تسجيل الدخول الآن.');
+    await loadAdminEmployees();
+  }catch(e){alert('تعذر تفعيل الحساب: '+(e.message||'خطأ غير معروف'))}
 }
 function openAssignment(){
   if(!adminEmployees.length){loadAdminEmployees().then(()=>{if(!adminEmployees.length)alert('لا يوجد موظفون بدور employee. أضف حساب الموظف أولاً.');else openAssignmentForm()});return;}openAssignmentForm();
@@ -654,10 +694,42 @@ function closeAdminNotifications(){$('adminNotificationsModal').classList.remove
 function showAuthView(view,message=''){
   $('loginForm').classList.toggle('auth-hidden',view!=='login');
   $('forgotPasswordButton').classList.toggle('auth-hidden',view!=='login');
+  $('showSignupButton').classList.toggle('auth-hidden',view!=='login');
+  $('signupForm').classList.toggle('auth-hidden',view!=='signup');
   $('recoveryRequestForm').classList.toggle('auth-hidden',view!=='request');
   $('passwordUpdateForm').classList.toggle('auth-hidden',view!=='update');
   $('authMessage').textContent=message;
 }
+$('showSignupButton').addEventListener('click',()=>{
+  $('signupName').value='';$('signupEmail').value=$('loginEmail').value.trim();
+  $('signupPassword').value='';$('signupConfirmPassword').value='';
+  showAuthView('signup');
+});
+$('signupBackButton').addEventListener('click',()=>showAuthView('login'));
+$('signupForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const name=$('signupName').value.trim(),email=$('signupEmail').value.trim();
+  const password=$('signupPassword').value,confirm=$('signupConfirmPassword').value;
+  if(name.length<2){$('authMessage').textContent='أدخل الاسم الكامل.';return}
+  if(password.length<8){$('authMessage').textContent='كلمة المرور يجب ألا تقل عن 8 أحرف.';return}
+  if(password!==confirm){$('authMessage').textContent='كلمتا المرور غير متطابقتين.';return}
+  const button=$('signupButton');button.disabled=true;button.textContent='جارٍ إنشاء الحساب…';
+  $('authMessage').textContent='';
+  try{
+    const {data,error}=await sb.auth.signUp({
+      email,password,
+      options:{data:{full_name:name,requested_role:$('signupRole').value}}
+    });
+    if(error)throw error;
+    if(data?.session)await sb.auth.signOut();
+    $('signupPassword').value='';$('signupConfirmPassword').value='';
+    $('loginEmail').value=email;
+    showAuthView('login',data?.user?.identities?.length===0
+      ?'هذا البريد مسجل بالفعل. جرّب تسجيل الدخول أو استعادة كلمة المرور.'
+      :'تم إنشاء طلب الحساب بنجاح. إذا طُلب تأكيد البريد، افتح رسالة التحقق أولاً. بعد ذلك ينتظر الحساب موافقة المدير، ثم يمكنك تسجيل الدخول.');
+  }catch(err){$('authMessage').textContent=err.message||'تعذر إنشاء الحساب.'}
+  finally{button.disabled=false;button.textContent='إنشاء الحساب'}
+});
 $('forgotPasswordButton').addEventListener('click',()=>{
   $('recoveryEmail').value=$('loginEmail').value.trim();
   showAuthView('request');
