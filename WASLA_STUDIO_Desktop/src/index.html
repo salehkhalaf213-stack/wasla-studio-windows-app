@@ -718,7 +718,7 @@ $('signupForm').addEventListener('submit',async e=>{
   try{
     const {data,error}=await sb.auth.signUp({
       email,password,
-      options:{data:{full_name:name,requested_role:$('signupRole').value}}
+      options:{data:{full_name:name,requested_role:$('signupRole').value},emailRedirectTo:window.location.origin+window.location.pathname}
     });
     if(error)throw error;
     if(data?.session)await sb.auth.signOut();
