@@ -186,25 +186,36 @@ using (exists(select 1 from public.employee_assignments ea where ea.organization
   and ea.assigned_to=(select auth.uid()) and ea.project_ref=client_projects.legacy_project_id::text));
 
 -- Tenant owners/admins receive organization-scoped management access.
+drop policy if exists "Tenant owners manage client accounts" on public.client_accounts;
 create policy "Tenant owners manage client accounts" on public.client_accounts for all to authenticated
 using (private.has_organization_role(array['owner','admin'])) with check (private.has_organization_role(array['owner','admin']));
+drop policy if exists "Tenant owners manage client projects" on public.client_projects;
 create policy "Tenant owners manage client projects" on public.client_projects for all to authenticated
 using (private.has_organization_role(array['owner','admin'])) with check (private.has_organization_role(array['owner','admin']));
+drop policy if exists "Tenant owners manage milestones" on public.client_project_milestones;
 create policy "Tenant owners manage milestones" on public.client_project_milestones for all to authenticated
 using (private.has_organization_role(array['owner','admin'])) with check (private.has_organization_role(array['owner','admin']));
+drop policy if exists "Tenant owners manage designs" on public.client_project_designs;
 create policy "Tenant owners manage designs" on public.client_project_designs for all to authenticated
 using (private.has_organization_role(array['owner','admin'])) with check (private.has_organization_role(array['owner','admin']));
+drop policy if exists "Tenant owners read reviews" on public.client_design_reviews;
 create policy "Tenant owners read reviews" on public.client_design_reviews for select to authenticated
 using (private.has_organization_role(array['owner','admin']));
+drop policy if exists "Tenant owners read comments" on public.client_project_comments;
 create policy "Tenant owners read comments" on public.client_project_comments for select to authenticated
 using (private.has_organization_role(array['owner','admin']));
+drop policy if exists "Tenant owners add comments" on public.client_project_comments;
 create policy "Tenant owners add comments" on public.client_project_comments for insert to authenticated
 with check (private.has_organization_role(array['owner','admin']));
+drop policy if exists "Tenant owners manage assignments" on public.employee_assignments;
 create policy "Tenant owners manage assignments" on public.employee_assignments for all to authenticated
 using (private.has_organization_role(array['owner','admin'])) with check (private.has_organization_role(array['owner','admin']));
+drop policy if exists "Tenant owners read employee updates" on public.employee_updates;
 create policy "Tenant owners read employee updates" on public.employee_updates for select to authenticated
 using (private.has_organization_role(array['owner','admin']));
+drop policy if exists "Tenant owners add employee updates" on public.employee_updates;
 create policy "Tenant owners add employee updates" on public.employee_updates for insert to authenticated
 with check (private.has_organization_role(array['owner','admin']));
+drop policy if exists "Tenant owners manage workspace" on public.workspace_data;
 create policy "Tenant owners manage workspace" on public.workspace_data for all to authenticated
 using (private.has_organization_role(array['owner','admin'])) with check (private.has_organization_role(array['owner','admin']));
