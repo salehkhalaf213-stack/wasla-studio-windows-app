@@ -156,6 +156,34 @@ footer{color:#8290a2}
 @media(max-width:850px){.layout{grid-template-columns:1fr}aside{position:relative;height:auto;padding:14px;border-left:0}.brand{padding:4px 8px 14px}nav{display:flex;overflow:auto;gap:6px}nav button{white-space:nowrap;padding:10px 12px}.side-note{display:none}main{padding:16px 12px}.top{padding:14px;flex-wrap:wrap}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}}
 @media(max-width:480px){.top{align-items:flex-start;flex-direction:column}.top h1{font-size:20px}.stat-value{font-size:23px}.card{padding:14px}.hero{padding:20px}.auth-card{padding:22px}}
 
+
+/* Dashboard visual system — aligned with the supplied WASLA reference */
+.eyebrow{display:block;font-size:9px;letter-spacing:3px;color:#dfbd82;font-weight:800;margin-bottom:9px}
+.dashboard-hero{display:flex;align-items:center;justify-content:space-between;min-height:155px}
+.dashboard-hero>div:first-child{position:relative;z-index:2}
+.hero-mark{font-size:130px;font-weight:900;line-height:.8;color:rgba(231,195,132,.12);padding:0 25px;letter-spacing:-12px}
+.dashboard-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+.stat-card{min-height:150px;padding:18px 19px!important}
+.stat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}
+.stat-icon{width:39px;height:39px;display:grid;place-items:center;border-radius:12px;font-size:20px;font-weight:800}
+.stat-icon.violet{background:#eee9ff;color:#7154c8}.stat-icon.green{background:#e3f5eb;color:#27845a}.stat-icon.amber{background:#fff0d9;color:#b47a22}.stat-icon.blue{background:#e5efff;color:#3976ce}
+.stat-trend{font-size:10px;color:#8793a4}
+.stat-foot{font-size:10px;color:#8995a5;margin-top:5px}
+.dashboard-panels{grid-template-columns:minmax(0,1.25fr) minmax(300px,.9fr);margin:0 0 16px}
+.chart-card,.activity-card,.recent-client-card{min-width:0}
+.project-chart{min-height:225px;display:flex;align-items:center;justify-content:center;padding:10px 4px}
+.project-chart svg{width:100%;height:auto;max-height:235px;overflow:visible}
+.chart-legend{display:flex;gap:15px;flex-wrap:wrap;font-size:10px;color:#718096;margin-top:8px}
+.chart-legend span:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--legend);margin-left:6px}
+.recent-project{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 2px;border-bottom:1px solid #edf0f4}
+.recent-project:last-child{border-bottom:0}
+.recent-project strong{display:block;font-size:12px;color:#24334a;margin-bottom:5px}
+.recent-project small{font-size:10px;color:#8793a4}
+.recent-project .pill{flex-shrink:0}
+.recent-client-card{margin-bottom:8px}
+@media(max-width:1050px){.dashboard-panels{grid-template-columns:1fr}.dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.dashboard-hero{min-height:130px}.hero-mark{font-size:80px;padding:0 4px}.dashboard-stats{gap:9px}.stat-card{min-height:135px;padding:13px!important}.stat-trend{font-size:9px}.dashboard-panels{gap:12px}}
+
 </style></head>
 <body>
 <section class="auth-screen" id="authScreen">
@@ -227,9 +255,18 @@ footer{color:#8290a2}
 <main>
 <header class="top"><div><div class="muted tiny">مساحة عملك الرقمية</div><h1 id="pageTitle">لوحة التحكم</h1></div><div class="actions"><span class="sync-pill" id="syncStatus">● متصل بالسحابة</span><button class="btn soft sm" id="adminNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="adminNotificationCount">0</span></button><button class="btn soft sm" onclick="loadCloudData(true)">مزامنة الآن</button><button class="btn lime" onclick="openClient()">＋ عميل جديد</button><button class="btn soft sm" onclick="logout()">خروج</button></div></header>
 <section class="page active" id="dashboard">
-<div class="hero"><h2>مرحباً بك في <b>WASLA STUDIO</b></h2><p>تابع العملاء وفرص البيع والمشاريع والمحتوى والحسابات من مكان واحد.</p></div>
-<div class="grid stats"><div class="card"><div class="stat-label">إجمالي العملاء</div><div class="stat-value" id="sClients">0</div><div class="muted tiny">كل السجلات</div></div><div class="card"><div class="stat-label">فرص مفتوحة</div><div class="stat-value" id="sLeads">0</div><div class="muted tiny">تحتاج متابعة</div></div><div class="card"><div class="stat-label">مشاريع نشطة</div><div class="stat-value" id="sProjects">0</div><div class="muted tiny">قيد التنفيذ</div></div><div class="card"><div class="stat-label">صافي الحسابات</div><div class="stat-value" id="sBalance">0 ج.م</div><div class="muted tiny">حسب العمليات المسجلة</div></div></div>
-<div class="grid two"><div class="card"><div class="head"><h2>آخر العملاء</h2><button class="btn soft sm" onclick="go('clients')">عرض الكل</button></div><div class="table-wrap" id="recentClients"></div></div><div class="card"><h2 style="font-size:16px">قائمة تشغيل الوكالة</h2><div class="task">١. أضف بيانات العميل وتحقق من وسائل التواصل.</div><div class="task">٢. حدّث حالة فرصة البيع بعد كل متابعة.</div><div class="task">٣. أنشئ مشروعاً بعد الاتفاق مع العميل.</div><div class="task">٤. سجل الإيرادات والمصروفات أولاً بأول.</div></div></div>
+<div class="hero dashboard-hero"><div><span class="eyebrow">AGENCY OVERVIEW</span><h2>مرحباً بك في <b>WASLA STUDIO</b></h2><p>نظرة شاملة على أعمالك ومشاريعك وعلاقات العملاء — كل شيء في مساحة واحدة.</p></div><div class="hero-mark" aria-hidden="true">W</div></div>
+<div class="grid stats dashboard-stats">
+<div class="card stat-card"><div class="stat-top"><span class="stat-icon violet">♙</span><span class="stat-trend">إدارة العلاقات</span></div><div class="stat-label">إجمالي العملاء</div><div class="stat-value" id="sClients">0</div><div class="stat-foot">كل العملاء المسجلين</div></div>
+<div class="card stat-card"><div class="stat-top"><span class="stat-icon green">▣</span><span class="stat-trend">إدارة التنفيذ</span></div><div class="stat-label">المشاريع النشطة</div><div class="stat-value" id="sProjects">0</div><div class="stat-foot">قيد التنفيذ حالياً</div></div>
+<div class="card stat-card"><div class="stat-top"><span class="stat-icon amber">✓</span><span class="stat-trend">فرص تحتاج متابعة</span></div><div class="stat-label">فرص مفتوحة</div><div class="stat-value" id="sLeads">0</div><div class="stat-foot">عملاء محتملون أو تم التواصل</div></div>
+<div class="card stat-card"><div class="stat-top"><span class="stat-icon blue">↗</span><span class="stat-trend">ملخص مالي</span></div><div class="stat-label">صافي الحسابات</div><div class="stat-value" id="sBalance">0 ج.م</div><div class="stat-foot">حسب العمليات المسجلة</div></div>
+</div>
+<div class="grid dashboard-panels">
+<div class="card chart-card"><div class="head"><div><h2>حالة المشاريع</h2><p class="muted tiny">توزيع المشاريع حسب مرحلة التنفيذ</p></div><button class="btn soft sm" onclick="go('projects')">كل المشاريع ←</button></div><div id="projectChart" class="project-chart"><div class="empty">لا توجد بيانات كافية لعرض الرسم.</div></div></div>
+<div class="card activity-card"><div class="head"><div><h2>آخر المشاريع</h2><p class="muted tiny">أحدث المشاريع المسجلة في مساحة العمل</p></div><button class="btn soft sm" onclick="go('projects')">عرض الكل</button></div><div id="recentProjects"></div></div>
+</div>
+<div class="card recent-client-card"><div class="head"><div><h2>أحدث العملاء</h2><p class="muted tiny">آخر العملاء الذين تمت إضافتهم</p></div><button class="btn soft sm" onclick="go('clients')">إدارة العملاء</button></div><div class="table-wrap" id="recentClients"></div></div>
 </section>
 <section class="page" id="clients"><div class="head"><h2>العملاء وفرص البيع</h2><button class="btn lime" onclick="openClient()">＋ إضافة عميل</button></div><div class="toolbar"><input id="clientSearch" placeholder="ابحث بالاسم أو النشاط..." oninput="renderClients()"><select id="clientFilter" onchange="renderClients()"><option value="">كل الحالات</option><option>عميل محتمل</option><option>تم التواصل</option><option>عميل نشط</option><option>غير مهتم</option></select></div><div class="card table-wrap" id="clientsTable"></div></section>
 <section class="page" id="projects"><div class="head"><h2>إدارة المشاريع</h2><button class="btn lime" onclick="openProject()">＋ مشروع جديد</button></div><div class="card table-wrap" id="projectsTable"></div></section>
@@ -846,7 +883,21 @@ function money(v){return Number(v||0).toLocaleString('ar-EG')+' ج.م'}
 function go(id,skipClientPortalLoad=false){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('pageTitle').textContent=({dashboard:'لوحة التحكم',clients:'العملاء وفرص البيع',projects:'المشاريع',content:'تقويم المحتوى',finance:'الحسابات',settings:'النسخ الاحتياطي',employeePortal:'الموظفون والتكليفات',clientManagement:'بوابة العملاء'})[id];refresh();if(id==='employeePortal')loadAdminEmployees();if(id==='clientManagement'&&!skipClientPortalLoad)loadAdminClientPortal()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.page));
 function table(headers,rows){return rows.length?'<table><thead><tr>'+headers.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>':'<div class="empty">لا توجد سجلات بعد. أضف أول سجل للبدء.</div>'}
-function refresh(){let income=data.finance.filter(x=>x.kind==='إيراد').reduce((a,x)=>a+Number(x.amount),0),expense=data.finance.filter(x=>x.kind==='مصروف').reduce((a,x)=>a+Number(x.amount),0);$('sClients').textContent=data.clients.length;$('sLeads').textContent=data.clients.filter(x=>['عميل محتمل','تم التواصل'].includes(x.status)).length;$('sProjects').textContent=data.projects.filter(x=>x.status==='قيد التنفيذ').length;$('sBalance').textContent=money(income-expense);$('recentClients').innerHTML=table(['العميل','الحالة'],data.clients.slice(-5).reverse().map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.status)}</td></tr>`));$('income').textContent=money(income);$('expense').textContent=money(expense);$('balance').textContent=money(income-expense);$('transactions').textContent=data.finance.length;renderClients();renderProjects();renderContent();renderFinance()}
+function renderDashboardExtras(){
+ const chart=$('projectChart');
+ if(chart){
+  const labels=['مخطط','قيد التنفيذ','مكتمل','متوقف'],colors=['#9aa8ba','#c99a45','#31956a','#d97768'];
+  const counts=labels.map(label=>data.projects.filter(p=>p.status===label).length),total=counts.reduce((a,b)=>a+b,0);
+  if(!total){chart.innerHTML='<div class="empty">أضف مشاريع لعرض توزيع حالاتها هنا.</div>';}
+  else{
+   const max=Math.max(1,...counts),bars=counts.map((n,i)=>{const x=38+i*92,h=Math.max(3,(n/max)*125),y=150-h;return `<rect x="${x}" y="${y}" width="42" height="${h}" rx="7" fill="${colors[i]}" opacity=".9"/><text x="${x+21}" y="172" text-anchor="middle" font-size="10" fill="#718096">${labels[i]}</text><text x="${x+21}" y="${Math.max(12,y-8)}" text-anchor="middle" font-size="11" font-weight="700" fill="#26364b">${n}</text>`}).join('');
+   chart.innerHTML=`<svg viewBox="0 0 410 190" role="img" aria-label="توزيع حالات المشاريع"><line x1="20" y1="150" x2="395" y2="150" stroke="#e7ebf1"/>${[0,1,2,3].map(i=>`<line x1="20" y1="${150-i*42}" x2="395" y2="${150-i*42}" stroke="#edf0f4" stroke-dasharray="3 5"/>`).join('')}${bars}</svg><div class="chart-legend">${labels.map((l,i)=>`<span style="--legend:${colors[i]}">${l}: ${counts[i]}</span>`).join('')}</div>`;
+  }
+ }
+ const recent=$('recentProjects');
+ if(recent){const list=[...data.projects].slice(-5).reverse();recent.innerHTML=list.length?list.map(p=>`<div class="recent-project"><div><strong>${esc(p.name)}</strong><small>${esc(p.client||'بدون عميل')} · التسليم: ${esc(p.due||'غير محدد')}</small></div><span class="pill ${p.status==='مكتمل'?'green':p.status==='قيد التنفيذ'?'amber':''}">${esc(p.status||'مخطط')}</span></div>`).join(''):'<div class="empty">لم تتم إضافة مشاريع بعد.</div>';}
+}
+function refresh(){let income=data.finance.filter(x=>x.kind==='إيراد').reduce((a,x)=>a+Number(x.amount),0),expense=data.finance.filter(x=>x.kind==='مصروف').reduce((a,x)=>a+Number(x.amount),0);$('sClients').textContent=data.clients.length;$('sLeads').textContent=data.clients.filter(x=>['عميل محتمل','تم التواصل'].includes(x.status)).length;$('sProjects').textContent=data.projects.filter(x=>x.status==='قيد التنفيذ').length;$('sBalance').textContent=money(income-expense);$('recentClients').innerHTML=table(['العميل','الحالة'],data.clients.slice(-5).reverse().map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.status)}</td></tr>`));$('income').textContent=money(income);$('expense').textContent=money(expense);$('balance').textContent=money(income-expense);$('transactions').textContent=data.finance.length;renderDashboardExtras();renderClients();renderProjects();renderContent();renderFinance()}
 function openModal(title,body,fn){$('modalTitle').textContent=title;$('modalBody').innerHTML=body;$('saveBtn').onclick=fn;$('modal').classList.add('show')}
 function closeModal(){$('modal').classList.remove('show')}
 function input(id,label,value='',type='text'){return `<div class="field"><label>${label}</label><input id="${id}" type="${type}" value="${esc(value)}"></div>`}
