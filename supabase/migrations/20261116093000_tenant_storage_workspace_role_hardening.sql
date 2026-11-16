@@ -185,6 +185,33 @@ create policy "Employees read assigned projects" on public.client_projects for s
 using (exists(select 1 from public.employee_assignments ea where ea.organization_id=client_projects.organization_id
   and ea.assigned_to=(select auth.uid()) and ea.project_ref=client_projects.legacy_project_id::text));
 
+
+-- Explicit permissive Storage policies for tenant owners/admins (the restrictive
+-- policies above still enforce the organization boundary for every operation).
+drop policy if exists "Tenant owners read client design files" on storage.objects;
+create policy "Tenant owners read client design files" on storage.objects for select to authenticated
+using (bucket_id='client-designs' and private.has_organization_role(array['owner','admin'])
+  and exists(select 1 from public.client_projects cp where cp.legacy_project_id::text=(storage.foldername(objects.name))[1]
+    and cp.organization_id=(select private.current_organization_id())));
+drop policy if exists "Tenant owners upload client design files" on storage.objects;
+create policy "Tenant owners upload client design files" on storage.objects for insert to authenticated
+with check (bucket_id='client-designs' and private.has_organization_role(array['owner','admin'])
+  and exists(select 1 from public.client_projects cp where cp.legacy_project_id::text=(storage.foldername(name))[1]
+    and cp.organization_id=(select private.current_organization_id())));
+drop policy if exists "Tenant owners update client design files" on storage.objects;
+create policy "Tenant owners update client design files" on storage.objects for update to authenticated
+using (bucket_id='client-designs' and private.has_organization_role(array['owner','admin'])
+  and exists(select 1 from public.client_projects cp where cp.legacy_project_id::text=(storage.foldername(objects.name))[1]
+    and cp.organization_id=(select private.current_organization_id())))
+with check (bucket_id='client-designs' and private.has_organization_role(array['owner','admin'])
+  and exists(select 1 from public.client_projects cp where cp.legacy_project_id::text=(storage.foldername(name))[1]
+    and cp.organization_id=(select private.current_organization_id())));
+drop policy if exists "Tenant owners delete client design files" on storage.objects;
+create policy "Tenant owners delete client design files" on storage.objects for delete to authenticated
+using (bucket_id='client-designs' and private.has_organization_role(array['owner','admin'])
+  and exists(select 1 from public.client_projects cp where cp.legacy_project_id::text=(storage.foldername(objects.name))[1]
+    and cp.organization_id=(select private.current_organization_id())));
+
 -- Tenant owners/admins receive organization-scoped management access.
 drop policy if exists "Tenant owners manage client accounts" on public.client_accounts;
 create policy "Tenant owners manage client accounts" on public.client_accounts for all to authenticated
