@@ -315,6 +315,7 @@ const $=id=>document.getElementById(id);let KEY='wasla_mvp_02';
 const blank={clients:[{id:1,name:'Daily drip Specialty Coffee',type:'مقهى قهوة مختصة',contact:'يضاف بعد التحقق',status:'عميل محتمل',notes:'فرصة مستهدفة — لم يتم التواصل بعد'}],projects:[],contents:[],finance:[]};
 // Do not load shared pre-login cache. Tenant data is loaded only after an active organization membership is resolved.
 let data=JSON.parse(JSON.stringify(blank));
+function clearTenantState(){currentUser=null;currentRole=null;currentOrganizationId=null;KEY='wasla_mvp_02';data=JSON.parse(JSON.stringify(blank));}
 function persist(){localStorage.setItem(KEY,JSON.stringify(data));refresh();if(currentUser)scheduleCloudSave()}
 function setSync(message,isError=false){const el=$('syncStatus');if(el){el.textContent=message;el.style.background=isError?'#fff0ed':'#e7f5d6';el.style.color=isError?'#a33b2c':'#496b1d'}}
 function scheduleCloudSave(){clearTimeout(cloudSaveTimer);setSync('● حفظ التغييرات…');cloudSaveTimer=setTimeout(saveCloudData,900)}
@@ -812,13 +813,13 @@ function getRecoveryUrlState(){
 }
 let recoveryMode=getRecoveryUrlState().isRecovery;
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('loginButton');button.disabled=true;button.textContent='جارٍ التحقق…';$('authMessage').textContent='';try{const {data:result,error}=await sb.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});if(error)throw error;await enterWorkspace(result.session)}catch(err){$('authMessage').textContent=err.message||'تعذر تسجيل الدخول.'}finally{button.disabled=false;button.textContent='دخول إلى مساحة العمل'}});
-async function logout(){clearTimeout(cloudSaveTimer);clearInterval(adminNotificationTimer);clearInterval(unifiedNotificationsTimer);if(currentUser&&(currentRole==='admin'||currentRole==='owner'))await saveCloudData();await sb.auth.signOut();currentUser=null;currentRole=null;$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';$('authScreen').style.display='grid';$('loginPassword').value='';showAuthView('login','تم تسجيل الخروج.')}
+async function logout(){clearTimeout(cloudSaveTimer);clearInterval(adminNotificationTimer);clearInterval(unifiedNotificationsTimer);if(currentUser&&(currentRole==='admin'||currentRole==='owner'))await saveCloudData();await sb.auth.signOut();clearTenantState();$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';$('authScreen').style.display='grid';$('loginPassword').value='';showAuthView('login','تم تسجيل الخروج.')}
 // Register the listener before reading the session so recovery links are handled first.
 sb.auth.onAuthStateChange((event,session)=>{
   if(event==='PASSWORD_RECOVERY'){
     recoveryMode=true;$('authScreen').style.display='grid';$('appShell').style.display='none';showAuthView('update','تم التحقق من رابط الاستعادة. أدخل كلمة المرور الجديدة.');
   }else if(event==='SIGNED_OUT'){
-    clearInterval(unifiedNotificationsTimer);currentUser=null;currentRole=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';
+    clearInterval(unifiedNotificationsTimer);clearTenantState();$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';
   }
 });
 (async()=>{
