@@ -219,3 +219,39 @@ with check (private.has_organization_role(array['owner','admin']));
 drop policy if exists "Tenant owners manage workspace" on public.workspace_data;
 create policy "Tenant owners manage workspace" on public.workspace_data for all to authenticated
 using (private.has_organization_role(array['owner','admin'])) with check (private.has_organization_role(array['owner','admin']));
+
+-- Keep trigger-only SECURITY DEFINER routines out of the callable API surface.
+revoke all on function public.guard_employee_assignment_updates() from public,anon,authenticated;
+revoke all on function private.guard_profile_tenant_fields() from public,anon,authenticated;
+revoke all on function private.enforce_row_organization() from public,anon,authenticated;
+revoke all on function private.guard_workspace_tenant() from public,anon,authenticated;
+
+-- Tenant-scoped approval helper: callable through a SECURITY INVOKER wrapper only.
+create or replace function private.approve_signup(p_user_id uuid)
+returns void language plpgsql security definer set search_path=''
+as $$
+declare target_role text; org_id uuid;
+begin
+  if (select auth.uid()) is null or not private.has_organization_role(array['owner','admin']) then
+    raise exception 'غير مصرح: يجب أن تكون مديراً في المؤسسة الحالية.';
+  end if;
+  org_id := (select private.current_organization_id());
+  select requested_role into target_role from public.profiles
+    where id=p_user_id and organization_id=org_id and approval_status='pending' and role='pending' for update;
+  if target_role is null then raise exception 'الحساب غير موجود في مؤسستك أو تمت معالجته مسبقاً.'; end if;
+  update public.profiles set role=target_role,approval_status='approved',updated_at=now()
+    where id=p_user_id and organization_id=org_id;
+end;
+$$;
+revoke all on function private.approve_signup(uuid) from public,anon;
+grant usage on schema private to authenticated;
+grant execute on function private.approve_signup(uuid) to authenticated;
+grant execute on function private.current_organization_id() to authenticated;
+grant execute on function private.has_organization_role(text[]) to authenticated;
+grant execute on function private.is_admin() to authenticated;
+
+create or replace function public.approve_signup(p_user_id uuid)
+returns void language sql security invoker set search_path=''
+as $$ select private.approve_signup(p_user_id); $$;
+revoke all on function public.approve_signup(uuid) from public,anon;
+grant execute on function public.approve_signup(uuid) to authenticated;
