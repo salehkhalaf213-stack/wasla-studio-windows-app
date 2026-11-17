@@ -270,6 +270,7 @@ footer{color:#8290a2}
 <button data-page="employeePortal">♟　الموظفون والتكليفات</button>
 <button data-page="clientManagement">▣　بوابة العملاء</button>
 <button data-page="settings">⚙　النسخ الاحتياطي</button>
+<button data-page="platformAdmin" id="platformAdminNav" style="display:none">♛　إدارة المنصة</button>
 </nav><div class="side-note">Growth Starts With The Right Connection.<br>إصدار تجريبي قابل للاستخدام المحلي</div></aside>
 <main>
 <header class="top"><div><div class="muted tiny">مساحة عملك الرقمية</div><h1 id="pageTitle">لوحة التحكم</h1></div><div class="actions"><span class="sync-pill" id="syncStatus">● متصل بالسحابة</span><button class="btn soft sm" id="adminNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="adminNotificationCount">0</span></button><button class="btn soft sm" onclick="loadCloudData(true)">مزامنة الآن</button><button class="btn lime" onclick="openClient()">＋ عميل جديد</button><button class="btn soft sm" onclick="logout()">خروج</button></div></header>
@@ -332,6 +333,27 @@ footer{color:#8290a2}
  </div>
 </section>
 <section class="page" id="settings"><div class="card"><h2 style="font-size:17px">النسخ الاحتياطي واستعادة البيانات</h2><p class="muted" style="font-size:13px;line-height:1.8">بيانات WASLA STUDIO تتم مزامنتها مع قاعدة بيانات Supabase عند تسجيل دخول المدير. احتفظ بنسخة احتياطية دورية كإجراء إضافي.</p><div class="actions"><button class="btn lime" onclick="exportData()">تنزيل نسخة احتياطية JSON</button><label class="btn soft" for="importFile">استعادة نسخة احتياطية</label><input id="importFile" type="file" accept="application/json" hidden onchange="importData(event)"></div><div class="note">تُحفظ التغييرات محلياً فوراً ثم تُرفع إلى السحابة تلقائياً. استخدم «مزامنة الآن» بعد الانتقال بين الأجهزة. عند تعديل البيانات من جهازين في الوقت نفسه، اعتمد جهازاً واحداً للتعديل لتجنب استبدال آخر تحديث.</div></div></section>
+<section class="page" id="platformAdmin">
+  <div class="hero"><span class="eyebrow">PLATFORM CONTROL CENTER</span><h2>إدارة الشركات والمؤسسات</h2><p>لوحة خاصة بمالك المنصة لإدارة المؤسسات وحسابات مديريها. لا تمنح هذه الصلاحية لمدير أي مؤسسة.</p></div>
+  <div class="grid stats">
+    <div class="card"><div class="stat-label">إجمالي المؤسسات</div><div class="stat-value" id="platformOrgCount">—</div></div>
+    <div class="card"><div class="stat-label">المؤسسات النشطة</div><div class="stat-value" id="platformActiveCount">—</div></div>
+    <div class="card"><div class="stat-label">مديرو المؤسسات</div><div class="stat-value" id="platformManagerCount">—</div></div>
+    <div class="card"><div class="stat-label">الاشتراكات المسجلة</div><div class="stat-value" id="platformSubscriptionCount">0</div></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="head"><h2>إنشاء مؤسسة جديدة</h2><span class="pill green">دعوة مدير مستقل</span></div>
+    <p class="muted tiny" style="line-height:1.8">سيتم إنشاء مساحة مستقلة للمؤسسة وإرسال دعوة إلى بريد المدير ليُنشئ كلمة مروره بنفسه. لا تُنشأ كلمة مرور مؤقتة ولا يتم مشاركة حسابك.</p>
+    <div class="grid two">
+      <div class="field"><label for="newOrgName">اسم المؤسسة</label><input id="newOrgName" maxlength="120" placeholder="مثال: شركة النخبة"></div>
+      <div class="field"><label for="newOrgSlug">معرّف المؤسسة (إنجليزي)</label><input id="newOrgSlug" maxlength="48" placeholder="elite-company"></div>
+      <div class="field"><label for="newOrgAdminName">اسم المدير</label><input id="newOrgAdminName" maxlength="100" placeholder="الاسم الكامل"></div>
+      <div class="field"><label for="newOrgAdminEmail">بريد المدير الإلكتروني</label><input id="newOrgAdminEmail" type="email" placeholder="manager@example.com"></div>
+    </div>
+    <div class="actions"><button class="btn lime" id="createOrgButton" onclick="createPlatformOrganization()">إنشاء المؤسسة وإرسال الدعوة</button><span id="platformAdminMessage" class="muted tiny"></span></div>
+  </div>
+  <div class="card"><div class="head"><h2>المؤسسات المسجلة</h2><button class="btn soft sm" onclick="loadPlatformAdmin()">تحديث القائمة</button></div><div class="table-wrap" id="platformOrganizationsTable"><div class="empty">جارٍ تحميل المؤسسات…</div></div></div>
+</section>
 <footer>WASLA STUDIO · Cloud Workspace · مزامنة Supabase</footer>
 </main></div>
 <section class="employee-shell" id="employeeShell" style="display:none">
@@ -366,12 +388,12 @@ footer{color:#8290a2}
 const SUPABASE_URL='https://oqkmesadspiibllyjwmj.supabase.co';
 const SUPABASE_KEY='sb_publishable_-xiQKeiUSPw7nOCWRHivsw_gZHrYqdu';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}});
-let currentUser=null, currentRole=null, currentOrganizationId=null, cloudSaveTimer=null, cloudBusy=false;
+let currentUser=null, currentRole=null, currentOrganizationId=null, isPlatformAdmin=false, cloudSaveTimer=null, cloudBusy=false;
 const $=id=>document.getElementById(id);let KEY='wasla_mvp_02';
 const blank={clients:[{id:1,name:'Daily drip Specialty Coffee',type:'مقهى قهوة مختصة',contact:'يضاف بعد التحقق',status:'عميل محتمل',notes:'فرصة مستهدفة — لم يتم التواصل بعد'}],projects:[],contents:[],finance:[]};
 // Do not load shared pre-login cache. Tenant data is loaded only after an active organization membership is resolved.
 let data=JSON.parse(JSON.stringify(blank));
-function clearTenantState(){currentUser=null;currentRole=null;currentOrganizationId=null;KEY='wasla_mvp_02';data=JSON.parse(JSON.stringify(blank));}
+function clearTenantState(){currentUser=null;currentRole=null;currentOrganizationId=null;isPlatformAdmin=false;const platformNav=$('platformAdminNav');if(platformNav)platformNav.style.display='none';KEY='wasla_mvp_02';data=JSON.parse(JSON.stringify(blank));}
 function persist(){localStorage.setItem(KEY,JSON.stringify(data));refresh();if(currentUser)scheduleCloudSave()}
 function setSync(message,isError=false){const el=$('syncStatus');if(el){el.textContent=message;el.style.background=isError?'#fff0ed':'#e7f5d6';el.style.color=isError?'#a33b2c':'#496b1d'}}
 function scheduleCloudSave(){clearTimeout(cloudSaveTimer);setSync('● حفظ التغييرات…');cloudSaveTimer=setTimeout(saveCloudData,900)}
@@ -390,12 +412,15 @@ async function enterWorkspace(session){
     showAuthView('login',profile?.approval_status==='rejected'?'تم رفض طلب الحساب. تواصل مع إدارة WASLA STUDIO.':'هذا الحساب غير مفعّل. تواصل مع إدارة WASLA STUDIO.');
     return;
   }
+  const {data:platformAdminRow}=await sb.from('platform_admins').select('user_id').eq('user_id',session.user.id).eq('status','active').maybeSingle();
+  isPlatformAdmin=!!platformAdminRow;
   const {data:membership,error:membershipError}=await sb.from('organization_members').select('organization_id,role,status').eq('user_id',session.user.id).eq('status','active').maybeSingle();
   if(membershipError||!membership?.organization_id){await sb.auth.signOut();currentUser=null;currentRole=null;currentOrganizationId=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';showAuthView('login','لا توجد عضوية مؤسسة نشطة لهذا الحساب. تواصل مع مسؤول المؤسسة.');return;}
   currentUser=session.user;currentRole=profile.role;currentOrganizationId=membership.organization_id;KEY='wasla_mvp_02:'+currentOrganizationId;try{data=JSON.parse(localStorage.getItem(KEY))||JSON.parse(JSON.stringify(blank));}catch(e){data=JSON.parse(JSON.stringify(blank));}$('authScreen').style.display='none';
   const name=profile.full_name||session.user.email;
   if(currentRole==='admin'||currentRole==='owner'){
     $('employeeShell').style.display='none';$('clientShell').style.display='none';$('appShell').style.display='grid';$('pageTitle').textContent='لوحة التحكم — '+name;
+    const platformNav=$('platformAdminNav');if(platformNav)platformNav.style.display=isPlatformAdmin?'block':'none';
     await loadCloudData(false);await loadAdminEmployees();await pollAdminNotifications();clearInterval(adminNotificationTimer);adminNotificationTimer=setInterval(pollAdminNotifications,20000);await startUnifiedNotifications();
   }else if(currentRole==='employee'){
     $('appShell').style.display='none';$('clientShell').style.display='none';$('employeeShell').style.display='block';$('employeeWelcome').textContent='مرحباً، '+name;
@@ -899,7 +924,41 @@ sb.auth.onAuthStateChange((event,session)=>{
 function safeDecode(v){try{return decodeURIComponent(String(v||'').replace(/\+/g,' '))}catch(e){return String(v||'')}}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function money(v){return Number(v||0).toLocaleString('ar-EG')+' ج.م'}
-function go(id,skipClientPortalLoad=false){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('pageTitle').textContent=({dashboard:'لوحة التحكم',clients:'العملاء وفرص البيع',projects:'المشاريع',content:'تقويم المحتوى',finance:'الحسابات',settings:'النسخ الاحتياطي',employeePortal:'الموظفون والتكليفات',clientManagement:'بوابة العملاء'})[id];refresh();if(id==='employeePortal')loadAdminEmployees();if(id==='clientManagement'&&!skipClientPortalLoad)loadAdminClientPortal()}
+
+async function loadPlatformAdmin(){
+ if(!isPlatformAdmin)return;
+ const tableEl=$('platformOrganizationsTable');if(tableEl)tableEl.innerHTML='<div class="empty">جارٍ تحميل المؤسسات…</div>';
+ const [{data:orgs,error:orgError},{data:subs,error:subsError}]=await Promise.all([
+  sb.from('organizations').select('id,name,slug,status,created_at').order('created_at',{ascending:false}),
+  sb.from('organization_subscriptions').select('id,organization_id,status')
+ ]);
+ if(orgError){if(tableEl)tableEl.innerHTML='<div class="empty">تعذر تحميل المؤسسات: '+esc(orgError.message)+'</div>';return}
+ const {data:members,error:membersError}=await sb.from('organization_members').select('organization_id,user_id,role,status').in('role',['owner','admin']);
+ const active=(orgs||[]).filter(x=>x.status==='active').length;
+ $('platformOrgCount').textContent=(orgs||[]).length;
+ $('platformActiveCount').textContent=active;
+ $('platformManagerCount').textContent=membersError?'—':(members||[]).filter(x=>x.status==='active'&&x.role==='admin').length;
+ $('platformSubscriptionCount').textContent=subsError?'—':(subs||[]).length;
+ if(tableEl)tableEl.innerHTML=(orgs||[]).length?'<table><thead><tr><th>المؤسسة</th><th>المعرّف</th><th>الحالة</th><th>تاريخ الإنشاء</th></tr></thead><tbody>'+(orgs||[]).map(o=>'<tr><td>'+esc(o.name)+'</td><td dir="ltr">'+esc(o.slug)+'</td><td><span class="pill '+(o.status==='active'?'green':'amber')+'">'+esc(o.status)+'</span></td><td>'+new Date(o.created_at).toLocaleDateString('ar-EG')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">لا توجد مؤسسات مسجلة.</div>';
+}
+async function createPlatformOrganization(){
+ if(!isPlatformAdmin)return;
+ const name=$('newOrgName').value.trim(),slug=$('newOrgSlug').value.trim(),admin_name=$('newOrgAdminName').value.trim(),admin_email=$('newOrgAdminEmail').value.trim();
+ const msg=$('platformAdminMessage'),button=$('createOrgButton');
+ if(name.length<2||!slug||admin_name.length<2||!admin_email){msg.textContent='أكمل جميع الحقول أولاً.';return}
+ button.disabled=true;button.textContent='جارٍ إنشاء المؤسسة…';msg.textContent='';
+ try{
+  const {data,error}=await sb.functions.invoke('create-organization',{body:{name,slug,admin_name,admin_email}});
+  if(error)throw error;
+  if(data?.error)throw new Error(data.error);
+  msg.textContent='تم إنشاء المؤسسة وإرسال دعوة المدير إلى '+admin_email;
+  $('newOrgName').value='';$('newOrgSlug').value='';$('newOrgAdminName').value='';$('newOrgAdminEmail').value='';
+  await loadPlatformAdmin();
+ }catch(e){msg.textContent=e.message||'تعذر إنشاء المؤسسة.'}
+ finally{button.disabled=false;button.textContent='إنشاء المؤسسة وإرسال الدعوة'}
+}
+
+function go(id,skipClientPortalLoad=false){if(id==='platformAdmin'&&!isPlatformAdmin)return;document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('pageTitle').textContent=({dashboard:'لوحة التحكم',clients:'العملاء وفرص البيع',projects:'المشاريع',content:'تقويم المحتوى',finance:'الحسابات',settings:'النسخ الاحتياطي',employeePortal:'الموظفون والتكليفات',clientManagement:'بوابة العملاء',platformAdmin:'إدارة المنصة'})[id];refresh();if(id==='employeePortal')loadAdminEmployees();if(id==='clientManagement'&&!skipClientPortalLoad)loadAdminClientPortal();if(id==='platformAdmin')loadPlatformAdmin()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.page));
 function table(headers,rows){return rows.length?'<table><thead><tr>'+headers.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>':'<div class="empty">لا توجد سجلات بعد. أضف أول سجل للبدء.</div>'}
 function renderDashboardExtras(){
