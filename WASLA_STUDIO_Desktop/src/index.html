@@ -345,13 +345,14 @@ footer{color:#8290a2}
     <div class="head"><h2>إنشاء مؤسسة جديدة</h2><span class="pill green">دعوة مدير مستقل</span></div>
     <p class="muted tiny" style="line-height:1.8">سيتم إنشاء مساحة مستقلة للمؤسسة وإرسال دعوة إلى بريد المدير ليُنشئ كلمة مروره بنفسه. لا تُنشأ كلمة مرور مؤقتة ولا يتم مشاركة حسابك.</p>
     <div class="grid two">
-      <div class="field"><label for="newOrgName">اسم المؤسسة</label><input id="newOrgName" maxlength="120" value="اركان" placeholder="مثال: شركة النخبة"></div>
-      <div class="field"><label for="newOrgSlug">معرّف المؤسسة (إنجليزي)</label><input id="newOrgSlug" maxlength="48" value="arkan" placeholder="elite-company"></div>
-      <div class="field"><label for="newOrgAdminName">اسم المدير</label><input id="newOrgAdminName" maxlength="100" value="احمد العربي" placeholder="الاسم الكامل"></div>
-      <div class="field"><label for="newOrgAdminEmail">بريد المدير الإلكتروني</label><input id="newOrgAdminEmail" type="email" value="pertantony@gmail.com" placeholder="manager@example.com"></div>
+      <div class="field"><label for="newOrgName">اسم المؤسسة</label><input id="newOrgName" maxlength="120"  placeholder="مثال: شركة النخبة"></div>
+      <div class="field"><label for="newOrgSlug">معرّف المؤسسة (إنجليزي)</label><input id="newOrgSlug" maxlength="48"  placeholder="elite-company"></div>
+      <div class="field"><label for="newOrgAdminName">اسم المدير</label><input id="newOrgAdminName" maxlength="100"  placeholder="الاسم الكامل"></div>
+      <div class="field"><label for="newOrgAdminEmail">بريد المدير الإلكتروني</label><input id="newOrgAdminEmail" type="email"  placeholder="manager@example.com"></div>
     </div>
     <div class="actions"><button class="btn lime" id="createOrgButton" onclick="createPlatformOrganization()">إنشاء المؤسسة وإرسال الدعوة</button><span id="platformAdminMessage" class="muted tiny"></span></div>
   </div>
+  <div class="card" style="margin-bottom:16px"><div class="head"><h2>دعوات المديرين المعلقة</h2><button class="btn soft sm" onclick="loadPlatformInvitations()">تحديث الدعوات</button></div><p class="muted tiny" style="line-height:1.8">تظهر هنا حسابات مديري المؤسسات التي لم تؤكد البريد بعد. عند إعادة الإرسال يُنشأ رابط جديد وتُفتح رسالة بريد جاهزة؛ راجعها واضغط «إرسال» في برنامج البريد.</p><div class="table-wrap" id="platformInvitationsTable"><div class="empty">جارٍ تحميل الدعوات…</div></div><div id="platformInvitationsMessage" class="muted tiny" style="margin-top:10px"></div></div>
   <div class="card"><div class="head"><h2>المؤسسات المسجلة</h2><button class="btn soft sm" onclick="loadPlatformAdmin()">تحديث القائمة</button></div><div class="table-wrap" id="platformOrganizationsTable"><div class="empty">جارٍ تحميل المؤسسات…</div></div></div>
 </section>
 <footer>WASLA STUDIO · Cloud Workspace · مزامنة Supabase</footer>
@@ -940,6 +941,37 @@ async function loadPlatformAdmin(){
  $('platformManagerCount').textContent=membersError?'—':(members||[]).filter(x=>x.status==='active'&&x.role==='admin').length;
  $('platformSubscriptionCount').textContent=subsError?'—':(subs||[]).length;
  if(tableEl)tableEl.innerHTML=(orgs||[]).length?'<table><thead><tr><th>المؤسسة</th><th>المعرّف</th><th>الحالة</th><th>تاريخ الإنشاء</th></tr></thead><tbody>'+(orgs||[]).map(o=>'<tr><td>'+esc(o.name)+'</td><td dir="ltr">'+esc(o.slug)+'</td><td><span class="pill '+(o.status==='active'?'green':'amber')+'">'+esc(o.status)+'</span></td><td>'+new Date(o.created_at).toLocaleDateString('ar-EG')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">لا توجد مؤسسات مسجلة.</div>';
+ loadPlatformInvitations();
+}
+async function loadPlatformInvitations(){
+ if(!isPlatformAdmin)return;
+ const tableEl=$('platformInvitationsTable');
+ if(tableEl)tableEl.innerHTML='<div class="empty">جارٍ تحميل الدعوات المعلقة…</div>';
+ const msg=$('platformInvitationsMessage');if(msg)msg.textContent='';
+ try{
+  const {data,error}=await sb.functions.invoke('platform-invitations',{body:{action:'list'}});
+  if(error)throw error;
+  if(data?.error)throw new Error(data.error);
+  const rows=data?.invitations||[];
+  if(!tableEl)return;
+  tableEl.innerHTML=rows.length?'<table><thead><tr><th>المؤسسة</th><th>المدير</th><th>البريد</th><th>تاريخ الدعوة</th><th>الإجراء</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.organization_name)+'</td><td>'+esc(x.full_name||'—')+'</td><td dir="ltr">'+esc(x.email)+'</td><td>'+new Date(x.invited_at).toLocaleDateString('ar-EG')+'</td><td><button class="btn lime sm" onclick="resendPlatformInvitation(\''+esc(x.user_id)+'\')">إعادة إرسال الدعوة</button></td></tr>').join('')+'</tbody></table>':'<div class="empty">لا توجد دعوات معلقة حالياً. جميع مديري المؤسسات أكدوا بريدهم أو لا توجد دعوات مفتوحة.</div>';
+ }catch(e){if(tableEl)tableEl.innerHTML='<div class="empty">تعذر تحميل الدعوات: '+esc(e.message||'خطأ غير معروف')+'</div>'}
+}
+async function resendPlatformInvitation(userId){
+ if(!isPlatformAdmin||!userId)return;
+ const msg=$('platformInvitationsMessage');
+ if(msg)msg.textContent='جارٍ تجهيز رابط دعوة جديد…';
+ try{
+  const {data,error}=await sb.functions.invoke('platform-invitations',{body:{action:'resend',user_id:userId}});
+  if(error)throw error;
+  if(data?.error)throw new Error(data.error);
+  const subject='دعوة للانضمام إلى '+(data.organization_name||'WASLA STUDIO');
+  const body='مرحباً '+(data.full_name||'')+'،\n\nتم إصدار رابط دعوة جديد للانضمام إلى '+(data.organization_name||'المؤسسة')+'. افتح الرابط التالي لإكمال قبول الدعوة وإنشاء كلمة المرور:\n\n'+data.action_link+'\n\nفريق WASLA STUDIO';
+  const mailto='mailto:'+encodeURIComponent(data.email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  if(msg)msg.textContent='تم إنشاء رابط جديد لـ '+data.email+'؛ ستفتح رسالة بريد جاهزة. اضغط «إرسال» لإيصالها إلى المدير.';
+  window.location.href=mailto;
+  await loadPlatformInvitations();
+ }catch(e){if(msg)msg.textContent='تعذر إعادة إصدار الدعوة: '+(e.message||'خطأ غير معروف')}
 }
 async function createPlatformOrganization(){
  if(!isPlatformAdmin)return;
