@@ -824,7 +824,7 @@ async function openNotificationTarget(type,id,notificationId){
 }
 
 // Manager tools: employee performance, assignment management, and update notifications.
-let adminEmployees=[], adminAssignments=[], adminUpdates=[], adminAttachments=[], adminNotificationTimer=null;
+let adminEmployees=[], adminAssignments=[], adminUpdates=[], adminAttachments=[], adminNotificationTimer=null, unifiedNotificationsTimer=null;
 const ADMIN_SEEN_KEY='wasla_admin_seen_updates_v1';
 // Employee portal marker: employeePortal
 // Performance and notification handlers: loadAdminEmployees, pollAdminNotifications
@@ -1030,7 +1030,7 @@ function getRecoveryUrlState(){
 }
 let recoveryMode=getRecoveryUrlState().isRecovery;
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('loginButton');button.disabled=true;button.textContent='جارٍ التحقق…';$('authMessage').textContent='';try{const {data:result,error}=await sb.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});if(error)throw error;await enterWorkspace(result.session)}catch(err){$('authMessage').textContent=err.message||'تعذر تسجيل الدخول.'}finally{button.disabled=false;button.textContent='دخول إلى مساحة العمل'}});
-async function logout(){clearTimeout(cloudSaveTimer);clearInterval(adminNotificationTimer);clearInterval(unifiedNotificationsTimer);if(currentUser&&(currentRole==='admin'||currentRole==='owner'))await saveCloudData();await sb.auth.signOut();clearTenantState();$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';$('authScreen').style.display='grid';$('loginPassword').value='';showAuthView('login','تم تسجيل الخروج.')}
+async function logout(){try{clearTimeout(cloudSaveTimer);clearInterval(adminNotificationTimer);clearInterval(unifiedNotificationsTimer);if(currentUser&&(currentRole==='admin'||currentRole==='owner'))await saveCloudData();const {error}=await sb.auth.signOut();if(error)throw error;clearTenantState();$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';$('authScreen').style.display='grid';$('loginPassword').value='';showAuthView('login','تم تسجيل الخروج.')}catch(err){console.error('Logout failed:',err);alert('تعذر تسجيل الخروج: '+(err?.message||'حدث خطأ غير متوقع. حاول مرة أخرى.'));}}
 // Register the listener before reading the session so recovery links are handled first.
 sb.auth.onAuthStateChange((event,session)=>{
   if(event==='PASSWORD_RECOVERY'){
