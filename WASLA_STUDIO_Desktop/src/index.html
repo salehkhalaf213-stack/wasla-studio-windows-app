@@ -320,7 +320,7 @@ footer{color:#8290a2}
 <div class="grid stats"><div class="card"><div class="stat-label">عدد الموظفين</div><div class="stat-value" id="adminEmployeeCount">0</div></div><div class="card"><div class="stat-label">إجمالي التكليفات</div><div class="stat-value" id="adminAssignmentCount">0</div></div><div class="card"><div class="stat-label">قيد التنفيذ</div><div class="stat-value" id="adminActiveCount">0</div></div><div class="card"><div class="stat-label">تحديثات جديدة</div><div class="stat-value" id="adminUpdatesCount">0</div></div></div>
 <div class="card" style="margin-bottom:14px"><div class="head"><h2>طلبات الحسابات الجديدة</h2><button class="btn soft sm" onclick="loadAdminEmployees()">تحديث</button></div><div class="muted tiny" style="margin-bottom:10px">طلبات العملاء والموظفين الجديدة تظهر هنا، ولا تحصل على صلاحية الدخول قبل موافقة المدير.</div><div class="table-wrap" id="pendingSignupTable"><div class="empty">جارٍ تحميل الطلبات…</div></div></div>
 <div class="card" style="margin-bottom:14px"><div class="head"><h2>أداء الموظفين</h2><button class="btn soft sm" onclick="loadAdminEmployees()">تحديث البيانات</button></div><div class="table-wrap" id="adminEmployeesTable"><div class="empty">اضغط تحديث البيانات لعرض الأداء.</div></div></div>
-<div class="card"><div class="head"><h2>التكليفات ومتابعة التنفيذ</h2></div><div class="task-filters"><input id="assignmentSearch" placeholder="ابحث باسم المهمة أو العميل..." oninput="renderAdminAssignments()"><select id="assignmentStatusFilter" onchange="renderAdminAssignments()"><option value="">كل الحالات</option><option>لم يبدأ</option><option>قيد التنفيذ</option><option>قيد المراجعة</option><option>مكتمل</option></select><select id="assignmentDueFilter" onchange="renderAdminAssignments()"><option value="">كل المواعيد</option><option value="overdue">متأخرة</option><option value="today">تسليم اليوم</option><option value="upcoming">قادمة</option></select></div><div class="table-wrap" id="adminAssignmentsTable"><div class="empty">جارٍ تحميل التكليفات…</div></div></div>
+<div class="card"><div class="head"><h2>التكليفات ومتابعة التنفيذ</h2><button class="btn soft sm" onclick="loadAdminEmployees()">تحديث التقارير</button></div><div class="task-filters"><input id="assignmentSearch" placeholder="ابحث باسم المهمة أو العميل..." oninput="renderAdminAssignments()"><select id="assignmentStatusFilter" onchange="renderAdminAssignments()"><option value="">كل الحالات</option><option>لم يبدأ</option><option>قيد التنفيذ</option><option>قيد المراجعة</option><option>مكتمل</option></select><select id="assignmentDueFilter" onchange="renderAdminAssignments()"><option value="">كل المواعيد</option><option value="overdue">متأخرة</option><option value="today">تسليم اليوم</option><option value="upcoming">قادمة</option></select></div><div class="table-wrap" id="adminAssignmentsTable"><div class="empty">جارٍ تحميل التكليفات…</div></div></div>
 </section>
 
 <section class="page" id="clientManagement">
@@ -906,8 +906,9 @@ function editEmployee(id){
  const employee=adminEmployees.find(e=>String(e.id)===String(id));if(!employee)return;
  openModal('تعديل بيانات الموظف',input('editEmployeeName','اسم الموظف',employee.full_name||''),async()=>{
   const full_name=$('editEmployeeName').value.trim();if(full_name.length<2)return alert('أدخل اسماً صحيحاً.');
-  const {error}=await sb.from('profiles').update({full_name}).eq('id',employee.id).eq('organization_id',currentOrganizationId);if(error)throw error;
-  closeModal();await loadAdminEmployees();alert('تم تحديث بيانات الموظف.');
+  try{const {error}=await sb.from('profiles').update({full_name}).eq('id',employee.id).eq('organization_id',currentOrganizationId);if(error)throw error;
+   closeModal();await loadAdminEmployees();alert('تم تحديث بيانات الموظف.');
+  }catch(e){alert('تعذر تحديث بيانات الموظف: '+(e.message||'خطأ غير معروف'));}
  });
 }
 async function toggleEmployeeStatus(id){
