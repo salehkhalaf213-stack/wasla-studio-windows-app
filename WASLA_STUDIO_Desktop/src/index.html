@@ -511,40 +511,38 @@ async function enterWorkspace(session){
 }
 let employeeAssignments=[];
 async function loadEmployeeAssignments(){
-  if(!currentUser||currentRole!=='employee')return;
-  const box=$('employeeAssignments');box.innerHTML='<div class="employee-empty">جارٍ تحميل التكليفات…</div>';$('employeeSync').textContent='● جارٍ التحديث';
-  try{
-    const {data:rows,error}=await sb.from('employee_assignments').select('id,project_ref,project_name,client_label,due_date,instructions,employee_status,created_at,updated_at').eq('assigned_to',currentUser.id).order('due_date',{ascending:true,nullsFirst:false});
-    if(error)throw error;
-    employeeAssignments=rows||[];
-    let updatesByAssignment={};
-    if(employeeAssignments.length){
-      const ids=employeeAssignments.map(x=>x.id);
-      const {data:updates,error:updateError}=await sb.from('employee_updates').select('id,assignment_id,body,created_at').in('assignment_id',ids).order('created_at',{ascending:false});
-      if(updateError)throw updateError;
-      (updates||[]).forEach(u=>{(updatesByAssignment[u.assignment_id]??=[]).push(u)});
-    }
-    $('empTotal').textContent=employeeAssignments.length;
-    $('empActive').textContent=employeeAssignments.filter(x=>x.employee_status==='قيد التنفيذ').length;
-    $('empDone').textContent=employeeAssignments.filter(x=>x.employee_status==='مكتمل').length;
-    $('employeeLastUpdated').textContent='آخر تحديث: '+new Date().toLocaleString('ar-EG');
-    if(!employeeAssignments.length){box.innerHTML='<div class="employee-empty">لا توجد تكليفات مسندة إليك حالياً. ستظهر هنا بمجرد أن يضيف المدير تكليفاً جديداً.</div>';}
-    else box.innerHTML=employeeAssignments.map(a=>{
-      const updates=updatesByAssignment[a.id]||[];
-      return `<article class="assignment-card" id="assignment-${esc(a.id)}">
-        <div class="actions"><span class="pill">${esc(a.project_ref)}</span><span class="pill ${a.employee_status==='مكتمل'?'green':a.employee_status==='قيد التنفيذ'?'amber':''}">${esc(a.employee_status)}</span></div>
-        <h3>${esc(a.project_name)}</h3>
-        <p><b>العميل:</b> ${esc(a.client_label||'—')}<br><b>موعد التسليم:</b> ${esc(a.due_date||'غير محدد')} ${assignmentDueClass(a)?'<span class="pill task-overdue">متأخرة</span>':''}</p>
-        <p><b>تعليمات المدير:</b><br>${esc(a.instructions||'لا توجد تعليمات إضافية.')}</p>
-        <label class="tiny muted" for="status-${esc(a.id)}">حالة التنفيذ</label>
-        <select id="status-${esc(a.id)}"><option ${a.employee_status==='لم يبدأ'?'selected':''}>لم يبدأ</option><option ${a.employee_status==='قيد التنفيذ'?'selected':''}>قيد التنفيذ</option><option ${a.employee_status==='قيد المراجعة'?'selected':''}>قيد المراجعة</option><option ${a.employee_status==='مكتمل'?'selected':''}>مكتمل</option></select>
-        <button class="btn soft sm" onclick="updateAssignmentStatus('${esc(a.id)}')">حفظ الحالة</button>
-        <div style="margin-top:15px"><b class="tiny">إرسال مستجد للمدير</b><textarea id="update-${esc(a.id)}" maxlength="2000" placeholder="اكتب ما تم إنجازه أو أي عائق تواجهه…"></textarea><button class="btn lime sm" onclick="sendEmployeeUpdate('${esc(a.id)}')">إرسال التحديث</button></div>
-        <div style="margin-top:14px"><b class="tiny">سجل المستجدات</b>${updates.length?updates.map(u=>`<div class="update-item">${esc(u.body)}<br><span class="muted">${new Date(u.created_at).toLocaleString('ar-EG')}</span></div>`).join(''):'<div class="update-item muted">لا توجد مستجدات بعد.</div>'}</div>
-      </article>`;
-    }).join('');
-    $('employeeSync').textContent='● تم التحديث';
-  }catch(e){console.error(e);box.innerHTML='<div class="employee-empty">تعذر تحميل التكليفات: '+esc(e.message||'خطأ غير معروف')+'</div>';$('employeeSync').textContent='تعذر الاتصال';}
+ if(!currentUser||currentRole!=='employee')return;
+ const box=$('employeeAssignments');box.innerHTML='<div class="employee-empty">جارٍ تحميل التكليفات…</div>';$('employeeSync').textContent='● جارٍ التحديث';
+ try{
+  const {data:rows,error}=await sb.from('employee_assignments').select('id,project_ref,project_name,client_label,due_date,instructions,employee_status,created_at,updated_at').eq('assigned_to',currentUser.id).eq('organization_id',currentOrganizationId).order('due_date',{ascending:true,nullsFirst:false});
+  if(error)throw error;employeeAssignments=rows||[];
+  let updatesByAssignment={},attachmentsByUpdate={};
+  if(employeeAssignments.length){
+   const ids=employeeAssignments.map(x=>x.id);
+   const {data:updates,error:updateError}=await sb.from('employee_updates').select('id,assignment_id,body,created_at').in('assignment_id',ids).eq('organization_id',currentOrganizationId).order('created_at',{ascending:false});
+   if(updateError)throw updateError;(updates||[]).forEach(u=>{(updatesByAssignment[u.assignment_id]??=[]).push(u)});
+   const updateIds=(updates||[]).map(u=>u.id);
+   if(updateIds.length){const {data:files,error:fileError}=await sb.from('employee_update_attachments').select('id,update_id,file_name,file_path,file_size').in('update_id',updateIds).eq('organization_id',currentOrganizationId).order('created_at');if(fileError)throw fileError;(files||[]).forEach(f=>{(attachmentsByUpdate[f.update_id]??=[]).push(f)});}
+  }
+  $('empTotal').textContent=employeeAssignments.length;$('empActive').textContent=employeeAssignments.filter(x=>x.employee_status==='قيد التنفيذ').length;$('empDone').textContent=employeeAssignments.filter(x=>x.employee_status==='مكتمل').length;$('employeeLastUpdated').textContent='آخر تحديث: '+new Date().toLocaleString('ar-EG');
+  if(!employeeAssignments.length){box.innerHTML='<div class="employee-empty">لا توجد تكليفات مسندة إليك حالياً. ستظهر هنا بمجرد أن يضيف المدير تكليفاً جديداً.</div>';}
+  else box.innerHTML=employeeAssignments.map(a=>{
+   const updates=updatesByAssignment[a.id]||[];
+   return `<article class="assignment-card" id="assignment-${esc(a.id)}">
+    <div class="actions"><span class="pill">${esc(a.project_ref)}</span><span class="pill ${a.employee_status==='مكتمل'?'green':a.employee_status==='قيد التنفيذ'?'amber':''}">${esc(a.employee_status)}</span></div>
+    <h3>${esc(a.project_name)}</h3><p><b>العميل:</b> ${esc(a.client_label||'—')}<br><b>موعد التسليم:</b> ${esc(a.due_date||'غير محدد')} ${assignmentDueClass(a)?'<span class="pill task-overdue">متأخرة</span>':''}</p>
+    <p><b>تعليمات المدير:</b><br>${esc(a.instructions||'لا توجد تعليمات إضافية.')}</p>
+    <label class="tiny muted" for="status-${esc(a.id)}">حالة التنفيذ</label>
+    <select id="status-${esc(a.id)}"><option ${a.employee_status==='لم يبدأ'?'selected':''}>لم يبدأ</option><option ${a.employee_status==='قيد التنفيذ'?'selected':''}>قيد التنفيذ</option><option ${a.employee_status==='قيد المراجعة'?'selected':''}>قيد المراجعة</option><option ${a.employee_status==='مكتمل'?'selected':''}>مكتمل</option></select>
+    <button class="btn soft sm" onclick="updateAssignmentStatus('${esc(a.id)}')">حفظ الحالة</button>
+    <div style="margin-top:15px"><b class="tiny">إرسال تقرير أو مستجد للمدير</b><textarea id="update-${esc(a.id)}" maxlength="2000" placeholder="اكتب ما تم إنجازه أو أي عائق تواجهه…"></textarea>
+     <div class="field"><label for="report-files-${esc(a.id)}">إرفاق ملفات (حتى 20MB للملف)</label><input id="report-files-${esc(a.id)}" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx"></div>
+     <button class="btn lime sm" onclick="sendEmployeeUpdate('${esc(a.id)}')">إرسال التقرير والمرفقات</button></div>
+    <div style="margin-top:14px"><b class="tiny">سجل التقارير والمستجدات</b>${updates.length?updates.map(u=>`<div class="update-item">${esc(u.body)}<br><span class="muted">${new Date(u.created_at).toLocaleString('ar-EG')}</span>${(attachmentsByUpdate[u.id]||[]).map(file=>`<div class="task"><button class="btn soft sm" onclick="openEmployeeReportFile('${esc(file.file_path)}')">📎 ${esc(file.file_name)} — ${(file.file_size/1024/1024).toFixed(2)} MB</button></div>`).join('')}</div>`).join(''):'<div class="update-item muted">لا توجد تقارير بعد.</div>'}</div>
+   </article>`;
+  }).join('');
+  $('employeeSync').textContent='● تم التحديث';
+ }catch(e){console.error(e);box.innerHTML='<div class="employee-empty">تعذر تحميل التكليفات: '+esc(e.message||'خطأ غير معروف')+'</div>';$('employeeSync').textContent='تعذر الاتصال';}
 }
 async function updateAssignmentStatus(id){
   const status=$('status-'+id)?.value;if(!status)return;
@@ -555,11 +553,21 @@ async function updateAssignmentStatus(id){
   }catch(e){alert('تعذر تحديث الحالة: '+(e.message||'خطأ غير معروف'));}
 }
 async function sendEmployeeUpdate(id){
-  const field=$('update-'+id),body=field?.value.trim();if(!body){alert('اكتب التحديث أولاً.');return;}if(body.length>2000){alert('الحد الأقصى 2000 حرف.');return;}
-  try{
-    const {error}=await sb.from('employee_updates').insert({assignment_id:id,employee_id:currentUser.id,body});if(error)throw error;
-    field.value='';alert('تم إرسال المستجد للمدير.');await loadEmployeeAssignments();
-  }catch(e){alert('تعذر إرسال التحديث: '+(e.message||'خطأ غير معروف'));}
+ const field=$('update-'+id),body=field?.value.trim(),fileInput=$('report-files-'+id),files=Array.from(fileInput?.files||[]);
+ if(!body){alert('اكتب ملخص التقرير أولاً.');return;}if(body.length>2000){alert('الحد الأقصى 2000 حرف.');return;}
+ const allowedExt=['pdf','png','jpg','jpeg','webp','txt','csv','doc','docx','xls','xlsx','ppt','pptx'];
+ for(const file of files){const ext=(file.name.split('.').pop()||'').toLowerCase();if(file.size>20*1024*1024){alert('الملف '+file.name+' يتجاوز 20MB.');return;}if(!allowedExt.includes(ext)){alert('نوع الملف غير مسموح: '+file.name);return;}}
+ try{
+  const {data:report,error}=await sb.from('employee_updates').insert({assignment_id:id,employee_id:currentUser.id,organization_id:currentOrganizationId,body}).select('id').single();if(error)throw error;
+  const uploaded=[];
+  try{for(const file of files){
+   const cleanName=file.name.replace(/[^\p{L}\p{N}._-]/gu,'_').slice(-120)||'attachment',token=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2));
+   const filePath=currentOrganizationId+'/'+id+'/'+report.id+'/'+token+'-'+cleanName,mime=file.type||'application/octet-stream';
+   const {error:uploadError}=await sb.storage.from('employee-reports').upload(filePath,file,{upsert:false,contentType:mime});if(uploadError)throw uploadError;uploaded.push(filePath);
+   const {error:metaError}=await sb.from('employee_update_attachments').insert({update_id:report.id,assignment_id:id,employee_id:currentUser.id,organization_id:currentOrganizationId,file_name:file.name,mime_type:mime,file_size:file.size,file_path:filePath});if(metaError)throw metaError;
+  }}catch(fileError){if(uploaded.length)await sb.storage.from('employee-reports').remove(uploaded);throw fileError;}
+  field.value='';if(fileInput)fileInput.value='';alert(files.length?'تم إرسال التقرير وإرفاق '+files.length+' ملف/ملفات للمدير.':'تم إرسال التقرير للمدير بنجاح.');await loadEmployeeAssignments();
+ }catch(e){console.error(e);alert('تعذر إرسال التقرير: '+(e.message||'خطأ غير معروف'));}
 }
 $('employeeRefresh').addEventListener('click',loadEmployeeAssignments);
 
@@ -732,16 +740,16 @@ function renderAdminAssignments(){
  const byId=Object.fromEntries(adminEmployees.map(e=>[e.id,e]));
  box.innerHTML=rows.length?table(['المهمة / المشروع','الموظف','العميل','موعد التسليم','الحالة','آخر تحديث','التفاصيل'],rows.map(a=>{const last=adminUpdates.find(u=>u.assignment_id===a.id);return `<tr><td>${esc(a.project_name)}</td><td>${esc(byId[a.assigned_to]?.full_name||'موظف غير معروف')}</td><td>${esc(a.client_label||'—')}</td><td>${esc(a.due_date||'—')} ${assignmentDueClass(a)?'<span class="pill task-overdue">متأخرة</span>':''}</td><td><span class="pill ${a.employee_status==='مكتمل'?'green':a.employee_status==='قيد التنفيذ'?'amber':''}">${esc(a.employee_status||'لم يبدأ')}</span></td><td>${last?esc(new Date(last.created_at).toLocaleString('ar-EG')):'—'}</td><td><button class="btn soft sm" onclick="viewAssignmentDetails('${esc(a.id)}')">عرض التفاصيل</button></td></tr>`})): '<div class="empty">لا توجد مهام تطابق عوامل التصفية.</div>';
 }
-function viewAssignmentDetails(id){const a=adminAssignments.find(x=>String(x.id)===String(id));if(!a)return;const updates=adminUpdates.filter(u=>String(u.assignment_id)===String(id));openModal('تفاصيل التكليف',`<div class="task-detail"><b>${esc(a.project_name)}</b>\nالعميل: ${esc(a.client_label||'—')}\nموعد التسليم: ${esc(a.due_date||'غير محدد')}\nالحالة: ${esc(a.employee_status)}\n\nتعليمات المدير:\n${esc(a.instructions||'—')}\n\nسجل التحديثات:\n${updates.length?updates.map(u=>new Date(u.created_at).toLocaleString('ar-EG')+' — '+u.body).map(esc).join('\n\n'):'لا توجد تحديثات بعد.'}</div>`,()=>closeModal());}
-
-// Unified role-scoped notifications (V8). Uses the existing RLS policies and 20-second polling.
-let unifiedNotifications=[], unifiedNotificationsTimer=null, unifiedNotificationsBusy=false;
-const NOTIFICATION_POLL_MS=20000;
-function notificationDate(value){try{return new Date(value).toLocaleString('ar-EG')}catch{return ''}}
-function updateNotificationBadges(){
-  const unread=unifiedNotifications.filter(n=>!n.is_read).length;
-  ['adminNotificationCount','employeeNotificationCount','clientNotificationCount'].forEach(id=>{const el=$(id);if(el)el.textContent=String(unread)});
-  ['adminNotificationsButton','employeeNotificationsButton','clientNotificationsButton'].forEach(id=>{const el=$(id);if(el)el.title=unread?`لديك ${unread} إشعارات غير مقروءة`:'لا توجد إشعارات غير مقروءة'});
+async function viewAssignmentDetails(id){
+ const a=adminAssignments.find(x=>String(x.id)===String(id));if(!a)return;
+ const updates=adminUpdates.filter(u=>String(u.assignment_id)===String(id)),files=adminAttachments.filter(f=>String(f.assignment_id)===String(id)),byUpdate={};
+ files.forEach(f=>{(byUpdate[f.update_id]??=[]).push(f)});
+ const history=updates.length?updates.map(u=>`<div class="update-item"><b>${esc(new Date(u.created_at).toLocaleString('ar-EG'))}</b><p>${esc(u.body)}</p>${(byUpdate[u.id]||[]).map(f=>`<button class="btn soft sm" onclick="openEmployeeReportFile('${esc(f.file_path)}')">📎 ${esc(f.file_name)} — ${(f.file_size/1024/1024).toFixed(2)} MB</button>`).join(' ')}</div>`).join(''):'لا توجد تقارير بعد.';
+ openModal('تفاصيل التكليف',`<div class="task-detail"><b>${esc(a.project_name)}</b>\nالعميل: ${esc(a.client_label||'—')}\nموعد التسليم: ${esc(a.due_date||'غير محدد')}\nالحالة: ${esc(a.employee_status)}\n\nتعليمات المدير:\n${esc(a.instructions||'—')}\n\nتقارير الموظف والمرفقات:</div><div style="margin-top:12px">${history}</div>`,()=>closeModal());
+}
+async function openEmployeeReportFile(path){
+ try{const {data,error}=await sb.storage.from('employee-reports').createSignedUrl(path,300);if(error)throw error;if(!data?.signedUrl)throw new Error('تعذر إنشاء رابط الملف.');window.open(data.signedUrl,'_blank','noopener,noreferrer');}
+ catch(e){alert('تعذر فتح الملف: '+(e.message||'خطأ غير معروف'));}
 }
 async function refreshUnifiedNotifications(){
   if(!currentUser||unifiedNotificationsBusy)return;
@@ -816,37 +824,41 @@ async function openNotificationTarget(type,id,notificationId){
 }
 
 // Manager tools: employee performance, assignment management, and update notifications.
-let adminEmployees=[], adminAssignments=[], adminUpdates=[], adminNotificationTimer=null;
+let adminEmployees=[], adminAssignments=[], adminUpdates=[], adminAttachments=[], adminNotificationTimer=null;
 const ADMIN_SEEN_KEY='wasla_admin_seen_updates_v1';
 // Employee portal marker: employeePortal
 // Performance and notification handlers: loadAdminEmployees, pollAdminNotifications
 function isAdminRole(){return currentRole==='owner'||currentRole==='admin'}
 async function loadAdminEmployees(){
-  if(!currentUser||!isAdminRole())return;
-  const empBox=$('adminEmployeesTable'),assignBox=$('adminAssignmentsTable');
-  if(empBox)empBox.innerHTML='<div class="empty">جارٍ تحميل بيانات الموظفين…</div>';
-  try{
-    const [{data:profiles,error:profileError},{data:assignments,error:assignmentError},{data:updates,error:updateError},{data:pending,error:pendingError}]=await Promise.all([
-      sb.from('profiles').select('id,full_name,role').eq('role','employee').order('full_name'),
-      sb.from('employee_assignments').select('id,project_ref,project_name,client_label,due_date,instructions,employee_status,assigned_to,created_at').order('created_at',{ascending:false}),
-      sb.from('employee_updates').select('id,assignment_id,employee_id,body,created_at').order('created_at',{ascending:false}).limit(100),
-      sb.from('profiles').select('id,full_name,requested_role,created_at').eq('approval_status','pending').eq('role','pending').order('created_at',{ascending:true})
-    ]);
-    if(profileError)throw profileError;if(assignmentError)throw assignmentError;if(updateError)throw updateError;if(pendingError)throw pendingError;
-    const pendingBox=$('pendingSignupTable');
-    if(pendingBox)pendingBox.innerHTML=(pending||[]).length?table(['الاسم','نوع الحساب','تاريخ الطلب','الإجراء'],pending.map(p=>`<tr><td>${esc(p.full_name||'—')}</td><td><span class="pill amber">${p.requested_role==='employee'?'موظف':'عميل'}</span></td><td>${esc(new Date(p.created_at).toLocaleString('ar-EG'))}</td><td><button class="btn lime sm" onclick="approvePendingSignup('${esc(p.id)}')">موافقة وتفعيل</button></td></tr>`)):'<div class="empty">لا توجد طلبات معلقة حالياً.</div>';
-    adminEmployees=profiles||[];adminAssignments=assignments||[];adminUpdates=updates||[];
-    const byId=Object.fromEntries(adminEmployees.map(e=>[e.id,e]));
-    const updateByEmployee={};adminUpdates.forEach(u=>{(updateByEmployee[u.employee_id]??=[]).push(u)});
-    const total=adminAssignments.length,active=adminAssignments.filter(a=>a.employee_status==='قيد التنفيذ').length;
-    $('adminEmployeeCount').textContent=adminEmployees.length;$('adminAssignmentCount').textContent=total;$('adminActiveCount').textContent=active;$('adminUpdatesCount').textContent=unseenAdminUpdates().length;
-    if(empBox)empBox.innerHTML=adminEmployees.length?table(['الموظف','إجمالي التكليفات','قيد التنفيذ','مكتملة','آخر مستجد'],adminEmployees.map(e=>{
-      const list=adminAssignments.filter(a=>a.assigned_to===e.id),done=list.filter(a=>a.employee_status==='مكتمل').length,working=list.filter(a=>a.employee_status==='قيد التنفيذ').length;
-      const last=(updateByEmployee[e.id]||[])[0];const pct=list.length?Math.round(done/list.length*100):0;
-      return `<tr><td>${esc(e.full_name||e.id)}</td><td>${list.length}</td><td>${working}</td><td>${done}</td><td>${last?esc(new Date(last.created_at).toLocaleString('ar-EG')):'لا يوجد'}</td></tr>`;
-    })):'<div class="empty">لا يوجد موظفون مسجلون بدور employee.</div>';
-    if(assignBox)renderAdminAssignments();
-  }catch(e){console.error(e);if(empBox)empBox.innerHTML='<div class="empty">تعذر تحميل بيانات الموظفين: '+esc(e.message||'خطأ غير معروف')+'</div>';}
+ if(!currentUser||!isAdminRole()||!currentOrganizationId)return;
+ const empBox=$('adminEmployeesTable'),assignBox=$('adminAssignmentsTable');
+ if(empBox)empBox.innerHTML='<div class="empty">جارٍ تحميل بيانات الموظفين…</div>';
+ try{
+  const [{data:members,error:memberError},{data:assignments,error:assignmentError},{data:updates,error:updateError},{data:pending,error:pendingError}]=await Promise.all([
+   sb.from('organization_members').select('user_id,status,role').eq('organization_id',currentOrganizationId).eq('role','employee').order('created_at',{ascending:true}),
+   sb.from('employee_assignments').select('id,project_ref,project_name,client_label,due_date,instructions,employee_status,assigned_to,created_at,organization_id').eq('organization_id',currentOrganizationId).order('created_at',{ascending:false}),
+   sb.from('employee_updates').select('id,assignment_id,employee_id,body,created_at,organization_id').eq('organization_id',currentOrganizationId).order('created_at',{ascending:false}).limit(150),
+   sb.from('profiles').select('id,full_name,requested_role,created_at').eq('organization_id',currentOrganizationId).eq('approval_status','pending').eq('role','pending').order('created_at',{ascending:true})
+  ]);
+  if(memberError)throw memberError;if(assignmentError)throw assignmentError;if(updateError)throw updateError;if(pendingError)throw pendingError;
+  const memberIds=(members||[]).map(m=>m.user_id);let profiles=[];
+  if(memberIds.length){const result=await sb.from('profiles').select('id,full_name,role,organization_id').in('id',memberIds);if(result.error)throw result.error;profiles=result.data||[];}
+  const profileMap=Object.fromEntries(profiles.map(p=>[p.id,p]));
+  adminEmployees=(members||[]).map(m=>({...profileMap[m.user_id],id:m.user_id,full_name:profileMap[m.user_id]?.full_name||'موظف',membership_status:m.status,membership_role:m.role}));
+  adminAssignments=assignments||[];adminUpdates=updates||[];adminAttachments=[];
+  const updateIds=adminUpdates.map(u=>u.id);
+  if(updateIds.length){const result=await sb.from('employee_update_attachments').select('id,update_id,assignment_id,employee_id,file_name,file_path,mime_type,file_size,created_at').in('update_id',updateIds).eq('organization_id',currentOrganizationId).order('created_at',{ascending:true});if(result.error)throw result.error;adminAttachments=result.data||[];}
+  const pendingBox=$('pendingSignupTable');
+  if(pendingBox)pendingBox.innerHTML=(pending||[]).length?table(['الاسم','نوع الحساب','تاريخ الطلب','الإجراء'],pending.map(p=>`<tr><td>${esc(p.full_name||'—')}</td><td><span class="pill amber">${p.requested_role==='employee'?'موظف':'عميل'}</span></td><td>${esc(new Date(p.created_at).toLocaleString('ar-EG'))}</td><td><button class="btn lime sm" onclick="approvePendingSignup('${esc(p.id)}')">موافقة وتفعيل</button></td></tr>`)):'<div class="empty">لا توجد طلبات معلقة حالياً.</div>';
+  const updateByEmployee={};adminUpdates.forEach(u=>{(updateByEmployee[u.employee_id]??=[]).push(u)});
+  const total=adminAssignments.length,active=adminAssignments.filter(a=>a.employee_status==='قيد التنفيذ').length;
+  $('adminEmployeeCount').textContent=adminEmployees.filter(e=>e.membership_status==='active').length;$('adminAssignmentCount').textContent=total;$('adminActiveCount').textContent=active;$('adminUpdatesCount').textContent=unseenAdminUpdates().length;
+  if(empBox)empBox.innerHTML=adminEmployees.length?table(['الموظف','حالة العضوية','إجمالي التكليفات','قيد التنفيذ','مكتملة','آخر تقرير','الإجراءات'],adminEmployees.map(e=>{
+   const list=adminAssignments.filter(a=>a.assigned_to===e.id),done=list.filter(a=>a.employee_status==='مكتمل').length,working=list.filter(a=>a.employee_status==='قيد التنفيذ').length,last=(updateByEmployee[e.id]||[])[0],activeMember=e.membership_status==='active';
+   return `<tr><td>${esc(e.full_name||e.id)}</td><td><span class="pill ${activeMember?'green':'amber'}">${activeMember?'نشط':'موقوف'}</span></td><td>${list.length}</td><td>${working}</td><td>${done}</td><td>${last?esc(new Date(last.created_at).toLocaleString('ar-EG')):'لا يوجد'}</td><td><div class="actions"><button class="btn soft sm" onclick="editEmployee('${esc(e.id)}')">تعديل</button><button class="btn ${activeMember?'danger':'lime'} sm" onclick="toggleEmployeeStatus('${esc(e.id)}')">${activeMember?'إيقاف':'تفعيل'}</button></div></td></tr>`;
+  })):'<div class="empty">لا يوجد موظفون في هذه المؤسسة.</div>';
+  if(assignBox)renderAdminAssignments();
+ }catch(e){console.error(e);if(empBox)empBox.innerHTML='<div class="empty">تعذر تحميل بيانات الموظفين: '+esc(e.message||'خطأ غير معروف')+'</div>';}
 }
 async function approvePendingSignup(userId){
   if(!isAdminRole())return alert('غير مصرح.');
@@ -888,6 +900,21 @@ async function openEmployeeInvite(){
 }
 function openAssignment(){
   if(!adminEmployees.length){loadAdminEmployees().then(()=>{if(!adminEmployees.length)alert('لا يوجد موظفون بدور employee. أضف حساب الموظف أولاً.');else openAssignmentForm()});return;}openAssignmentForm();
+}
+function editEmployee(id){
+ const employee=adminEmployees.find(e=>String(e.id)===String(id));if(!employee)return;
+ openModal('تعديل بيانات الموظف',input('editEmployeeName','اسم الموظف',employee.full_name||''),async()=>{
+  const full_name=$('editEmployeeName').value.trim();if(full_name.length<2)return alert('أدخل اسماً صحيحاً.');
+  const {error}=await sb.from('profiles').update({full_name}).eq('id',employee.id).eq('organization_id',currentOrganizationId);if(error)throw error;
+  closeModal();await loadAdminEmployees();alert('تم تحديث بيانات الموظف.');
+ });
+}
+async function toggleEmployeeStatus(id){
+ const employee=adminEmployees.find(e=>String(e.id)===String(id));if(!employee)return;
+ const next=employee.membership_status==='active'?'suspended':'active';
+ if(!confirm(next==='suspended'?'سيتم إيقاف دخول الموظف إلى هذه المؤسسة دون حذف حسابه أو تكليفاته. هل تريد المتابعة؟':'سيتم إعادة تفعيل عضوية الموظف في هذه المؤسسة. هل تريد المتابعة؟'))return;
+ try{const {data,error}=await sb.from('organization_members').update({status:next}).eq('organization_id',currentOrganizationId).eq('user_id',employee.id).eq('role','employee').select('user_id').maybeSingle();if(error)throw error;if(!data)throw new Error('لم يتم تحديث العضوية.');await loadAdminEmployees();alert(next==='active'?'تم تفعيل الموظف.':'تم إيقاف الموظف.');}
+ catch(e){alert('تعذر تغيير حالة الموظف: '+(e.message||'خطأ غير معروف'));}
 }
 function openAssignmentForm(){
   const opts=adminEmployees.map(e=>`<option value="${esc(e.id)}">${esc(e.full_name||e.id)}</option>`).join('');
