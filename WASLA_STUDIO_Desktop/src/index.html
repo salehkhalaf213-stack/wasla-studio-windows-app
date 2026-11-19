@@ -462,6 +462,7 @@ footer{color:#8790a7}
   <div class="manager-usage-item"><div class="manager-usage-title"><span>المشاريع</span><b id="managerProjectsUsage">—</b></div><div class="performance-bar"><span id="managerProjectsBar" style="width:0%"></span></div></div>
  </div>
  <div class="note" id="managerSubscriptionNote">يتم تحميل بيانات الباقة والاستخدام.</div>
+ <div id="managerSubscriptionChooser" style="display:none;margin-top:16px"></div>
 </div>
 <div class="grid stats dashboard-stats">
 <div class="card stat-card"><div class="stat-top"><span class="stat-icon violet">♙</span><span class="stat-trend">إدارة العلاقات</span></div><div class="stat-label">إجمالي العملاء</div><div class="stat-value" id="sClients">0</div><div class="stat-foot">كل العملاء المسجلين</div></div>
@@ -1369,7 +1370,7 @@ function go(id,skipClientPortalLoad=false){if(id==='platformAdmin'&&!isPlatformA
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.page));
 function table(headers,rows){return rows.length?'<table><thead><tr>'+headers.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>':'<div class="empty">لا توجد سجلات بعد. أضف أول سجل للبدء.</div>'}
 
-let managerSubscriptionRecord=null,managerEmployeeUsage=0;
+let managerSubscriptionRecord=null,managerEmployeeUsage=0,managerSubscriptionPlans=[],managerTrialStarting=false;
 function managerLimitLabel(used,limit){return limit===null||limit===undefined?'غير محدود':String(used)+' / '+String(limit)}
 function managerUsagePercent(used,limit){if(limit===null||limit===undefined)return 0;const n=Number(limit);return n<=0?(used>0?100:0):Math.min(100,Math.max(0,(Number(used)/n)*100))}
 function renderManagerSubscription(){
@@ -1390,23 +1391,60 @@ function renderManagerSubscription(){
   ['managerProjectsUsage','managerProjectsBar',(data.projects||[]).length,plan?.project_limit]
  ];
  values.forEach(([labelId,barId,used,limit])=>{$(labelId).textContent=managerLimitLabel(used,limit);$(barId).style.width=managerUsagePercent(used,limit)+'%'});
- const note=$('managerSubscriptionNote');
- if(!sub){note.textContent='لا يوجد اشتراك مرتبط بهذه المؤسسة حالياً. يستمر النظام بالتوافق مع الحسابات القديمة مؤقتاً دون فرض حدود الباقة.'}
- else if(sub.status!=='active'&&sub.status!=='trialing'){note.textContent='الاشتراك غير نشط حالياً؛ لن يُسمح بإضافة موظفين أو عملاء أو مشاريع جديدة حتى تفعيل الاشتراك. يمكنك متابعة التعديلات والحذف.'}
- else if(sub.current_period_end&&new Date(sub.current_period_end).getTime()<Date.now()){note.textContent='انتهت فترة الاشتراك. لن تُقبل إضافات جديدة حتى تجديد الاشتراك.'}
- else if(!plan){note.textContent='تعذر قراءة تفاصيل الباقة المرتبطة. تواصل مع مسؤول المنصة للتحقق من إعدادات الباقة.'}
- else{note.textContent='يتم احتساب الاستخدام لهذه المؤسسة فقط. الحدود غير المحددة في الباقة تظهر كغير محدودة.'}
+ const note=$('managerSubscriptionNote'),chooser=$('managerSubscriptionChooser');
+ if(!sub){
+  note.textContent='لا يوجد اشتراك مرتبط بهذه المؤسسة. اختر إحدى الباقات وابدأ تجربتك المجانية لمدة 30 يوماً. لا يلزم إدخال وسيلة دفع لبدء التجربة.';
+  if(chooser){chooser.style.display='block';renderManagerTrialOptions()}
+ }
+ else{
+  if(chooser)chooser.style.display='none';
+  if(sub.status!=='active'&&sub.status!=='trialing'){note.textContent='الاشتراك غير نشط حالياً؛ لن يُسمح بإضافة موظفين أو عملاء أو مشاريع جديدة حتى تفعيل الاشتراك. يمكنك متابعة التعديلات والحذف.'}
+  else if(sub.current_period_end&&new Date(sub.current_period_end).getTime()<Date.now()){note.textContent='انتهت فترة الاشتراك. لن تُقبل إضافات جديدة حتى تجديد الاشتراك.'}
+  else if(!plan){note.textContent='تعذر قراءة تفاصيل الباقة المرتبطة. تواصل مع مسؤول المنصة للتحقق من إعدادات الباقة.'}
+  else{note.textContent='يتم احتساب الاستخدام لهذه المؤسسة فقط. الحدود غير المحددة في الباقة تظهر كغير محدودة.'}
+ }
+}
+function renderManagerTrialOptions(){
+ const el=$('managerSubscriptionChooser');if(!el)return;
+ const monthly=managerSubscriptionPlans.filter(p=>p.billing_interval==='monthly'&&p.is_active);
+ if(!monthly.length){el.innerHTML='<div class="empty">لا توجد باقات تجريبية متاحة حالياً. يرجى التواصل مع إدارة المنصة.</div>';return}
+ const cards=monthly.map(p=>{
+  const yearly=managerSubscriptionPlans.find(x=>x.id===p.id+'_yearly'&&x.is_active);
+  const options='<option value="'+esc(p.id)+'">شهري · '+planPriceLabel(p)+' / شهر</option>'+(yearly?'<option value="'+esc(yearly.id)+'">سنوي · '+planPriceLabel(yearly)+' / سنة</option>':'');
+  const limits=[p.employee_limit??'∞',p.client_limit??'∞',p.project_limit??'∞'].join(' / ');
+  return '<div class="card" style="padding:16px;min-width:0"><div class="eyebrow">WASLA PLAN</div><h3 style="margin:6px 0 4px">'+esc(p.name)+'</h3><div class="muted tiny">الموظفون / العملاء / المشاريع: '+limits+'</div><div class="field" style="margin-top:12px"><label>دورة الاشتراك</label><select id="managerTrialPlan-'+esc(p.id)+'">'+options+'</select></div><div class="note" style="margin:10px 0">تجربة مجانية 30 يوماً</div><button class="btn lime" style="width:100%" '+(managerTrialStarting?'disabled':'')+' onclick="startOrganizationTrial(\''+esc(p.id)+'\')">'+(managerTrialStarting?'جارٍ بدء التجربة…':'ابدأ التجربة المجانية')+'</button></div>';
+ }).join('');
+ el.innerHTML='<div class="head" style="margin-bottom:12px"><div><h3 style="margin:0">اختر باقتك</h3><p class="muted tiny" style="margin:5px 0 0">تجربة واحدة لكل مؤسسة — 30 يوماً من تاريخ التفعيل.</p></div></div><div class="grid three" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">'+cards+'</div>';
+}
+async function startOrganizationTrial(basePlanId){
+ if(managerTrialStarting||!currentUser||!currentOrganizationId||!(currentRole==='admin'||currentRole==='owner'))return;
+ const selector=$('managerTrialPlan-'+basePlanId),planId=selector?.value||basePlanId;
+ if(!confirm('بدء تجربة مجانية لمدة 30 يوماً لهذه المؤسسة على الباقة المحددة؟ لا يمكن بدء تجربة مجانية ثانية لهذه المؤسسة.'))return;
+ managerTrialStarting=true;renderManagerTrialOptions();
+ try{
+  const {data,error}=await sb.rpc('start_organization_trial',{p_plan_id:planId});
+  if(error)throw error;
+  if(data?.success!==true)throw new Error(data?.message||'تعذر بدء التجربة المجانية.');
+  await loadManagerSubscription();
+  alert('تم تفعيل التجربة المجانية بنجاح لمدة 30 يوماً. يمكنك الآن استخدام حدود الباقة المختارة.');
+ }catch(e){
+  alert('تعذر بدء التجربة المجانية: '+(e.message||'خطأ غير معروف'));
+ }finally{
+  managerTrialStarting=false;
+  renderManagerSubscription();
+ }
 }
 async function loadManagerSubscription(){
  if(!currentUser||!currentOrganizationId||!(currentRole==='admin'||currentRole==='owner'))return;
  const card=$('managerSubscriptionCard');if(card)card.style.display='block';
  try{
-  const [{data:sub,error:subError},{count:employeeCount,error:employeeError}]=await Promise.all([
+  const [{data:sub,error:subError},{count:employeeCount,error:employeeError},{data:plans,error:plansError}]=await Promise.all([
    sb.from('organization_subscriptions').select('id,status,current_period_start,current_period_end,cancel_at_period_end,plan:subscription_plans(id,name,billing_interval,employee_limit,client_limit,project_limit)').eq('organization_id',currentOrganizationId).maybeSingle(),
-   sb.from('profiles').select('id',{count:'exact',head:true}).eq('organization_id',currentOrganizationId).eq('role','employee')
+   sb.from('profiles').select('id',{count:'exact',head:true}).eq('organization_id',currentOrganizationId).eq('role','employee'),
+   sb.from('subscription_plans').select('id,name,billing_interval,price_minor,currency,employee_limit,client_limit,project_limit,is_active,trial_days,sort_order').eq('is_active',true).eq('trial_days',30).in('billing_interval',['monthly','yearly']).order('sort_order').order('name')
   ]);
-  if(subError)throw subError;if(employeeError)throw employeeError;
-  managerSubscriptionRecord=sub||null;managerEmployeeUsage=Number(employeeCount||0);renderManagerSubscription();
+  if(subError)throw subError;if(employeeError)throw employeeError;if(plansError)throw plansError;
+  managerSubscriptionRecord=sub||null;managerEmployeeUsage=Number(employeeCount||0);managerSubscriptionPlans=plans||[];renderManagerSubscription();
  }catch(e){
   console.error('Manager subscription panel:',e);
   const note=$('managerSubscriptionNote');if(note)note.textContent='تعذر تحميل ملخص الاشتراك الآن. استخدم «مزامنة الآن» أو أعد فتح الصفحة.';
