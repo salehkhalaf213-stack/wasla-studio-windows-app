@@ -202,6 +202,19 @@ footer{color:#8290a2}
 .clients-table .pill.blue{background:#e8f0ff;color:#3d65a5}
 @media(max-width:700px){.clients-table{border-radius:10px}.clients-table table{min-width:880px}.clients-table td{padding:11px 9px}}
 
+
+.manager-subscription-card{margin:0 0 17px}
+.manager-plan-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:4px 0 16px;border-bottom:1px solid #edf0f4}
+.manager-plan-row strong{display:block;font-size:17px;color:#1d2c42;margin-top:5px}
+.manager-renewal{text-align:left}
+.manager-usage-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;padding-top:17px}
+.manager-usage-item{min-width:0}
+.manager-usage-title{display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-bottom:9px;color:#526176}
+.manager-usage-title b{color:#1d2c42}
+.manager-usage-item .performance-bar{min-width:0;height:8px}
+.manager-usage-item .performance-bar span{transition:width .25s ease}
+@media(max-width:620px){.manager-usage-grid{grid-template-columns:1fr;gap:12px}.manager-plan-row{align-items:flex-start;flex-direction:column}.manager-renewal{text-align:right}}
+
 </style></head>
 <body>
 <section class="auth-screen" id="authScreen">
@@ -275,6 +288,17 @@ footer{color:#8290a2}
 <header class="top"><div><div class="muted tiny">مساحة عملك الرقمية</div><h1 id="pageTitle">لوحة التحكم</h1></div><div class="actions"><span class="sync-pill" id="syncStatus">● متصل بالسحابة</span><button class="btn soft sm" id="adminNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="adminNotificationCount">0</span></button><button class="btn soft sm" onclick="loadCloudData(true)">مزامنة الآن</button><button class="btn lime" onclick="openClient()">＋ عميل جديد</button><button class="btn soft sm" onclick="logout()">خروج</button></div></header>
 <section class="page active" id="dashboard">
 <div class="hero dashboard-hero"><div><span class="eyebrow">AGENCY OVERVIEW</span><h2>مرحباً بك في <b id="organizationWelcomeName">مساحة المؤسسة</b></h2><p>نظرة شاملة على أعمالك ومشاريعك وعلاقات العملاء — كل شيء في مساحة واحدة.</p></div><div class="hero-mark" aria-hidden="true">W</div></div>
+
+<div class="card manager-subscription-card" id="managerSubscriptionCard" style="display:none">
+ <div class="head"><div><h2>الباقة والاستخدام</h2><p class="muted tiny">ملخص اشتراك مؤسستك وحدود الاستخدام الحالية</p></div><span id="managerSubscriptionStatus" class="pill">جارٍ التحميل</span></div>
+ <div class="manager-plan-row"><div><div class="stat-label">الباقة الحالية</div><strong id="managerPlanName">—</strong><div class="muted tiny" id="managerPlanPeriod"></div></div><div class="manager-renewal"><div class="stat-label">تاريخ انتهاء الفترة</div><strong id="managerPlanEnd">—</strong></div></div>
+ <div class="manager-usage-grid">
+  <div class="manager-usage-item"><div class="manager-usage-title"><span>الموظفون</span><b id="managerEmployeesUsage">—</b></div><div class="performance-bar"><span id="managerEmployeesBar" style="width:0%"></span></div></div>
+  <div class="manager-usage-item"><div class="manager-usage-title"><span>العملاء</span><b id="managerClientsUsage">—</b></div><div class="performance-bar"><span id="managerClientsBar" style="width:0%"></span></div></div>
+  <div class="manager-usage-item"><div class="manager-usage-title"><span>المشاريع</span><b id="managerProjectsUsage">—</b></div><div class="performance-bar"><span id="managerProjectsBar" style="width:0%"></span></div></div>
+ </div>
+ <div class="note" id="managerSubscriptionNote">يتم تحميل بيانات الباقة والاستخدام.</div>
+</div>
 <div class="grid stats dashboard-stats">
 <div class="card stat-card"><div class="stat-top"><span class="stat-icon violet">♙</span><span class="stat-trend">إدارة العلاقات</span></div><div class="stat-label">إجمالي العملاء</div><div class="stat-value" id="sClients">0</div><div class="stat-foot">كل العملاء المسجلين</div></div>
 <div class="card stat-card"><div class="stat-top"><span class="stat-icon green">▣</span><span class="stat-trend">إدارة التنفيذ</span></div><div class="stat-label">المشاريع النشطة</div><div class="stat-value" id="sProjects">0</div><div class="stat-foot">قيد التنفيذ حالياً</div></div>
@@ -474,7 +498,7 @@ async function enterWorkspace(session){
   if(currentRole==='admin'||currentRole==='owner'){
     $('employeeShell').style.display='none';$('clientShell').style.display='none';$('appShell').style.display='grid';$('pageTitle').textContent='لوحة التحكم — '+name;
     const platformNav=$('platformAdminNav');if(platformNav)platformNav.style.display=isPlatformAdmin?'block':'none';
-    await loadCloudData(false);await loadAdminEmployees();await pollAdminNotifications();clearInterval(adminNotificationTimer);adminNotificationTimer=setInterval(pollAdminNotifications,20000);await startUnifiedNotifications();
+    await loadCloudData(false);await loadAdminEmployees();await loadManagerSubscription();await pollAdminNotifications();clearInterval(adminNotificationTimer);adminNotificationTimer=setInterval(pollAdminNotifications,20000);await startUnifiedNotifications();
   }else if(currentRole==='employee'){
     $('appShell').style.display='none';$('clientShell').style.display='none';$('employeeShell').style.display='block';$('employeeWelcome').textContent='مرحباً، '+name;
     await loadEmployeeAssignments();await startUnifiedNotifications();
@@ -1095,9 +1119,54 @@ async function createPlatformOrganization(){
  finally{button.disabled=false;button.textContent='إنشاء المؤسسة وإرسال الدعوة'}
 }
 
-function go(id,skipClientPortalLoad=false){if(id==='platformAdmin'&&!isPlatformAdmin){syncPlatformAdminVisibility();resetWorkspaceNavigation();return false}const target=$(id);if(!target)return false;if(id==='platformAdmin')syncPlatformAdminVisibility();document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));target.classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('pageTitle').textContent=({dashboard:'لوحة التحكم',clients:'العملاء وفرص البيع',projects:'المشاريع',content:'تقويم المحتوى',finance:'الحسابات',settings:'النسخ الاحتياطي',employeePortal:'الموظفون والتكليفات',clientManagement:'بوابة العملاء',platformAdmin:'إدارة المنصة'})[id];refresh();if(id==='employeePortal')loadAdminEmployees();if(id==='clientManagement'&&!skipClientPortalLoad)loadAdminClientPortal();if(id==='platformAdmin')loadPlatformAdmin();return true}
+function go(id,skipClientPortalLoad=false){if(id==='platformAdmin'&&!isPlatformAdmin){syncPlatformAdminVisibility();resetWorkspaceNavigation();return false}const target=$(id);if(!target)return false;if(id==='platformAdmin')syncPlatformAdminVisibility();document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));target.classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('pageTitle').textContent=({dashboard:'لوحة التحكم',clients:'العملاء وفرص البيع',projects:'المشاريع',content:'تقويم المحتوى',finance:'الحسابات',settings:'النسخ الاحتياطي',employeePortal:'الموظفون والتكليفات',clientManagement:'بوابة العملاء',platformAdmin:'إدارة المنصة'})[id];refresh();if(id==='employeePortal')loadAdminEmployees();if(id==='clientManagement'&&!skipClientPortalLoad)loadAdminClientPortal();if(id==='platformAdmin')loadPlatformAdmin();if(id==='dashboard'&&(currentRole==='admin'||currentRole==='owner'))loadManagerSubscription();return true}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.page));
 function table(headers,rows){return rows.length?'<table><thead><tr>'+headers.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>':'<div class="empty">لا توجد سجلات بعد. أضف أول سجل للبدء.</div>'}
+
+let managerSubscriptionRecord=null,managerEmployeeUsage=0;
+function managerLimitLabel(used,limit){return limit===null||limit===undefined?'غير محدود':String(used)+' / '+String(limit)}
+function managerUsagePercent(used,limit){if(limit===null||limit===undefined)return 0;const n=Number(limit);return n<=0?(used>0?100:0):Math.min(100,Math.max(0,(Number(used)/n)*100))}
+function renderManagerSubscription(){
+ const card=$('managerSubscriptionCard');if(!card)return;
+ const visible=(currentRole==='admin'||currentRole==='owner')&&!!currentOrganizationId;
+ card.style.display=visible?'block':'none';if(!visible)return;
+ const sub=managerSubscriptionRecord,plan=sub?.plan||null;
+ const statusLabels={active:'نشط',trialing:'فترة تجريبية',pending:'بانتظار التفعيل',past_due:'متأخر السداد',cancelled:'ملغي',expired:'منتهي'};
+ const status=$('managerSubscriptionStatus');
+ status.textContent=sub?(statusLabels[sub.status]||sub.status):'لا يوجد اشتراك';
+ status.className='pill '+(sub?.status==='active'||sub?.status==='trialing'?'green':'amber');
+ $('managerPlanName').textContent=plan?.name||(sub?'الباقة غير متاحة حالياً':'غير مرتبط بباقة');
+ $('managerPlanPeriod').textContent=plan?.billing_interval==='yearly'?'اشتراك سنوي':plan?.billing_interval==='monthly'?'اشتراك شهري':'';
+ $('managerPlanEnd').textContent=sub?.current_period_end?new Date(sub.current_period_end).toLocaleDateString('ar-EG'):'—';
+ const values=[
+  ['managerEmployeesUsage','managerEmployeesBar',managerEmployeeUsage,plan?.employee_limit],
+  ['managerClientsUsage','managerClientsBar',(data.clients||[]).length,plan?.client_limit],
+  ['managerProjectsUsage','managerProjectsBar',(data.projects||[]).length,plan?.project_limit]
+ ];
+ values.forEach(([labelId,barId,used,limit])=>{$(labelId).textContent=managerLimitLabel(used,limit);$(barId).style.width=managerUsagePercent(used,limit)+'%'});
+ const note=$('managerSubscriptionNote');
+ if(!sub){note.textContent='لا يوجد اشتراك مرتبط بهذه المؤسسة حالياً. يستمر النظام بالتوافق مع الحسابات القديمة مؤقتاً دون فرض حدود الباقة.'}
+ else if(sub.status!=='active'&&sub.status!=='trialing'){note.textContent='الاشتراك غير نشط حالياً؛ لن يُسمح بإضافة موظفين أو عملاء أو مشاريع جديدة حتى تفعيل الاشتراك. يمكنك متابعة التعديلات والحذف.'}
+ else if(sub.current_period_end&&new Date(sub.current_period_end).getTime()<Date.now()){note.textContent='انتهت فترة الاشتراك. لن تُقبل إضافات جديدة حتى تجديد الاشتراك.'}
+ else if(!plan){note.textContent='تعذر قراءة تفاصيل الباقة المرتبطة. تواصل مع مسؤول المنصة للتحقق من إعدادات الباقة.'}
+ else{note.textContent='يتم احتساب الاستخدام لهذه المؤسسة فقط. الحدود غير المحددة في الباقة تظهر كغير محدودة.'}
+}
+async function loadManagerSubscription(){
+ if(!currentUser||!currentOrganizationId||!(currentRole==='admin'||currentRole==='owner'))return;
+ const card=$('managerSubscriptionCard');if(card)card.style.display='block';
+ try{
+  const [{data:sub,error:subError},{count:employeeCount,error:employeeError}]=await Promise.all([
+   sb.from('organization_subscriptions').select('id,status,current_period_start,current_period_end,cancel_at_period_end,plan:subscription_plans(id,name,billing_interval,employee_limit,client_limit,project_limit)').eq('organization_id',currentOrganizationId).maybeSingle(),
+   sb.from('profiles').select('id',{count:'exact',head:true}).eq('organization_id',currentOrganizationId).eq('role','employee')
+  ]);
+  if(subError)throw subError;if(employeeError)throw employeeError;
+  managerSubscriptionRecord=sub||null;managerEmployeeUsage=Number(employeeCount||0);renderManagerSubscription();
+ }catch(e){
+  console.error('Manager subscription panel:',e);
+  const note=$('managerSubscriptionNote');if(note)note.textContent='تعذر تحميل ملخص الاشتراك الآن. استخدم «مزامنة الآن» أو أعد فتح الصفحة.';
+ }
+}
+
 function renderDashboardExtras(){
  const chart=$('projectChart');
  if(chart){
@@ -1112,7 +1181,7 @@ function renderDashboardExtras(){
  const recent=$('recentProjects');
  if(recent){const list=[...data.projects].slice(-5).reverse();recent.innerHTML=list.length?list.map(p=>`<div class="recent-project"><div><strong>${esc(p.name)}</strong><small>${esc(p.client||'بدون عميل')} · التسليم: ${esc(p.due||'غير محدد')}</small></div><span class="pill ${p.status==='مكتمل'?'green':p.status==='قيد التنفيذ'?'amber':''}">${esc(p.status||'مخطط')}</span></div>`).join(''):'<div class="empty">لم تتم إضافة مشاريع بعد.</div>';}
 }
-function refresh(){let income=data.finance.filter(x=>x.kind==='إيراد').reduce((a,x)=>a+Number(x.amount),0),expense=data.finance.filter(x=>x.kind==='مصروف').reduce((a,x)=>a+Number(x.amount),0);$('sClients').textContent=data.clients.length;$('sLeads').textContent=data.clients.filter(x=>['عميل محتمل','تم التواصل'].includes(x.status)).length;$('sProjects').textContent=data.projects.filter(x=>x.status==='قيد التنفيذ').length;$('sBalance').textContent=money(income-expense);$('recentClients').innerHTML=table(['العميل','الحالة'],data.clients.slice(-5).reverse().map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.status)}</td></tr>`));$('income').textContent=money(income);$('expense').textContent=money(expense);$('balance').textContent=money(income-expense);$('transactions').textContent=data.finance.length;renderDashboardExtras();renderClients();renderProjects();renderContent();renderFinance()}
+function refresh(){let income=data.finance.filter(x=>x.kind==='إيراد').reduce((a,x)=>a+Number(x.amount),0),expense=data.finance.filter(x=>x.kind==='مصروف').reduce((a,x)=>a+Number(x.amount),0);$('sClients').textContent=data.clients.length;$('sLeads').textContent=data.clients.filter(x=>['عميل محتمل','تم التواصل'].includes(x.status)).length;$('sProjects').textContent=data.projects.filter(x=>x.status==='قيد التنفيذ').length;$('sBalance').textContent=money(income-expense);$('recentClients').innerHTML=table(['العميل','الحالة'],data.clients.slice(-5).reverse().map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.status)}</td></tr>`));$('income').textContent=money(income);$('expense').textContent=money(expense);$('balance').textContent=money(income-expense);$('transactions').textContent=data.finance.length;renderDashboardExtras();renderManagerSubscription();renderClients();renderProjects();renderContent();renderFinance()}
 function openModal(title,body,fn){$('modalTitle').textContent=title;$('modalBody').innerHTML=body;$('saveBtn').onclick=fn;$('modal').classList.add('show')}
 function closeModal(){$('modal').classList.remove('show')}
 function input(id,label,value='',type='text'){return `<div class="field"><label>${label}</label><input id="${id}" type="${type}" value="${esc(value)}"></div>`}
