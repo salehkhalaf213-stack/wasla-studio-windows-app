@@ -866,7 +866,7 @@ async function openEmployeeInvite(){
       const full_name=$('inviteEmployeeName').value.trim();
       const email=$('inviteEmployeeEmail').value.trim().toLowerCase();
       if(full_name.length<2)return alert('أدخل اسم الموظف بشكل صحيح.');
-      if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))return alert('أدخل بريداً إلكترونياً صحيحاً.');
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return alert('أدخل بريداً إلكترونياً صحيحاً.');
       const btn=$('saveBtn');btn.disabled=true;btn.textContent='جارٍ إرسال الدعوة…';
       try{
         const {data:result,error}=await sb.functions.invoke('invite-employee',{body:{organization_id:currentOrganizationId,full_name,email}});
