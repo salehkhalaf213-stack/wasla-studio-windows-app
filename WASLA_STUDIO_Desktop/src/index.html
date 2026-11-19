@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#111411"><title>WASLA STUDIO V8 | الإشعارات الموحدة</title>
+<meta name="theme-color" content="#111411"><title>مساحة المؤسسة | WASLA STUDIO</title>
 
 <style>
 :root{--dark:#111411;--lime:#b7f34a;--bg:#f4f5f1;--panel:#fff;--ink:#1b2118;--muted:#788174;--line:#e4e8df}
@@ -259,7 +259,7 @@ footer{color:#8290a2}
   </div>
 </section>
 <div class="layout" id="appShell" style="display:none">
-<aside><div class="brand">WASLA <span>STUDIO</span><small>AGENCY WORKSPACE</small></div>
+<aside><div class="brand"><span id="organizationBrandName">اسم المؤسسة</span><small>AGENCY WORKSPACE</small></div>
 <nav id="nav">
 <button class="active" data-page="dashboard">⌂　لوحة التحكم</button>
 <button data-page="clients">♙　العملاء</button>
@@ -354,12 +354,12 @@ footer{color:#8290a2}
   <div class="card" style="margin-bottom:16px"><div class="head"><h2>دعوات المديرين المعلقة</h2><button class="btn soft sm" onclick="loadPlatformInvitations()">تحديث الدعوات</button></div><p class="muted tiny" style="line-height:1.8">تظهر هنا حسابات مديري المؤسسات التي لم تؤكد البريد بعد. عند إعادة الإرسال يُنشأ رابط جديد وتُفتح رسالة بريد جاهزة؛ راجعها واضغط «إرسال» في برنامج البريد.</p><div class="table-wrap" id="platformInvitationsTable"><div class="empty">جارٍ تحميل الدعوات…</div></div><div id="platformInvitationsMessage" class="muted tiny" style="margin-top:10px"></div></div>
   <div class="card"><div class="head"><h2>المؤسسات المسجلة</h2><button class="btn soft sm" onclick="loadPlatformAdmin()">تحديث القائمة</button></div><div class="table-wrap" id="platformOrganizationsTable"><div class="empty">جارٍ تحميل المؤسسات…</div></div></div>
 </section>
-<footer>WASLA STUDIO · Cloud Workspace · مزامنة Supabase</footer>
+<footer><span id="organizationFooterName">مساحة المؤسسة</span> · Cloud Workspace · مزامنة Supabase</footer>
 </main></div>
 <section class="employee-shell" id="employeeShell" style="display:none">
   <div class="employee-wrap">
     <header class="employee-top">
-      <div><div class="employee-brand">WASLA <span>STUDIO</span></div><div class="muted tiny" id="employeeWelcome">مساحة الموظف</div></div>
+      <div><div class="employee-brand" id="employeeOrganizationBrand">اسم المؤسسة</div><div class="muted tiny" id="employeeWelcome">مساحة الموظف</div></div>
       <div class="actions"><span class="sync-pill" id="employeeSync">● متصل</span><button class="btn soft sm" id="employeeNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="employeeNotificationCount">0</span></button><button class="btn soft sm" id="employeeRefresh">تحديث التكليفات</button><button class="btn sm" onclick="logout()">خروج</button></div>
     </header>
     <div class="hero"><h2>لوحة مهامي</h2><p>تابع التكليفات المسندة إليك، حدّث حالة التنفيذ، وأرسل مستجداتك للمدير.</p></div>
@@ -374,7 +374,7 @@ footer{color:#8290a2}
 </section>
 <section class="client-shell" id="clientShell" style="display:none">
  <div class="client-wrap">
-  <header class="employee-top"><div><div class="employee-brand">WASLA <span>STUDIO</span></div><div class="muted tiny" id="clientWelcome">بوابة العميل</div></div><div class="actions"><span class="sync-pill" id="clientSync">● متصل</span><button class="btn soft sm" id="clientNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="clientNotificationCount">0</span></button><button class="btn soft sm" onclick="loadClientPortal()">تحديث المشاريع</button><button class="btn sm" onclick="logout()">خروج</button></div></header>
+  <header class="employee-top"><div><div class="employee-brand" id="clientOrganizationBrand">اسم المؤسسة</div><div class="muted tiny" id="clientWelcome">بوابة العميل</div></div><div class="actions"><span class="sync-pill" id="clientSync">● متصل</span><button class="btn soft sm" id="clientNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="clientNotificationCount">0</span></button><button class="btn soft sm" onclick="loadClientPortal()">تحديث المشاريع</button><button class="btn sm" onclick="logout()">خروج</button></div></header>
   <div class="hero"><h2>مساحة مشاريعك</h2><p>تابع المشاريع المرتبطة بحسابك من مكان واحد. لا يمكن لهذا الحساب الاطلاع على مشاريع العملاء الآخرين.</p></div>
   <div class="grid stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="card"><div class="stat-label">المشاريع المرتبطة بحسابك</div><div class="stat-value" id="clientProjectCount">0</div></div><div class="card"><div class="stat-label">حالة الحساب</div><div class="stat-value" style="font-size:18px">موثّق</div></div></div>
   <div class="head"><h2>مشاريعي</h2><span class="muted tiny" id="clientLastUpdated"></span></div><div class="assignment-grid" id="clientProjects"><div class="employee-empty">جارٍ تحميل المشاريع…</div></div>
@@ -437,7 +437,13 @@ async function enterWorkspace(session){
   if(membershipError||!membership?.organization_id){await sb.auth.signOut();currentUser=null;currentRole=null;currentOrganizationId=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';showAuthView('login','لا توجد عضوية مؤسسة نشطة لهذا الحساب. تواصل مع مسؤول المؤسسة.');return;}
   currentUser=session.user;currentRole=profile.role;currentOrganizationId=membership.organization_id;KEY='wasla_mvp_02:'+currentOrganizationId;try{data=JSON.parse(localStorage.getItem(KEY))||JSON.parse(JSON.stringify(blank));}catch(e){data=JSON.parse(JSON.stringify(blank));}
   const {data:organizationInfo}=await sb.from('organizations').select('name').eq('id',currentOrganizationId).maybeSingle();
-  const organizationWelcomeName=$('organizationWelcomeName');if(organizationWelcomeName)organizationWelcomeName.textContent=organizationInfo?.name||'مساحة المؤسسة';
+  const organizationName=organizationInfo?.name||'مساحة المؤسسة';
+  const organizationWelcomeName=$('organizationWelcomeName');if(organizationWelcomeName)organizationWelcomeName.textContent=organizationName;
+  const organizationBrandName=$('organizationBrandName');if(organizationBrandName)organizationBrandName.textContent=organizationName;
+  const organizationFooterName=$('organizationFooterName');if(organizationFooterName)organizationFooterName.textContent=organizationName;
+  const employeeOrganizationBrand=$('employeeOrganizationBrand');if(employeeOrganizationBrand)employeeOrganizationBrand.textContent=organizationName;
+  const clientOrganizationBrand=$('clientOrganizationBrand');if(clientOrganizationBrand)clientOrganizationBrand.textContent=organizationName;
+  document.title=organizationName+' | مساحة العمل';
   // Every successful login starts at the tenant dashboard; privileged pages are shown only after the platform-admin check.
   syncPlatformAdminVisibility();resetWorkspaceNavigation();$('authScreen').style.display='none';
   const name=profile.full_name||session.user.email;
