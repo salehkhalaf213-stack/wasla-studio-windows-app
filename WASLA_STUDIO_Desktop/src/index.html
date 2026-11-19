@@ -352,7 +352,31 @@ footer{color:#8290a2}
     <div class="actions"><button class="btn lime" id="createOrgButton" onclick="createPlatformOrganization()">إنشاء المؤسسة وإرسال الدعوة</button><span id="platformAdminMessage" class="muted tiny"></span></div>
   </div>
   <div class="card" style="margin-bottom:16px"><div class="head"><h2>دعوات المديرين المعلقة</h2><button class="btn soft sm" onclick="loadPlatformInvitations()">تحديث الدعوات</button></div><p class="muted tiny" style="line-height:1.8">تظهر هنا حسابات مديري المؤسسات التي لم تؤكد البريد بعد. عند إعادة الإرسال يُنشأ رابط جديد وتُفتح رسالة بريد جاهزة؛ راجعها واضغط «إرسال» في برنامج البريد.</p><div class="table-wrap" id="platformInvitationsTable"><div class="empty">جارٍ تحميل الدعوات…</div></div><div id="platformInvitationsMessage" class="muted tiny" style="margin-top:10px"></div></div>
-  <div class="card"><div class="head"><h2>المؤسسات المسجلة</h2><button class="btn soft sm" onclick="loadPlatformAdmin()">تحديث القائمة</button></div><div class="table-wrap" id="platformOrganizationsTable"><div class="empty">جارٍ تحميل المؤسسات…</div></div></div>
+  <div class="card" style="margin-bottom:16px">
+     <div class="head"><h2>إنشاء باقة اشتراك</h2><span class="pill green">إدارة الباقات</span></div>
+     <p class="muted tiny" style="line-height:1.8">أنشئ الباقات وحدد السعر والمدة والحدود. الأسعار تُدخل بالوحدة الرئيسية للعملة، مثل 499.00 جنيه.</p>
+     <div class="grid two">
+       <div class="field"><label for="newPlanId">معرّف الباقة (إنجليزي)</label><input id="newPlanId" maxlength="48" placeholder="starter"></div>
+       <div class="field"><label for="newPlanName">اسم الباقة</label><input id="newPlanName" maxlength="80" placeholder="الباقة الأساسية"></div>
+       <div class="field"><label for="newPlanInterval">دورة الفوترة</label><select id="newPlanInterval"><option value="monthly">شهري</option><option value="yearly">سنوي</option></select></div>
+       <div class="field"><label for="newPlanPrice">السعر</label><input id="newPlanPrice" type="number" min="0" step="0.01" value="0"></div>
+       <div class="field"><label for="newPlanCurrency">العملة (3 أحرف)</label><input id="newPlanCurrency" maxlength="3" value="EGP"></div>
+       <div class="field"><label for="newPlanTrialDays">أيام التجربة</label><input id="newPlanTrialDays" type="number" min="0" step="1" value="0"></div>
+       <div class="field"><label for="newPlanEmployees">حد الموظفين (فارغ = بلا حد)</label><input id="newPlanEmployees" type="number" min="0" placeholder="مثلاً 5"></div>
+       <div class="field"><label for="newPlanClients">حد العملاء (فارغ = بلا حد)</label><input id="newPlanClients" type="number" min="0" placeholder="مثلاً 50"></div>
+       <div class="field"><label for="newPlanProjects">حد المشاريع (فارغ = بلا حد)</label><input id="newPlanProjects" type="number" min="0" placeholder="مثلاً 10"></div>
+       <div class="field"><label for="newPlanDescription">وصف الباقة</label><input id="newPlanDescription" maxlength="240" placeholder="المميزات والخدمات المشمولة"></div>
+     </div>
+     <label class="tiny" style="display:flex;align-items:center;gap:8px;margin:10px 0"><input id="newPlanActive" type="checkbox" checked> إتاحة الباقة للمؤسسات</label>
+     <div class="actions"><button class="btn lime" id="createPlanButton" onclick="createSubscriptionPlan()">حفظ الباقة</button><span id="platformPlansMessage" class="muted tiny"></span></div>
+     <div class="table-wrap" id="platformPlansTable" style="margin-top:16px"><div class="empty">جارٍ تحميل الباقات…</div></div>
+   </div>
+   <div class="card" style="margin-bottom:16px">
+     <div class="head"><h2>اشتراكات المؤسسات</h2><button class="btn soft sm" onclick="loadPlatformAdmin()">تحديث الاشتراكات</button></div>
+     <p class="muted tiny" style="line-height:1.8">اختر باقة وحالة الاشتراك وتاريخ الانتهاء لكل مؤسسة. لا يتم تفعيل اشتراك تلقائي للمؤسسات الحالية دون قرار من مالك المنصة.</p>
+     <div class="table-wrap" id="platformSubscriptionsTable"><div class="empty">جارٍ تحميل الاشتراكات…</div></div>
+   </div>
+   <div class="card"><div class="head"><h2>المؤسسات المسجلة</h2><button class="btn soft sm" onclick="loadPlatformAdmin()">تحديث القائمة</button></div><div class="table-wrap" id="platformOrganizationsTable"><div class="empty">جارٍ تحميل المؤسسات…</div></div></div>
 </section>
 <footer><span id="organizationFooterName">مساحة المؤسسة</span> · Cloud Workspace · مزامنة Supabase</footer>
 </main></div>
@@ -954,22 +978,75 @@ function safeDecode(v){try{return decodeURIComponent(String(v||'').replace(/\+/g
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function money(v){return Number(v||0).toLocaleString('ar-EG')+' ج.م'}
 
+let platformOrganizations=[],platformSubscriptions=[],platformPlans=[];
+function planPriceLabel(plan){return (Number(plan.price_minor||0)/100).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+esc(plan.currency||'EGP')}
+function renderPlatformPlans(){
+ const el=$('platformPlansTable');if(!el)return;
+ el.innerHTML=platformPlans.length?'<table><thead><tr><th>الباقة</th><th>السعر</th><th>المدة</th><th>الحدود (موظفون / عملاء / مشاريع)</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody>'+platformPlans.map(p=>'<tr><td><b>'+esc(p.name)+'</b><div class="muted tiny" dir="ltr">'+esc(p.id)+'</div><div class="muted tiny">'+esc(p.description||'')+'</div></td><td>'+planPriceLabel(p)+'</td><td>'+(p.billing_interval==='yearly'?'سنوي':'شهري')+(Number(p.trial_days)>0?' · تجربة '+Number(p.trial_days)+' يوم':'')+'</td><td>'+[p.employee_limit??'∞',p.client_limit??'∞',p.project_limit??'∞'].join(' / ')+'</td><td><span class="pill '+(p.is_active?'green':'amber')+'">'+(p.is_active?'متاحة':'متوقفة')+'</span></td><td><button class="btn soft sm" onclick="toggleSubscriptionPlan(\''+esc(p.id)+'\','+(!p.is_active)+')">'+(p.is_active?'إيقاف':'تفعيل')+'</button></td></tr>').join('')+'</tbody></table>':'<div class="empty">لم تُنشأ باقات بعد. أنشئ أول باقة من النموذج أعلاه.</div>';
+}
+function renderPlatformSubscriptions(){
+ const el=$('platformSubscriptionsTable');if(!el)return;
+ const statuses=[['pending','بانتظار التفعيل'],['trialing','فترة تجريبية'],['active','نشط'],['past_due','متأخر'],['cancelled','ملغي'],['expired','منتهي']];
+ el.innerHTML=platformOrganizations.length?'<table><thead><tr><th>المؤسسة</th><th>الباقة</th><th>الحالة</th><th>ينتهي في</th><th>الاشتراك الحالي</th><th>إجراء</th></tr></thead><tbody>'+platformOrganizations.map(org=>{
+  const sub=platformSubscriptions.find(x=>x.organization_id===org.id),selectedPlan=sub?.plan_id||'',date=sub?.current_period_end?new Date(sub.current_period_end).toISOString().slice(0,10):'';
+  const opts=platformPlans.filter(p=>p.is_active||p.id===selectedPlan).map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selectedPlan?'selected':'')+'>'+esc(p.name)+' · '+planPriceLabel(p)+'</option>').join('');
+  return '<tr><td><b>'+esc(org.name)+'</b><div class="muted tiny" dir="ltr">'+esc(org.slug)+'</div></td><td><select id="subscriptionPlan-'+org.id+'" style="min-width:150px"><option value="">اختر باقة</option>'+opts+'</select></td><td><select id="subscriptionStatus-'+org.id+'">'+statuses.map(x=>'<option value="'+x[0]+'" '+((sub?.status||'pending')===x[0]?'selected':'')+'>'+x[1]+'</option>').join('')+'</select></td><td><input id="subscriptionEnd-'+org.id+'" type="date" value="'+date+'"></td><td>'+(sub?'<span class="pill '+(sub.status==='active'?'green':'amber')+'">'+esc(sub.status)+'</span>':'<span class="muted tiny">لا يوجد اشتراك</span>')+'</td><td><button class="btn lime sm" onclick="saveOrganizationSubscription(\''+org.id+'\')">حفظ</button></td></tr>';
+ }).join('')+'</tbody></table>':'<div class="empty">لا توجد مؤسسات لربط اشتراكات بها.</div>';
+}
 async function loadPlatformAdmin(){
  if(!isPlatformAdmin)return;
  const tableEl=$('platformOrganizationsTable');if(tableEl)tableEl.innerHTML='<div class="empty">جارٍ تحميل المؤسسات…</div>';
- const [{data:orgs,error:orgError},{data:subs,error:subsError}]=await Promise.all([
+ const [{data:orgs,error:orgError},{data:subs,error:subsError},{data:plans,error:plansError}]=await Promise.all([
   sb.from('organizations').select('id,name,slug,status,created_at').order('created_at',{ascending:false}),
-  sb.from('organization_subscriptions').select('id,organization_id,status')
+  sb.from('organization_subscriptions').select('id,organization_id,plan_id,status,current_period_start,current_period_end,cancel_at_period_end'),
+  sb.from('subscription_plans').select('id,name,billing_interval,price_minor,currency,employee_limit,client_limit,project_limit,is_active,description,trial_days,sort_order').order('sort_order').order('name')
  ]);
  if(orgError){if(tableEl)tableEl.innerHTML='<div class="empty">تعذر تحميل المؤسسات: '+esc(orgError.message)+'</div>';return}
+ if(subsError){const el=$('platformSubscriptionsTable');if(el)el.innerHTML='<div class="empty">تعذر تحميل الاشتراكات: '+esc(subsError.message)+'</div>';return}
+ if(plansError){const el=$('platformPlansTable');if(el)el.innerHTML='<div class="empty">تعذر تحميل الباقات: '+esc(plansError.message)+'</div>';return}
+ platformOrganizations=orgs||[];platformSubscriptions=subs||[];platformPlans=plans||[];
  const {data:members,error:membersError}=await sb.from('organization_members').select('organization_id,user_id,role,status').in('role',['owner','admin']);
- const active=(orgs||[]).filter(x=>x.status==='active').length;
- $('platformOrgCount').textContent=(orgs||[]).length;
- $('platformActiveCount').textContent=active;
+ $('platformOrgCount').textContent=platformOrganizations.length;
+ $('platformActiveCount').textContent=platformOrganizations.filter(x=>x.status==='active').length;
  $('platformManagerCount').textContent=membersError?'—':(members||[]).filter(x=>x.status==='active'&&x.role==='admin').length;
- $('platformSubscriptionCount').textContent=subsError?'—':(subs||[]).length;
- if(tableEl)tableEl.innerHTML=(orgs||[]).length?'<table><thead><tr><th>المؤسسة</th><th>المعرّف</th><th>الحالة</th><th>تاريخ الإنشاء</th></tr></thead><tbody>'+(orgs||[]).map(o=>'<tr><td>'+esc(o.name)+'</td><td dir="ltr">'+esc(o.slug)+'</td><td><span class="pill '+(o.status==='active'?'green':'amber')+'">'+esc(o.status)+'</span></td><td>'+new Date(o.created_at).toLocaleDateString('ar-EG')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">لا توجد مؤسسات مسجلة.</div>';
- loadPlatformInvitations();
+ $('platformSubscriptionCount').textContent=platformSubscriptions.length;
+ if(tableEl)tableEl.innerHTML=platformOrganizations.length?'<table><thead><tr><th>المؤسسة</th><th>المعرّف</th><th>الحالة</th><th>تاريخ الإنشاء</th></tr></thead><tbody>'+platformOrganizations.map(o=>'<tr><td>'+esc(o.name)+'</td><td dir="ltr">'+esc(o.slug)+'</td><td><span class="pill '+(o.status==='active'?'green':'amber')+'">'+esc(o.status)+'</span></td><td>'+new Date(o.created_at).toLocaleDateString('ar-EG')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">لا توجد مؤسسات مسجلة.</div>';
+ renderPlatformPlans();renderPlatformSubscriptions();loadPlatformInvitations();
+}
+async function createSubscriptionPlan(){
+ if(!isPlatformAdmin)return;
+ const id=$('newPlanId').value.trim().toLowerCase(),name=$('newPlanName').value.trim(),interval=$('newPlanInterval').value,price=Number($('newPlanPrice').value),currency=$('newPlanCurrency').value.trim().toUpperCase(),trialDays=Number($('newPlanTrialDays').value||0),msg=$('platformPlansMessage'),button=$('createPlanButton');
+ const limit=id=>$(id).value.trim()===''?null:Number($(id).value);
+ if(!/^[a-z0-9][a-z0-9_-]{1,47}$/.test(id)||name.length<2||!Number.isFinite(price)||price<0||! /^[A-Z]{3}$/.test(currency)||!Number.isInteger(trialDays)||trialDays<0){msg.textContent='راجع المعرّف والاسم والسعر والعملة وأيام التجربة.';return}
+ const employeeLimit=limit('newPlanEmployees'),clientLimit=limit('newPlanClients'),projectLimit=limit('newPlanProjects');
+ if([employeeLimit,clientLimit,projectLimit].some(x=>x!==null&&(!Number.isInteger(x)||x<0))){msg.textContent='الحدود يجب أن تكون أعداداً صحيحة غير سالبة.';return}
+ button.disabled=true;msg.textContent='جارٍ حفظ الباقة…';
+ try{
+  const {error}=await sb.from('subscription_plans').insert({id,name,billing_interval:interval,price_minor:Math.round(price*100),currency,employee_limit:employeeLimit,client_limit:clientLimit,project_limit:projectLimit,trial_days:trialDays,description:$('newPlanDescription').value.trim(),is_active:$('newPlanActive').checked});
+  if(error)throw error;
+  msg.textContent='تم إنشاء الباقة بنجاح.';$('newPlanId').value='';$('newPlanName').value='';$('newPlanDescription').value='';$('newPlanPrice').value='0';
+  await loadPlatformAdmin();
+ }catch(e){msg.textContent='تعذر إنشاء الباقة: '+(e.message||'خطأ غير معروف')}
+ finally{button.disabled=false}
+}
+async function toggleSubscriptionPlan(id,active){
+ if(!isPlatformAdmin)return;
+ try{const {error}=await sb.from('subscription_plans').update({is_active:active,updated_at:new Date().toISOString()}).eq('id',id);if(error)throw error;await loadPlatformAdmin()}
+ catch(e){alert('تعذر تحديث الباقة: '+(e.message||'خطأ غير معروف'))}
+}
+async function saveOrganizationSubscription(orgId){
+ if(!isPlatformAdmin)return;
+ const planId=$('subscriptionPlan-'+orgId).value,status=$('subscriptionStatus-'+orgId).value,endInput=$('subscriptionEnd-'+orgId).value;
+ if(!planId){alert('اختر باقة أولاً.');return}
+ const plan=platformPlans.find(p=>p.id===planId);if(!plan){alert('الباقة المحددة غير موجودة.');return}
+ const existing=platformSubscriptions.find(x=>x.organization_id===orgId),now=new Date(),start=existing?.current_period_start||now.toISOString();
+ let end=endInput?new Date(endInput+'T23:59:59').toISOString():null;
+ if(!end&&status==='trialing'&&Number(plan.trial_days)>0){const d=new Date(now);d.setDate(d.getDate()+Number(plan.trial_days));end=d.toISOString()}
+ if(!end&&status==='active'){const d=new Date(now);if(plan.billing_interval==='yearly')d.setFullYear(d.getFullYear()+1);else d.setMonth(d.getMonth()+1);end=d.toISOString()}
+ if((status==='active'||status==='trialing')&&!end){alert('أدخل تاريخ انتهاء الاشتراك أو حدد أيام التجربة داخل الباقة.');return}
+ const payload={organization_id:orgId,plan_id:planId,status,billing_provider:'manual',current_period_start:start,current_period_end:end,cancel_at_period_end:false,updated_at:now.toISOString()};
+ try{const {error}=await sb.from('organization_subscriptions').upsert(payload,{onConflict:'organization_id'});if(error)throw error;await loadPlatformAdmin();alert('تم حفظ اشتراك المؤسسة بنجاح.')}
+ catch(e){alert('تعذر حفظ الاشتراك: '+(e.message||'خطأ غير معروف'))}
 }
 async function loadPlatformInvitations(){
  if(!isPlatformAdmin)return;
