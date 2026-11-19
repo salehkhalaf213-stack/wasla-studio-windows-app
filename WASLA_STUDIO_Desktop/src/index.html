@@ -274,7 +274,7 @@ footer{color:#8290a2}
 <main>
 <header class="top"><div><div class="muted tiny">مساحة عملك الرقمية</div><h1 id="pageTitle">لوحة التحكم</h1></div><div class="actions"><span class="sync-pill" id="syncStatus">● متصل بالسحابة</span><button class="btn soft sm" id="adminNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="adminNotificationCount">0</span></button><button class="btn soft sm" onclick="loadCloudData(true)">مزامنة الآن</button><button class="btn lime" onclick="openClient()">＋ عميل جديد</button><button class="btn soft sm" onclick="logout()">خروج</button></div></header>
 <section class="page active" id="dashboard">
-<div class="hero dashboard-hero"><div><span class="eyebrow">AGENCY OVERVIEW</span><h2>مرحباً بك في <b>WASLA STUDIO</b></h2><p>نظرة شاملة على أعمالك ومشاريعك وعلاقات العملاء — كل شيء في مساحة واحدة.</p></div><div class="hero-mark" aria-hidden="true">W</div></div>
+<div class="hero dashboard-hero"><div><span class="eyebrow">AGENCY OVERVIEW</span><h2>مرحباً بك في <b id="organizationWelcomeName">مساحة المؤسسة</b></h2><p>نظرة شاملة على أعمالك ومشاريعك وعلاقات العملاء — كل شيء في مساحة واحدة.</p></div><div class="hero-mark" aria-hidden="true">W</div></div>
 <div class="grid stats dashboard-stats">
 <div class="card stat-card"><div class="stat-top"><span class="stat-icon violet">♙</span><span class="stat-trend">إدارة العلاقات</span></div><div class="stat-label">إجمالي العملاء</div><div class="stat-value" id="sClients">0</div><div class="stat-foot">كل العملاء المسجلين</div></div>
 <div class="card stat-card"><div class="stat-top"><span class="stat-icon green">▣</span><span class="stat-trend">إدارة التنفيذ</span></div><div class="stat-label">المشاريع النشطة</div><div class="stat-value" id="sProjects">0</div><div class="stat-foot">قيد التنفيذ حالياً</div></div>
@@ -390,7 +390,7 @@ const SUPABASE_KEY='sb_publishable_-xiQKeiUSPw7nOCWRHivsw_gZHrYqdu';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}});
 let currentUser=null, currentRole=null, currentOrganizationId=null, isPlatformAdmin=false, cloudSaveTimer=null, cloudBusy=false;
 const $=id=>document.getElementById(id);let KEY='wasla_mvp_02';
-const blank={clients:[{id:1,name:'Daily drip Specialty Coffee',type:'مقهى قهوة مختصة',contact:'يضاف بعد التحقق',status:'عميل محتمل',notes:'فرصة مستهدفة — لم يتم التواصل بعد'}],projects:[],contents:[],finance:[]};
+const blank={clients:[],projects:[],contents:[],finance:[]};
 // Do not load shared pre-login cache. Tenant data is loaded only after an active organization membership is resolved.
 let data=JSON.parse(JSON.stringify(blank));
 function syncPlatformAdminVisibility(){
@@ -436,6 +436,8 @@ async function enterWorkspace(session){
   const {data:membership,error:membershipError}=await sb.from('organization_members').select('organization_id,role,status').eq('user_id',session.user.id).eq('status','active').maybeSingle();
   if(membershipError||!membership?.organization_id){await sb.auth.signOut();currentUser=null;currentRole=null;currentOrganizationId=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';showAuthView('login','لا توجد عضوية مؤسسة نشطة لهذا الحساب. تواصل مع مسؤول المؤسسة.');return;}
   currentUser=session.user;currentRole=profile.role;currentOrganizationId=membership.organization_id;KEY='wasla_mvp_02:'+currentOrganizationId;try{data=JSON.parse(localStorage.getItem(KEY))||JSON.parse(JSON.stringify(blank));}catch(e){data=JSON.parse(JSON.stringify(blank));}
+  const {data:organizationInfo}=await sb.from('organizations').select('name').eq('id',currentOrganizationId).maybeSingle();
+  const organizationWelcomeName=$('organizationWelcomeName');if(organizationWelcomeName)organizationWelcomeName.textContent=organizationInfo?.name||'مساحة المؤسسة';
   // Every successful login starts at the tenant dashboard; privileged pages are shown only after the platform-admin check.
   syncPlatformAdminVisibility();resetWorkspaceNavigation();$('authScreen').style.display='none';
   const name=profile.full_name||session.user.email;
