@@ -316,7 +316,7 @@ footer{color:#8290a2}
 <section class="page" id="content"><div class="head"><h2>تقويم المحتوى</h2><button class="btn lime" onclick="openContent()">＋ إضافة محتوى</button></div><div class="note">نظم الأفكار والمواعيد وحالة الإنتاج. النشر التلقائي على منصات التواصل غير مفعّل في هذه النسخة.</div><div class="card table-wrap" style="margin-top:14px" id="contentTable"></div></section>
 <section class="page" id="finance"><div class="head"><h2>الحسابات</h2><button class="btn lime" onclick="openFinance()">＋ تسجيل عملية</button></div><div class="grid stats"><div class="card"><div class="stat-label">الإيرادات</div><div class="stat-value" id="income">0</div></div><div class="card"><div class="stat-label">المصروفات</div><div class="stat-value" id="expense">0</div></div><div class="card"><div class="stat-label">الصافي</div><div class="stat-value" id="balance">0</div></div><div class="card"><div class="stat-label">عدد العمليات</div><div class="stat-value" id="transactions">0</div></div></div><div class="card table-wrap" id="financeTable"></div></section>
 <section class="page" id="employeePortal">
-<div class="head"><h2>إدارة الموظفين والتكليفات</h2><button class="btn lime" onclick="openAssignment()">＋ تكليف جديد</button></div>
+<div class="head"><h2>إدارة الموظفين والتكليفات</h2><div class="actions"><button class="btn soft" onclick="openEmployeeInvite()">＋ إضافة موظف</button><button class="btn lime" onclick="openAssignment()">＋ تكليف جديد</button></div></div>
 <div class="grid stats"><div class="card"><div class="stat-label">عدد الموظفين</div><div class="stat-value" id="adminEmployeeCount">0</div></div><div class="card"><div class="stat-label">إجمالي التكليفات</div><div class="stat-value" id="adminAssignmentCount">0</div></div><div class="card"><div class="stat-label">قيد التنفيذ</div><div class="stat-value" id="adminActiveCount">0</div></div><div class="card"><div class="stat-label">تحديثات جديدة</div><div class="stat-value" id="adminUpdatesCount">0</div></div></div>
 <div class="card" style="margin-bottom:14px"><div class="head"><h2>طلبات الحسابات الجديدة</h2><button class="btn soft sm" onclick="loadAdminEmployees()">تحديث</button></div><div class="muted tiny" style="margin-bottom:10px">طلبات العملاء والموظفين الجديدة تظهر هنا، ولا تحصل على صلاحية الدخول قبل موافقة المدير.</div><div class="table-wrap" id="pendingSignupTable"><div class="empty">جارٍ تحميل الطلبات…</div></div></div>
 <div class="card" style="margin-bottom:14px"><div class="head"><h2>أداء الموظفين</h2><button class="btn soft sm" onclick="loadAdminEmployees()">تحديث البيانات</button></div><div class="table-wrap" id="adminEmployeesTable"><div class="empty">اضغط تحديث البيانات لعرض الأداء.</div></div></div>
@@ -855,6 +855,30 @@ async function approvePendingSignup(userId){
     alert('تمت الموافقة على الحساب. يمكن للمستخدم تسجيل الدخول الآن.');
     await loadAdminEmployees();
   }catch(e){alert('تعذر تفعيل الحساب: '+(e.message||'خطأ غير معروف'))}
+}
+async function openEmployeeInvite(){
+  if(!isAdminRole()||!currentOrganizationId)return alert('غير مصرح أو لم يتم تحديد المؤسسة.');
+  openModal('إضافة موظف جديد',
+    input('inviteEmployeeName','اسم الموظف')+
+    input('inviteEmployeeEmail','البريد الإلكتروني','','email')+
+    '<div class="note">سيتم إنشاء حساب الموظف وإرسال دعوة إلى بريده الإلكتروني ليُنشئ كلمة المرور بنفسه. سيُضاف مباشرة إلى موظفي مؤسستك.</div>',
+    async()=>{
+      const full_name=$('inviteEmployeeName').value.trim();
+      const email=$('inviteEmployeeEmail').value.trim().toLowerCase();
+      if(full_name.length<2)return alert('أدخل اسم الموظف بشكل صحيح.');
+      if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))return alert('أدخل بريداً إلكترونياً صحيحاً.');
+      const btn=$('saveBtn');btn.disabled=true;btn.textContent='جارٍ إرسال الدعوة…';
+      try{
+        const {data:result,error}=await sb.functions.invoke('invite-employee',{body:{organization_id:currentOrganizationId,full_name,email}});
+        if(error)throw error;
+        if(result?.error)throw new Error(result.error);
+        closeModal();
+        await loadAdminEmployees();
+        await loadManagerSubscription();
+        alert('تمت إضافة الموظف وإرسال دعوة إنشاء كلمة المرور إلى '+email+'.');
+      }catch(e){alert('تعذر إضافة الموظف: '+(e.message||'خطأ غير معروف'))}
+      finally{btn.disabled=false;btn.textContent='حفظ'}
+    });
 }
 function openAssignment(){
   if(!adminEmployees.length){loadAdminEmployees().then(()=>{if(!adminEmployees.length)alert('لا يوجد موظفون بدور employee. أضف حساب الموظف أولاً.');else openAssignmentForm()});return;}openAssignmentForm();
