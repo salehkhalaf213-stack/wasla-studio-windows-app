@@ -1,4 +1,3 @@
-```
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -394,14 +393,32 @@ const $=id=>document.getElementById(id);let KEY='wasla_mvp_02';
 const blank={clients:[{id:1,name:'Daily drip Specialty Coffee',type:'مقهى قهوة مختصة',contact:'يضاف بعد التحقق',status:'عميل محتمل',notes:'فرصة مستهدفة — لم يتم التواصل بعد'}],projects:[],contents:[],finance:[]};
 // Do not load shared pre-login cache. Tenant data is loaded only after an active organization membership is resolved.
 let data=JSON.parse(JSON.stringify(blank));
-function clearTenantState(){currentUser=null;currentRole=null;currentOrganizationId=null;isPlatformAdmin=false;const platformNav=$('platformAdminNav');if(platformNav)platformNav.style.display='none';KEY='wasla_mvp_02';data=JSON.parse(JSON.stringify(blank));}
+function syncPlatformAdminVisibility(){
+ const allowed=isPlatformAdmin===true;
+ const platformNav=$('platformAdminNav'),platformPage=$('platformAdmin');
+ if(platformNav){platformNav.style.display=allowed?'block':'none';platformNav.disabled=!allowed;platformNav.setAttribute('aria-hidden',String(!allowed));}
+ if(platformPage){platformPage.hidden=!allowed;platformPage.style.display=allowed?'':'none';platformPage.setAttribute('aria-hidden',String(!allowed));if(!allowed)platformPage.classList.remove('active');}
+}
+function resetWorkspaceNavigation(){
+ document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+ const dashboard=$('dashboard');if(dashboard)dashboard.classList.add('active');
+ document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.page==='dashboard'));
+ const pageTitle=$('pageTitle');if(pageTitle)pageTitle.textContent='لوحة التحكم';
+}
+function clearTenantState(){
+ currentUser=null;currentRole=null;currentOrganizationId=null;isPlatformAdmin=false;
+ syncPlatformAdminVisibility();resetWorkspaceNavigation();
+ KEY='wasla_mvp_02';data=JSON.parse(JSON.stringify(blank));
+}
 function persist(){localStorage.setItem(KEY,JSON.stringify(data));refresh();if(currentUser)scheduleCloudSave()}
 function setSync(message,isError=false){const el=$('syncStatus');if(el){el.textContent=message;el.style.background=isError?'#fff0ed':'#e7f5d6';el.style.color=isError?'#a33b2c':'#496b1d'}}
 function scheduleCloudSave(){clearTimeout(cloudSaveTimer);setSync('● حفظ التغييرات…');cloudSaveTimer=setTimeout(saveCloudData,900)}
 async function saveCloudData(){if(!currentUser||!currentOrganizationId)return;if(cloudBusy){scheduleCloudSave();return}cloudBusy=true;setSync('● جارٍ الحفظ…');try{const {error}=await sb.from('workspace_data').upsert({id:1,organization_id:currentOrganizationId,payload:data,updated_by:currentUser.id,updated_at:new Date().toISOString()},{onConflict:'organization_id,id'});if(error)throw error;setSync('● تمت المزامنة')}catch(e){console.error(e);setSync('تعذر الحفظ السحابي',true);alert('تم حفظ التغيير على هذا الجهاز، لكن تعذر رفعه إلى السحابة. تحقق من الاتصال ثم اضغط «مزامنة الآن».')}finally{cloudBusy=false}}
 async function loadCloudData(showMessage=false){if(!currentUser||!currentOrganizationId)return;setSync('● جارٍ تحميل البيانات…');try{const {data:row,error}=await sb.from('workspace_data').select('payload,updated_at').eq('id',1).eq('organization_id',currentOrganizationId).maybeSingle();if(error)throw error;if(row&&row.payload){const d=row.payload;if(!d.clients||!d.projects||!d.contents||!d.finance)throw new Error('صيغة بيانات السحابة غير مكتملة');data=d;localStorage.setItem(KEY,JSON.stringify(data));refresh();setSync('● البيانات محدثة من السحابة');if(showMessage)alert('تم تحميل أحدث نسخة من السحابة.')}else{const {error:saveError}=await sb.from('workspace_data').insert({id:1,organization_id:currentOrganizationId,payload:data,updated_by:currentUser.id});if(saveError)throw saveError;setSync('● تم إنشاء نسخة السحابة');if(showMessage)alert('تم إنشاء مساحة البيانات السحابية بنجاح.')}}catch(e){console.error(e);setSync('خطأ في المزامنة',true);if(showMessage)alert('تعذر تحميل البيانات السحابية: '+(e.message||'خطأ غير معروف'));}}
 async function enterWorkspace(session){
-  if(!session?.user){currentUser=null;currentRole=null;currentOrganizationId=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';return}
+  if(!session?.user){clearTenantState();$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';return}
+  // Fail closed between sessions: never carry an owner's active page into another user's workspace.
+  isPlatformAdmin=false;syncPlatformAdminVisibility();resetWorkspaceNavigation();
   const {data:profile,error}=await sb.from('profiles').select('full_name,role,approval_status').eq('id',session.user.id).single();
   if(!error&&profile?.approval_status==='pending'&&profile?.role==='pending'){
     await sb.auth.signOut();$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';
@@ -415,9 +432,12 @@ async function enterWorkspace(session){
   }
   const {data:platformAdminRow}=await sb.from('platform_admins').select('user_id').eq('user_id',session.user.id).eq('status','active').maybeSingle();
   isPlatformAdmin=!!platformAdminRow;
+  syncPlatformAdminVisibility();
   const {data:membership,error:membershipError}=await sb.from('organization_members').select('organization_id,role,status').eq('user_id',session.user.id).eq('status','active').maybeSingle();
   if(membershipError||!membership?.organization_id){await sb.auth.signOut();currentUser=null;currentRole=null;currentOrganizationId=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';showAuthView('login','لا توجد عضوية مؤسسة نشطة لهذا الحساب. تواصل مع مسؤول المؤسسة.');return;}
-  currentUser=session.user;currentRole=profile.role;currentOrganizationId=membership.organization_id;KEY='wasla_mvp_02:'+currentOrganizationId;try{data=JSON.parse(localStorage.getItem(KEY))||JSON.parse(JSON.stringify(blank));}catch(e){data=JSON.parse(JSON.stringify(blank));}$('authScreen').style.display='none';
+  currentUser=session.user;currentRole=profile.role;currentOrganizationId=membership.organization_id;KEY='wasla_mvp_02:'+currentOrganizationId;try{data=JSON.parse(localStorage.getItem(KEY))||JSON.parse(JSON.stringify(blank));}catch(e){data=JSON.parse(JSON.stringify(blank));}
+  // Every successful login starts at the tenant dashboard; privileged pages are shown only after the platform-admin check.
+  syncPlatformAdminVisibility();resetWorkspaceNavigation();$('authScreen').style.display='none';
   const name=profile.full_name||session.user.email;
   if(currentRole==='admin'||currentRole==='owner'){
     $('employeeShell').style.display='none';$('clientShell').style.display='none';$('appShell').style.display='grid';$('pageTitle').textContent='لوحة التحكم — '+name;
@@ -990,7 +1010,7 @@ async function createPlatformOrganization(){
  finally{button.disabled=false;button.textContent='إنشاء المؤسسة وإرسال الدعوة'}
 }
 
-function go(id,skipClientPortalLoad=false){if(id==='platformAdmin'&&!isPlatformAdmin)return;document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('pageTitle').textContent=({dashboard:'لوحة التحكم',clients:'العملاء وفرص البيع',projects:'المشاريع',content:'تقويم المحتوى',finance:'الحسابات',settings:'النسخ الاحتياطي',employeePortal:'الموظفون والتكليفات',clientManagement:'بوابة العملاء',platformAdmin:'إدارة المنصة'})[id];refresh();if(id==='employeePortal')loadAdminEmployees();if(id==='clientManagement'&&!skipClientPortalLoad)loadAdminClientPortal();if(id==='platformAdmin')loadPlatformAdmin()}
+function go(id,skipClientPortalLoad=false){if(id==='platformAdmin'&&!isPlatformAdmin){syncPlatformAdminVisibility();resetWorkspaceNavigation();return false}const target=$(id);if(!target)return false;if(id==='platformAdmin')syncPlatformAdminVisibility();document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));target.classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('pageTitle').textContent=({dashboard:'لوحة التحكم',clients:'العملاء وفرص البيع',projects:'المشاريع',content:'تقويم المحتوى',finance:'الحسابات',settings:'النسخ الاحتياطي',employeePortal:'الموظفون والتكليفات',clientManagement:'بوابة العملاء',platformAdmin:'إدارة المنصة'})[id];refresh();if(id==='employeePortal')loadAdminEmployees();if(id==='clientManagement'&&!skipClientPortalLoad)loadAdminClientPortal();if(id==='platformAdmin')loadPlatformAdmin();return true}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.page));
 function table(headers,rows){return rows.length?'<table><thead><tr>'+headers.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>':'<div class="empty">لا توجد سجلات بعد. أضف أول سجل للبدء.</div>'}
 function renderDashboardExtras(){
@@ -1027,4 +1047,3 @@ function importData(e){let file=e.target.files[0];if(!file)return;let r=new File
 refresh();
 
 </script></body></html>
-```
