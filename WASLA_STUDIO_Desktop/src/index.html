@@ -382,7 +382,7 @@ footer{color:#8290a2}
      <div class="grid two">
        <div class="field"><label for="newPlanId">معرّف الباقة (إنجليزي)</label><input id="newPlanId" maxlength="48" placeholder="starter"></div>
        <div class="field"><label for="newPlanName">اسم الباقة</label><input id="newPlanName" maxlength="80" placeholder="الباقة الأساسية"></div>
-       <div class="field"><label for="newPlanInterval">دورة الفوترة</label><select id="newPlanInterval"><option value="monthly">شهري</option><option value="yearly">سنوي</option></select></div>
+       <div class="field"><label for="newPlanInterval">دورة الفوترة</label><select id="newPlanInterval"><option value="monthly">شهري</option><option value="yearly">سنوي</option><option value="lifetime">مدى الحياة</option></select></div>
        <div class="field"><label for="newPlanPrice">السعر</label><input id="newPlanPrice" type="number" min="0" step="0.01" value="0"></div>
        <div class="field"><label for="newPlanCurrency">العملة (3 أحرف)</label><input id="newPlanCurrency" maxlength="3" value="EGP"></div>
        <div class="field"><label for="newPlanTrialDays">أيام التجربة</label><input id="newPlanTrialDays" type="number" min="0" step="1" value="0"></div>
@@ -1033,10 +1033,10 @@ function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 function money(v){return Number(v||0).toLocaleString('ar-EG')+' ج.م'}
 
 let platformOrganizations=[],platformSubscriptions=[],platformPlans=[];
-function planPriceLabel(plan){return (Number(plan.price_minor||0)/100).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+esc(plan.currency||'EGP')}
+function planPriceLabel(plan){return (Number(plan.price_minor||0)/100).toLocaleString('ar-EG',{maximumFractionDigits:0})+' '+esc(plan.currency||'EGP')}
 function renderPlatformPlans(){
  const el=$('platformPlansTable');if(!el)return;
- el.innerHTML=platformPlans.length?'<table><thead><tr><th>الباقة</th><th>السعر</th><th>المدة</th><th>الحدود (موظفون / عملاء / مشاريع)</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody>'+platformPlans.map(p=>'<tr><td><b>'+esc(p.name)+'</b><div class="muted tiny" dir="ltr">'+esc(p.id)+'</div><div class="muted tiny">'+esc(p.description||'')+'</div></td><td>'+planPriceLabel(p)+'</td><td>'+(p.billing_interval==='yearly'?'سنوي':'شهري')+(Number(p.trial_days)>0?' · تجربة '+Number(p.trial_days)+' يوم':'')+'</td><td>'+[p.employee_limit??'∞',p.client_limit??'∞',p.project_limit??'∞'].join(' / ')+'</td><td><span class="pill '+(p.is_active?'green':'amber')+'">'+(p.is_active?'متاحة':'متوقفة')+'</span></td><td><button class="btn soft sm" onclick="toggleSubscriptionPlan(\''+esc(p.id)+'\','+(!p.is_active)+')">'+(p.is_active?'إيقاف':'تفعيل')+'</button></td></tr>').join('')+'</tbody></table>':'<div class="empty">لم تُنشأ باقات بعد. أنشئ أول باقة من النموذج أعلاه.</div>';
+ el.innerHTML=platformPlans.length?'<table><thead><tr><th>الباقة</th><th>السعر</th><th>المدة</th><th>الحدود (موظفون / عملاء / مشاريع)</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody>'+platformPlans.map(p=>'<tr><td><b>'+esc(p.name)+'</b><div class="muted tiny" dir="ltr">'+esc(p.id)+'</div><div class="muted tiny">'+esc(p.description||'')+'</div></td><td>'+planPriceLabel(p)+'</td><td>'+(p.billing_interval==='yearly'?'سنوي':p.billing_interval==='lifetime'?'مدى الحياة':'شهري')+(Number(p.trial_days)>0?' · تجربة '+Number(p.trial_days)+' يوم':'')+'</td><td>'+[p.employee_limit??'∞',p.client_limit??'∞',p.project_limit??'∞'].join(' / ')+'</td><td><span class="pill '+(p.is_active?'green':'amber')+'">'+(p.is_active?'متاحة':'متوقفة')+'</span></td><td><button class="btn soft sm" onclick="toggleSubscriptionPlan(\''+esc(p.id)+'\','+(!p.is_active)+')">'+(p.is_active?'إيقاف':'تفعيل')+'</button></td></tr>').join('')+'</tbody></table>':'<div class="empty">لم تُنشأ باقات بعد. أنشئ أول باقة من النموذج أعلاه.</div>';
 }
 function renderPlatformSubscriptions(){
  const el=$('platformSubscriptionsTable');if(!el)return;
@@ -1096,8 +1096,8 @@ async function saveOrganizationSubscription(orgId){
  const existing=platformSubscriptions.find(x=>x.organization_id===orgId),now=new Date(),start=existing?.current_period_start||now.toISOString();
  let end=endInput?new Date(endInput+'T23:59:59').toISOString():null;
  if(!end&&status==='trialing'&&Number(plan.trial_days)>0){const d=new Date(now);d.setDate(d.getDate()+Number(plan.trial_days));end=d.toISOString()}
- if(!end&&status==='active'){const d=new Date(now);if(plan.billing_interval==='yearly')d.setFullYear(d.getFullYear()+1);else d.setMonth(d.getMonth()+1);end=d.toISOString()}
- if((status==='active'||status==='trialing')&&!end){alert('أدخل تاريخ انتهاء الاشتراك أو حدد أيام التجربة داخل الباقة.');return}
+ if(!end&&status==='active'&&plan.billing_interval!=='lifetime'){const d=new Date(now);if(plan.billing_interval==='yearly')d.setFullYear(d.getFullYear()+1);else d.setMonth(d.getMonth()+1);end=d.toISOString()}
+ if((status==='active'||status==='trialing')&&!end&&plan.billing_interval!=='lifetime'){alert('أدخل تاريخ انتهاء الاشتراك أو حدد أيام التجربة داخل الباقة.');return}
  const payload={organization_id:orgId,plan_id:planId,status,billing_provider:'manual',current_period_start:start,current_period_end:end,cancel_at_period_end:false,updated_at:now.toISOString()};
  try{const {error}=await sb.from('organization_subscriptions').upsert(payload,{onConflict:'organization_id'});if(error)throw error;await loadPlatformAdmin();alert('تم حفظ اشتراك المؤسسة بنجاح.')}
  catch(e){alert('تعذر حفظ الاشتراك: '+(e.message||'خطأ غير معروف'))}
@@ -1166,8 +1166,8 @@ function renderManagerSubscription(){
  status.textContent=sub?(statusLabels[sub.status]||sub.status):'لا يوجد اشتراك';
  status.className='pill '+(sub?.status==='active'||sub?.status==='trialing'?'green':'amber');
  $('managerPlanName').textContent=plan?.name||(sub?'الباقة غير متاحة حالياً':'غير مرتبط بباقة');
- $('managerPlanPeriod').textContent=plan?.billing_interval==='yearly'?'اشتراك سنوي':plan?.billing_interval==='monthly'?'اشتراك شهري':'';
- $('managerPlanEnd').textContent=sub?.current_period_end?new Date(sub.current_period_end).toLocaleDateString('ar-EG'):'—';
+ $('managerPlanPeriod').textContent=plan?.billing_interval==='lifetime'?'اشتراك مدى الحياة — دفعة واحدة':plan?.billing_interval==='yearly'?'اشتراك سنوي':plan?.billing_interval==='monthly'?'اشتراك شهري':'';
+ $('managerPlanEnd').textContent=plan?.billing_interval==='lifetime'?'لا ينتهي':sub?.current_period_end?new Date(sub.current_period_end).toLocaleDateString('ar-EG'):'—';
  const values=[
   ['managerEmployeesUsage','managerEmployeesBar',managerEmployeeUsage,plan?.employee_limit],
   ['managerClientsUsage','managerClientsBar',(data.clients||[]).length,plan?.client_limit],
