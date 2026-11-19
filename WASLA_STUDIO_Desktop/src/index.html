@@ -467,7 +467,7 @@ async function enterWorkspace(session){
   if(!session?.user){clearTenantState();$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';return}
   // Fail closed between sessions: never carry an owner's active page into another user's workspace.
   isPlatformAdmin=false;syncPlatformAdminVisibility();resetWorkspaceNavigation();
-  const {data:profile,error}=await sb.from('profiles').select('full_name,role,approval_status').eq('id',session.user.id).single();
+  const {data:profile,error}=await sb.from('profiles').select('full_name,role,approval_status,organization_id').eq('id',session.user.id).single();
   if(!error&&profile?.approval_status==='pending'&&profile?.role==='pending'){
     await sb.auth.signOut();$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';
     showAuthView('login','حسابك قيد مراجعة المدير. ستتمكن من الدخول بعد الموافقة على طلبك.');
@@ -481,9 +481,10 @@ async function enterWorkspace(session){
   const {data:platformAdminRow}=await sb.from('platform_admins').select('user_id').eq('user_id',session.user.id).eq('status','active').maybeSingle();
   isPlatformAdmin=!!platformAdminRow;
   syncPlatformAdminVisibility();
-  const {data:membership,error:membershipError}=await sb.from('organization_members').select('organization_id,role,status').eq('user_id',session.user.id).eq('status','active').maybeSingle();
-  if(membershipError||!membership?.organization_id){await sb.auth.signOut();currentUser=null;currentRole=null;currentOrganizationId=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';showAuthView('login','لا توجد عضوية مؤسسة نشطة لهذا الحساب. تواصل مع مسؤول المؤسسة.');return;}
-  currentUser=session.user;currentRole=profile.role;currentOrganizationId=membership.organization_id;KEY='wasla_mvp_02:'+currentOrganizationId;try{data=JSON.parse(localStorage.getItem(KEY))||JSON.parse(JSON.stringify(blank));}catch(e){data=JSON.parse(JSON.stringify(blank));}
+  const {data:memberships,error:membershipError}=await sb.from('organization_members').select('organization_id,role,status').eq('user_id',session.user.id).eq('status','active');
+  const membership=(memberships||[]).find(m=>m.organization_id===profile.organization_id)||(memberships||[]).length===1?(memberships||[])[0]:null;
+  if(membershipError||!membership?.organization_id){await sb.auth.signOut();currentUser=null;currentRole=null;currentOrganizationId=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';showAuthView('login',(memberships||[]).length>1?'لديك أكثر من عضوية، لكن لم يتم تحديد المؤسسة الافتراضية. تواصل مع مسؤول المنصة.':'لا توجد عضوية مؤسسة نشطة لهذا الحساب. تواصل مع مسؤول المؤسسة.');return;}
+  currentUser=session.user;currentRole=membership.role;currentOrganizationId=membership.organization_id;KEY='wasla_mvp_02:'+currentOrganizationId;try{data=JSON.parse(localStorage.getItem(KEY))||JSON.parse(JSON.stringify(blank));}catch(e){data=JSON.parse(JSON.stringify(blank));}
   const {data:organizationInfo}=await sb.from('organizations').select('name').eq('id',currentOrganizationId).maybeSingle();
   const organizationName=organizationInfo?.name||'مساحة المؤسسة';
   const organizationWelcomeName=$('organizationWelcomeName');if(organizationWelcomeName)organizationWelcomeName.textContent=organizationName;
@@ -861,7 +862,7 @@ async function openEmployeeInvite(){
   openModal('إضافة موظف جديد',
     input('inviteEmployeeName','اسم الموظف')+
     input('inviteEmployeeEmail','البريد الإلكتروني','','email')+
-    '<div class="note">سيتم إنشاء حساب الموظف وإرسال دعوة إلى بريده الإلكتروني ليُنشئ كلمة المرور بنفسه. سيُضاف مباشرة إلى موظفي مؤسستك.</div>',
+    '<div class="note">إذا كان البريد مسجلاً بالفعل، سيُضاف الحساب الموجود إلى مؤسستك مع الاحتفاظ بعضوياته الأخرى، ويستخدم كلمة مروره الحالية. أما الحساب الجديد فستُرسل إليه دعوة لإنشاء كلمة المرور.</div>',
     async()=>{
       const full_name=$('inviteEmployeeName').value.trim();
       const email=$('inviteEmployeeEmail').value.trim().toLowerCase();
@@ -875,8 +876,12 @@ async function openEmployeeInvite(){
         closeModal();
         await loadAdminEmployees();
         await loadManagerSubscription();
-        alert('تمت إضافة الموظف وإرسال دعوة إنشاء كلمة المرور إلى '+email+'.');
-      }catch(e){alert('تعذر إضافة الموظف: '+(e.message||'خطأ غير معروف'))}
+        alert(result?.message||('تمت إضافة الموظف: '+email));
+      }catch(e){
+        let detail=e.message||'خطأ غير معروف';
+        try{if(e.context&&typeof e.context.json==='function'){const payload=await e.context.json();detail=payload.error||payload.message||detail;}}catch(_){}
+        alert('تعذر إضافة الموظف: '+detail);
+      }
       finally{btn.disabled=false;btn.textContent='حفظ'}
     });
 }
