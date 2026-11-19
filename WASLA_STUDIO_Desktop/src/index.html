@@ -215,6 +215,44 @@ footer{color:#8290a2}
 .manager-usage-item .performance-bar span{transition:width .25s ease}
 @media(max-width:620px){.manager-usage-grid{grid-template-columns:1fr;gap:12px}.manager-plan-row{align-items:flex-start;flex-direction:column}.manager-renewal{text-align:right}}
 
+
+/* WASLA DUAL THEME SYSTEM — Light / Dark */
+:root{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark;--dark:#0b1422;--bg:#101a29;--panel:#172438;--ink:#e7edf5;--muted:#a1afc1;--line:#2a3a50;--gold:#e0b566;--gold-light:#463b2b;--navy:#0b1422;--navy-2:#172438;--shadow:0 12px 30px rgba(0,0,0,.22)}
+:root[data-theme="dark"] body{background:linear-gradient(135deg,#0c1523,#111e30 60%,#182437);color:#e7edf5}
+:root[data-theme="dark"] .top,:root[data-theme="dark"] .card,:root[data-theme="dark"] .assignment-card,:root[data-theme="dark"] .client-project-card,:root[data-theme="dark"] .unified-notification,:root[data-theme="dark"] .dialog,:root[data-theme="dark"] .auth-card{background:#172438!important;color:#e7edf5;border-color:#2a3a50!important;box-shadow:0 12px 30px rgba(0,0,0,.22)}
+:root[data-theme="dark"] .top h1,:root[data-theme="dark"] .head h2,:root[data-theme="dark"] .card h2,:root[data-theme="dark"] .stat-value,:root[data-theme="dark"] .client-project-card h3,:root[data-theme="dark"] .assignment-card h3,:root[data-theme="dark"] .auth-card h1,:root[data-theme="dark"] .auth-brand{color:#edf3fb}
+:root[data-theme="dark"] .hero{background:linear-gradient(115deg,#091321,#172b45 68%,#263b55)}
+:root[data-theme="dark"] .toolbar input,:root[data-theme="dark"] .toolbar select,:root[data-theme="dark"] .field input,:root[data-theme="dark"] .field select,:root[data-theme="dark"] .field textarea,:root[data-theme="dark"] .task-filters input,:root[data-theme="dark"] .task-filters select,:root[data-theme="dark"] .auth-card input,:root[data-theme="dark"] .auth-card select,:root[data-theme="dark"] .assignment-card textarea,:root[data-theme="dark"] .assignment-card select{background:#101c2d!important;color:#e7edf5!important;border-color:#34465e!important}
+:root[data-theme="dark"] input::placeholder,:root[data-theme="dark"] textarea::placeholder{color:#8191a6}
+:root[data-theme="dark"] th{background:#1d2d43;color:#aab8ca}
+:root[data-theme="dark"] td{color:#dce5f0;border-color:#2a3a50}
+:root[data-theme="dark"] tr:hover td{background:#1b2b40}
+:root[data-theme="dark"] .btn.soft{background:#26374e;color:#e1eaf5;border-color:#354962;box-shadow:none}
+:root[data-theme="dark"] .btn.danger{background:#482b31;color:#ffc5c5}
+:root[data-theme="dark"] .note{background:#382f23;border-color:#5b4930;color:#f0d8ae}
+:root[data-theme="dark"] .comment{background:#1e3047;border-color:#30445e;color:#dce5f0}
+:root[data-theme="dark"] .client-project-body{background:#172438}
+:root[data-theme="dark"] .client-project-card p,:root[data-theme="dark"] .assignment-card p{color:#aab8ca}
+:root[data-theme="dark"] .client-project-open{background:#22334a;border-color:#354962;color:#e1eaf5}
+:root[data-theme="dark"] .progress-track,:root[data-theme="dark"] .performance-bar{background:#293b52}
+:root[data-theme="dark"] .empty,:root[data-theme="dark"] .employee-empty{color:#a1afc1;background:#172438;border-color:#34465e}
+:root[data-theme="dark"] .pill{background:#293b52;color:#dce5f0}
+:root[data-theme="dark"] .pill.green{background:#1d4238;color:#9be0bc}
+:root[data-theme="dark"] .pill.amber{background:#493a24;color:#f2cd87}
+:root[data-theme="dark"] .sync-pill{background:#1d4238;color:#9be0bc}
+:root[data-theme="dark"] .unified-notification.unread{background:#302b22;border-color:#705a35}
+:root[data-theme="dark"] .auth-screen{background:radial-gradient(ellipse at 20% 15%,#263b55,#14243a 40%,#080f1a)}
+:root[data-theme="dark"] .auth-card p,:root[data-theme="dark"] .field label{color:#aab8ca}
+:root[data-theme="dark"] .employee-shell,:root[data-theme="dark"] .client-shell{background:linear-gradient(135deg,#0c1523,#111e30 65%,#182437)}
+:root[data-theme="dark"] footer{color:#8fa0b5}
+.theme-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:92px}
+.theme-toggle .theme-icon{font-size:15px;line-height:1}
+.theme-toggle[aria-pressed="true"]{border-color:#9b7b48}
+.auth-theme-row{display:flex;justify-content:flex-start;margin:-2px 0 8px}
+.auth-theme-row .theme-toggle{border-radius:9px}
+@media(max-width:620px){.theme-toggle{min-width:42px;padding:9px}.theme-toggle .theme-label{display:none}}
+
 </style></head>
 <body>
 <section class="auth-screen" id="authScreen">
@@ -285,7 +323,7 @@ footer{color:#8290a2}
 <button data-page="platformAdmin" id="platformAdminNav" style="display:none">♛　إدارة المنصة</button>
 </nav><div class="side-note">Growth Starts With The Right Connection.<br>إصدار تجريبي قابل للاستخدام المحلي</div></aside>
 <main>
-<header class="top"><div><div class="muted tiny">مساحة عملك الرقمية</div><h1 id="pageTitle">لوحة التحكم</h1></div><div class="actions"><span class="sync-pill" id="syncStatus">● متصل بالسحابة</span><button class="btn soft sm" id="adminNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="adminNotificationCount">0</span></button><button class="btn soft sm" onclick="loadCloudData(true)">مزامنة الآن</button><button class="btn lime" onclick="openClient()">＋ عميل جديد</button><button class="btn soft sm" onclick="logout()">خروج</button></div></header>
+<header class="top"><div><div class="muted tiny">مساحة عملك الرقمية</div><h1 id="pageTitle">لوحة التحكم</h1></div><div class="actions"><span class="sync-pill" id="syncStatus">● متصل بالسحابة</span><button class="btn soft sm theme-toggle" type="button" onclick="toggleTheme()" aria-label="تبديل المظهر" aria-pressed="false"><span class="theme-icon">☾</span><span class="theme-label">الوضع الداكن</span></button><button class="btn soft sm" id="adminNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="adminNotificationCount">0</span></button><button class="btn soft sm" onclick="loadCloudData(true)">مزامنة الآن</button><button class="btn lime" onclick="openClient()">＋ عميل جديد</button><button class="btn soft sm" onclick="logout()">خروج</button></div></header>
 <section class="page active" id="dashboard">
 <div class="hero dashboard-hero"><div><span class="eyebrow">AGENCY OVERVIEW</span><h2>مرحباً بك في <b id="organizationWelcomeName">مساحة المؤسسة</b></h2><p>نظرة شاملة على أعمالك ومشاريعك وعلاقات العملاء — كل شيء في مساحة واحدة.</p></div><div class="hero-mark" aria-hidden="true">W</div></div>
 
@@ -408,7 +446,7 @@ footer{color:#8290a2}
   <div class="employee-wrap">
     <header class="employee-top">
       <div><div class="employee-brand" id="employeeOrganizationBrand">اسم المؤسسة</div><div class="muted tiny" id="employeeWelcome">مساحة الموظف</div></div>
-      <div class="actions"><span class="sync-pill" id="employeeSync">● متصل</span><button class="btn soft sm" id="employeeNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="employeeNotificationCount">0</span></button><button class="btn soft sm" id="employeeRefresh">تحديث التكليفات</button><button class="btn sm" onclick="logout()">خروج</button></div>
+      <div class="actions"><span class="sync-pill" id="employeeSync">● متصل</span><button class="btn soft sm theme-toggle" type="button" onclick="toggleTheme()" aria-label="تبديل المظهر" aria-pressed="false"><span class="theme-icon">☾</span><span class="theme-label">الوضع الداكن</span></button><button class="btn soft sm" id="employeeNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="employeeNotificationCount">0</span></button><button class="btn soft sm" id="employeeRefresh">تحديث التكليفات</button><button class="btn sm" onclick="logout()">خروج</button></div>
     </header>
     <div class="hero"><h2>لوحة مهامي</h2><p>تابع التكليفات المسندة إليك، حدّث حالة التنفيذ، وأرسل مستجداتك للمدير.</p></div>
     <div class="grid stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
@@ -422,7 +460,7 @@ footer{color:#8290a2}
 </section>
 <section class="client-shell" id="clientShell" style="display:none">
  <div class="client-wrap">
-  <header class="employee-top"><div><div class="employee-brand" id="clientOrganizationBrand">اسم المؤسسة</div><div class="muted tiny" id="clientWelcome">بوابة العميل</div></div><div class="actions"><span class="sync-pill" id="clientSync">● متصل</span><button class="btn soft sm" id="clientNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="clientNotificationCount">0</span></button><button class="btn soft sm" onclick="loadClientPortal()">تحديث المشاريع</button><button class="btn sm" onclick="logout()">خروج</button></div></header>
+  <header class="employee-top"><div><div class="employee-brand" id="clientOrganizationBrand">اسم المؤسسة</div><div class="muted tiny" id="clientWelcome">بوابة العميل</div></div><div class="actions"><span class="sync-pill" id="clientSync">● متصل</span><button class="btn soft sm theme-toggle" type="button" onclick="toggleTheme()" aria-label="تبديل المظهر" aria-pressed="false"><span class="theme-icon">☾</span><span class="theme-label">الوضع الداكن</span></button><button class="btn soft sm" id="clientNotificationsButton" onclick="openUnifiedNotifications()">🔔 الإشعارات <span id="clientNotificationCount">0</span></button><button class="btn soft sm" onclick="loadClientPortal()">تحديث المشاريع</button><button class="btn sm" onclick="logout()">خروج</button></div></header>
   <div class="hero"><h2>مساحة مشاريعك</h2><p>تابع المشاريع المرتبطة بحسابك من مكان واحد. لا يمكن لهذا الحساب الاطلاع على مشاريع العملاء الآخرين.</p></div>
   <div class="grid stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="card"><div class="stat-label">المشاريع المرتبطة بحسابك</div><div class="stat-value" id="clientProjectCount">0</div></div><div class="card"><div class="stat-label">حالة الحساب</div><div class="stat-value" style="font-size:18px">موثّق</div></div></div>
   <div class="head"><h2>مشاريعي</h2><span class="muted tiny" id="clientLastUpdated"></span></div><div class="assignment-grid" id="clientProjects"><div class="employee-empty">جارٍ تحميل المشاريع…</div></div>
@@ -1177,6 +1215,29 @@ async function createPlatformOrganization(){
  }catch(e){msg.textContent=e.message||'تعذر إنشاء المؤسسة.'}
  finally{button.disabled=false;button.textContent='إنشاء المؤسسة وإرسال الدعوة'}
 }
+
+
+const WASLA_THEME_KEY='wasla_studio_theme_v1';
+function applyTheme(theme){
+ const chosen=theme==='dark'?'dark':'light';
+ document.documentElement.setAttribute('data-theme',chosen);
+ document.querySelectorAll('.theme-toggle').forEach(button=>{
+  button.setAttribute('aria-pressed',String(chosen==='dark'));
+  const icon=button.querySelector('.theme-icon'),label=button.querySelector('.theme-label');
+  if(icon)icon.textContent=chosen==='dark'?'☀':'☾';
+  if(label)label.textContent=chosen==='dark'?'الوضع الفاتح':'الوضع الداكن';
+  button.title=chosen==='dark'?'التبديل إلى الوضع الفاتح':'التبديل إلى الوضع الداكن';
+ });
+}
+function toggleTheme(){
+ const next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+ try{localStorage.setItem(WASLA_THEME_KEY,next)}catch(e){console.warn('Theme preference could not be saved',e)}
+ applyTheme(next);
+}
+(function initWaslaTheme(){
+ let saved='light';try{saved=localStorage.getItem(WASLA_THEME_KEY)||'light'}catch(e){}
+ applyTheme(saved);
+})();
 
 function go(id,skipClientPortalLoad=false){if(id==='platformAdmin'&&!isPlatformAdmin){syncPlatformAdminVisibility();resetWorkspaceNavigation();return false}const target=$(id);if(!target)return false;if(id==='platformAdmin')syncPlatformAdminVisibility();document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));target.classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('pageTitle').textContent=({dashboard:'لوحة التحكم',clients:'العملاء وفرص البيع',projects:'المشاريع',content:'تقويم المحتوى',finance:'الحسابات',settings:'النسخ الاحتياطي',employeePortal:'الموظفون والتكليفات',clientManagement:'بوابة العملاء',platformAdmin:'إدارة المنصة'})[id];refresh();if(id==='employeePortal')loadAdminEmployees();if(id==='clientManagement'&&!skipClientPortalLoad)loadAdminClientPortal();if(id==='platformAdmin')loadPlatformAdmin();if(id==='dashboard'&&(currentRole==='admin'||currentRole==='owner'))loadManagerSubscription();return true}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.page));
