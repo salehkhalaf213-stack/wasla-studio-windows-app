@@ -1321,7 +1321,7 @@ function closeAdminNotifications(){$('adminNotificationsModal').classList.remove
 function showAuthView(view,message=''){
   $('loginForm').classList.toggle('auth-hidden',view!=='login');
   $('forgotPasswordButton').classList.toggle('auth-hidden',view!=='login');
-  $('showSignupButton').classList.toggle('auth-hidden',view!=='login');
+  $('showSignupButton').classList.toggle('auth-hidden',view!=='login'||!clientRegistrationToken);
   $('signupForm').classList.toggle('auth-hidden',view!=='signup');
   $('recoveryRequestForm').classList.toggle('auth-hidden',view!=='request');
   $('passwordUpdateForm').classList.toggle('auth-hidden',view!=='update');
