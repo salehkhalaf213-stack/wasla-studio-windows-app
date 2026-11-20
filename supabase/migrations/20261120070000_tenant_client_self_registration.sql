@@ -190,6 +190,13 @@ begin
     where organization_id = org_id and id = 1
     for update;
 
+    if exists (
+      select 1 from public.client_accounts
+      where auth_user_id = p_user_id
+    ) then
+      raise exception 'هذا الحساب مرتبط بالفعل بملف عميل. راجع الربط الحالي قبل اعتماد طلب جديد.';
+    end if;
+
     client_id := nextval('public.client_legacy_id_seq');
     client_contact := concat_ws(' · ',
       nullif(btrim(client_phone), ''),
@@ -226,10 +233,7 @@ begin
       set role = 'client', status = 'active';
 
     insert into public.client_accounts (auth_user_id, legacy_client_id, organization_id)
-    values (p_user_id, client_id, org_id)
-    on conflict (auth_user_id) do update
-      set legacy_client_id = excluded.legacy_client_id,
-          organization_id = excluded.organization_id;
+    values (p_user_id, client_id, org_id);
   elsif target_role = 'employee' then
     -- Employee accounts retain the existing approval behavior; employee membership
     -- continues to be managed through the tenant's invite workflow.
