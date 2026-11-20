@@ -27,7 +27,7 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
 .auth-brand{font-size:24px;font-weight:900;letter-spacing:2px;margin-bottom:8px}.auth-brand span{color:#789d2d}
 .auth-card h1{font-size:19px;margin:18px 0 7px}.auth-card p{font-size:13px;color:var(--muted);line-height:1.8}
 .auth-card input{width:100%;padding:13px;border:1px solid var(--line);border-radius:9px;margin:6px 0 13px;direction:ltr;text-align:left}
-.auth-card label{font-size:12px;color:var(--muted)}.auth-card button{width:100%;margin-top:8px}.auth-card select{width:100%;padding:13px;border:1px solid var(--line);border-radius:9px;margin:6px 0 13px;background:#fff}.auth-link{border:0;background:transparent;color:#98702f;text-decoration:underline;font-size:12px;padding:8px}.auth-hidden{display:none!important}
+.auth-card label{font-size:12px;color:var(--muted)}.auth-card button{width:100%;margin-top:8px}.auth-card select{width:100%;padding:13px;border:1px solid var(--line);border-radius:9px;margin:6px 0 13px;background:#fff}.auth-link{border:0;background:transparent;color:#98702f;text-decoration:underline;font-size:12px;padding:8px}.auth-hidden{display:none!important}.auth-captcha{display:flex;justify-content:center;min-height:66px;margin:8px 0}.auth-captcha:empty{display:none}
 #authMessage{font-size:12px;line-height:1.8;margin-top:12px;color:#a33b2c;min-height:20px}
 .sync-pill{display:inline-block;border-radius:30px;background:#e7f5d6;color:#496b1d;padding:6px 9px;font-size:11px}
 @media(max-width:480px){.auth-card{padding:21px}}
@@ -420,6 +420,7 @@ footer{color:#8790a7}
       <input id="loginEmail" type="email" autocomplete="username" placeholder="name@example.com" required>
       <label for="loginPassword">كلمة المرور</label>
       <input id="loginPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور" required>
+      <div class="auth-captcha" id="loginCaptcha"></div>
       <button class="btn lime" id="loginButton" type="submit">دخول إلى مساحة العمل</button>
     </form>
     <button class="auth-link" id="forgotPasswordButton" type="button">نسيت كلمة المرور؟</button>
@@ -440,6 +441,7 @@ footer{color:#8790a7}
       <input id="signupPassword" type="password" autocomplete="new-password" minlength="8" placeholder="8 أحرف على الأقل" required>
       <label for="signupConfirmPassword">تأكيد كلمة المرور</label>
       <input id="signupConfirmPassword" type="password" autocomplete="new-password" minlength="8" placeholder="أعد كتابة كلمة المرور" required>
+      <div class="auth-captcha" id="signupCaptcha"></div>
       <button class="btn lime" id="signupButton" type="submit">إنشاء الحساب</button>
       <button class="auth-link" id="signupBackButton" type="button">العودة إلى تسجيل الدخول</button>
     </form>
@@ -448,6 +450,7 @@ footer{color:#8790a7}
       <p>أدخل بريد المدير، وسنرسل لك رابطاً آمناً لإنشاء كلمة مرور جديدة.</p>
       <label for="recoveryEmail">البريد الإلكتروني</label>
       <input id="recoveryEmail" type="email" autocomplete="email" placeholder="name@example.com" required>
+      <div class="auth-captcha" id="recoveryCaptcha"></div>
       <button class="btn lime" id="recoverySendButton" type="submit">إرسال رابط الاستعادة</button>
       <button class="auth-link" id="backToLoginButton" type="button">العودة لتسجيل الدخول</button>
     </form>
@@ -684,6 +687,40 @@ footer{color:#8790a7}
 <script>
 const SUPABASE_URL='https://oqkmesadspiibllyjwmj.supabase.co';
 const SUPABASE_KEY='sb_publishable_-xiQKeiUSPw7nOCWRHivsw_gZHrYqdu';
+const TURNSTILE_SITE_KEY='0x4AAAAAAGJqGsExdafsn-o4';
+let turnstileApiPromise=null;
+const authCaptchaWidgets={login:null,signup:null,recovery:null};
+function loadTurnstileApi(){
+ if(window.turnstile)return Promise.resolve(window.turnstile);
+ if(turnstileApiPromise)return turnstileApiPromise;
+ turnstileApiPromise=new Promise((resolve,reject)=>{
+  const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';script.async=true;script.defer=true;
+  script.onload=()=>window.turnstile?resolve(window.turnstile):reject(new Error('تعذر تحميل أداة التحقق.'));
+  script.onerror=()=>reject(new Error('تعذر تحميل أداة التحقق من Cloudflare. تحقق من اتصال الإنترنت ثم أعد المحاولة.'));
+  document.head.appendChild(script);
+ });
+ return turnstileApiPromise;
+}
+function renderAuthCaptcha(view){
+ const containerId={login:'loginCaptcha',signup:'signupCaptcha',request:'recoveryCaptcha'}[view];
+ const widgetKey={login:'login',signup:'signup',request:'recovery'}[view];
+ if(!containerId||!$(containerId))return;
+ loadTurnstileApi().then(turnstile=>{
+  const container=$(containerId);if(!container||container.offsetParent===null)return;
+  if(authCaptchaWidgets[widgetKey]!==null){turnstile.reset(authCaptchaWidgets[widgetKey]);return;}
+  authCaptchaWidgets[widgetKey]=turnstile.render(container,{sitekey:TURNSTILE_SITE_KEY,theme:'auto',callback:()=>{},'expired-callback':()=>{},'error-callback':()=>{ $('authMessage').textContent='تعذر إكمال التحقق الأمني. أعد المحاولة.';return true;}});
+ }).catch(error=>{$('authMessage').textContent=error.message||'تعذر تحميل التحقق الأمني.';});
+}
+function getAuthCaptchaToken(view){
+ const widgetKey={login:'login',signup:'signup',request:'recovery'}[view],widgetId=authCaptchaWidgets[widgetKey];
+ const token=widgetId!==null&&window.turnstile?window.turnstile.getResponse(widgetId):'';
+ if(!token)throw new Error('أكمل التحقق الأمني قبل المتابعة.');
+ return token;
+}
+function resetAuthCaptcha(view){
+ const widgetKey={login:'login',signup:'signup',request:'recovery'}[view],widgetId=authCaptchaWidgets[widgetKey];
+ if(widgetId!==null&&window.turnstile)window.turnstile.reset(widgetId);
+}
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}});
 let currentUser=null, currentRole=null, currentOrganizationId=null, currentOrganizationIsInternal=false, isPlatformAdmin=false, cloudSaveTimer=null, cloudBusy=false;
 const $=id=>document.getElementById(id);let KEY='wasla_mvp_02';
@@ -1240,6 +1277,7 @@ function showAuthView(view,message=''){
   $('recoveryRequestForm').classList.toggle('auth-hidden',view!=='request');
   $('passwordUpdateForm').classList.toggle('auth-hidden',view!=='update');
   $('authMessage').textContent=message;
+ if(view==='login'||view==='signup'||view==='request')renderAuthCaptcha(view);
 }
 $('showSignupButton').addEventListener('click',()=>{
   $('signupName').value='';$('signupEmail').value=$('loginEmail').value.trim();
@@ -1257,9 +1295,10 @@ $('signupForm').addEventListener('submit',async e=>{
   const button=$('signupButton');button.disabled=true;button.textContent='جارٍ إنشاء الحساب…';
   $('authMessage').textContent='';
   try{
+    const captchaToken=getAuthCaptchaToken('signup');
     const {data,error}=await sb.auth.signUp({
       email,password,
-      options:{data:{full_name:name,requested_role:$('signupRole').value},emailRedirectTo:window.location.origin+window.location.pathname}
+      options:{data:{full_name:name,requested_role:$('signupRole').value},emailRedirectTo:window.location.origin+window.location.pathname,captchaToken}
     });
     if(error)throw error;
     if(data?.session)await sb.auth.signOut();
@@ -1269,7 +1308,7 @@ $('signupForm').addEventListener('submit',async e=>{
       ?'هذا البريد مسجل بالفعل. جرّب تسجيل الدخول أو استعادة كلمة المرور.'
       :'تم إنشاء طلب الحساب بنجاح. إذا طُلب تأكيد البريد، افتح رسالة التحقق أولاً. بعد ذلك ينتظر الحساب موافقة المدير، ثم يمكنك تسجيل الدخول.');
   }catch(err){$('authMessage').textContent=err.message||'تعذر إنشاء الحساب.'}
-  finally{button.disabled=false;button.textContent='إنشاء الحساب'}
+  finally{resetAuthCaptcha('signup');button.disabled=false;button.textContent='إنشاء الحساب'}
 });
 $('forgotPasswordButton').addEventListener('click',()=>{
   $('recoveryEmail').value=$('loginEmail').value.trim();
@@ -1283,11 +1322,12 @@ $('recoveryRequestForm').addEventListener('submit',async e=>{
   try{
     const email=$('recoveryEmail').value.trim();
     const redirectTo=window.location.origin+window.location.pathname;
-    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
+    const captchaToken=getAuthCaptchaToken('request');
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo,captchaToken});
     if(error)throw error;
     showAuthView('request','تم إرسال الطلب. افتح رسالة الاستعادة، واضغط الرابط من نفس المتصفح الذي تستخدمه لفتح WASLA STUDIO.');
   }catch(err){$('authMessage').textContent=err.message||'تعذر إرسال رابط الاستعادة.'}
-  finally{button.disabled=false;button.textContent='إرسال رابط الاستعادة'}
+  finally{resetAuthCaptcha('request');button.disabled=false;button.textContent='إرسال رابط الاستعادة'}
 });
 $('passwordUpdateForm').addEventListener('submit',async e=>{
   e.preventDefault();
@@ -1318,7 +1358,7 @@ function getRecoveryUrlState(){
   };
 }
 let recoveryMode=getRecoveryUrlState().isRecovery;
-$('loginForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('loginButton');button.disabled=true;button.textContent='جارٍ التحقق…';$('authMessage').textContent='';try{const {data:result,error}=await sb.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});if(error)throw error;await enterWorkspace(result.session)}catch(err){$('authMessage').textContent=err.message||'تعذر تسجيل الدخول.'}finally{button.disabled=false;button.textContent='دخول إلى مساحة العمل'}});
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('loginButton');button.disabled=true;button.textContent='جارٍ التحقق…';$('authMessage').textContent='';try{const captchaToken=getAuthCaptchaToken('login');const {data:result,error}=await sb.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value,options:{captchaToken}});if(error)throw error;await enterWorkspace(result.session)}catch(err){$('authMessage').textContent=err.message||'تعذر تسجيل الدخول.'}finally{resetAuthCaptcha('login');button.disabled=false;button.textContent='دخول إلى مساحة العمل'}});
 async function logout(){try{clearTimeout(cloudSaveTimer);clearInterval(adminNotificationTimer);clearInterval(unifiedNotificationsTimer);if(currentUser&&(currentRole==='admin'||currentRole==='owner'))await saveCloudData();const {error}=await sb.auth.signOut();if(error)throw error;clearTenantState();$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';$('authScreen').style.display='grid';$('loginPassword').value='';showAuthView('login','تم تسجيل الخروج.')}catch(err){console.error('Logout failed:',err);alert('تعذر تسجيل الخروج: '+(err?.message||'حدث خطأ غير متوقع. حاول مرة أخرى.'));}}
 // Register the listener before reading the session so recovery links are handled first.
 sb.auth.onAuthStateChange((event,session)=>{
