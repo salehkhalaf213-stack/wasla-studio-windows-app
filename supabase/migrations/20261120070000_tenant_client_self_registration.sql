@@ -86,7 +86,10 @@ begin
     else 'user'
   end;
 
-  if requested = 'user' then
+  -- Platform-created administrator invitations are assigned to their tenant by
+  -- the trusted create-organization Edge Function immediately after invitation.
+  if requested = 'user'
+     and coalesce(new.raw_user_meta_data ->> 'requested_role', '') <> 'admin' then
     registration_token := nullif(new.raw_user_meta_data ->> 'client_registration_token', '');
     if registration_token is null then
       raise exception 'يجب استخدام رابط التسجيل الخاص بالشركة لإنشاء حساب عميل.';
