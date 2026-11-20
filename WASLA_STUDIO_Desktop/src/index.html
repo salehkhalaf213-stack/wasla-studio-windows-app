@@ -862,7 +862,7 @@ $('employeeRefresh').addEventListener('click',loadEmployeeAssignments);
 // Client portal: read only the authenticated client's mapping and mapped projects.
 let clientProjectRows=[];
 async function loadClientPortal(){
- if(!currentUser||currentRole!=='user')return;
+ if(!currentUser||!['user','client'].includes(currentRole))return;
  const box=$('clientProjects');box.innerHTML='<div class="employee-empty">جارٍ تحميل مشاريع حسابك…</div>';$('clientSync').textContent='● جارٍ التحديث';
  try{
   const {data:account,error:accountError}=await sb.from('client_accounts').select('legacy_client_id').eq('auth_user_id',currentUser.id).maybeSingle();
@@ -1138,7 +1138,7 @@ async function openNotificationTarget(type,id,notificationId){
       go('employeePortal');const row=adminAssignments.find(a=>String(a.id)===String(id));if(row)viewAssignmentDetails(id);
     }
   }else if(type==='project'){
-    if(currentRole==='user'){
+    if(['user','client'].includes(currentRole)){
       const el=$('clientProjectFeature-'+id);
       if(el)el.scrollIntoView({behavior:'smooth',block:'center'});else await loadClientPortal();
     }else if(isAdminRole()){
