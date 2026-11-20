@@ -295,6 +295,20 @@ begin
 end;
 $function$;
 
+-- Expose the approval RPC expected by the application UI.
+create or replace function public.approve_signup(p_user_id uuid)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $function$
+  select private.approve_signup(p_user_id);
+$function$;
+
+revoke all on function public.approve_signup(uuid) from public, anon;
+grant execute on function public.approve_signup(uuid) to authenticated;
+grant execute on function private.reject_signup(uuid) to authenticated;
+
 create or replace function public.reject_signup(p_user_id uuid)
 returns void
 language sql
