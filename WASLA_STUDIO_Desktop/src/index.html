@@ -698,7 +698,7 @@ function loadTurnstileApi(){
   script.onload=()=>window.turnstile?resolve(window.turnstile):reject(new Error('تعذر تحميل أداة التحقق.'));
   script.onerror=()=>reject(new Error('تعذر تحميل أداة التحقق من Cloudflare. تحقق من اتصال الإنترنت ثم أعد المحاولة.'));
   document.head.appendChild(script);
- });
+ }).catch(error=>{turnstileApiPromise=null;throw error;});
  return turnstileApiPromise;
 }
 function renderAuthCaptcha(view){
