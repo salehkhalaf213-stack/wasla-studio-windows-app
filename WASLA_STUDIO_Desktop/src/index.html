@@ -427,16 +427,15 @@ footer{color:#8790a7}
     <button class="btn soft" id="showSignupButton" type="button" style="width:100%;margin-top:8px">إنشاء حساب جديد</button>
     <form id="signupForm" class="auth-hidden">
       <h1>إنشاء حساب جديد</h1>
-      <p>أنشئ حسابك، ثم ينتظر تفعيل المدير قبل استخدام مساحة العمل.</p>
+      <p>قدّم طلب الانضمام إلى بوابة عملاء الشركة المرتبطة بهذا الرابط. سيُنشأ ملفك بعد موافقة مدير الشركة.</p>
       <label for="signupName">الاسم الكامل</label>
       <input id="signupName" type="text" autocomplete="name" maxlength="100" placeholder="الاسم الكامل" required>
+      <label for="signupPhone">رقم الهاتف</label>
+      <input id="signupPhone" type="tel" autocomplete="tel" maxlength="40" placeholder="رقم الهاتف" required>
       <label for="signupEmail">البريد الإلكتروني</label>
       <input id="signupEmail" type="email" autocomplete="email" placeholder="name@example.com" required>
-      <label for="signupRole">نوع الحساب</label>
-      <select id="signupRole" required>
-        <option value="user">عميل — بوابة متابعة المشاريع</option>
-        <option value="employee">موظف — المهام والتكليفات</option>
-      </select>
+      <label for="signupCompany">اسم الشركة (اختياري)</label>
+      <input id="signupCompany" type="text" autocomplete="organization" maxlength="120" placeholder="اسم الشركة">
       <label for="signupPassword">كلمة المرور</label>
       <input id="signupPassword" type="password" autocomplete="new-password" minlength="8" placeholder="8 أحرف على الأقل" required>
       <label for="signupConfirmPassword">تأكيد كلمة المرور</label>
@@ -527,7 +526,8 @@ footer{color:#8790a7}
 <section class="page" id="employeePortal">
 <div class="head"><h2>إدارة الموظفين والتكليفات</h2><div class="actions"><button class="btn soft" onclick="openEmployeeInvite()">＋ إضافة موظف</button><button class="btn lime" onclick="openAssignment()">＋ تكليف جديد</button></div></div>
 <div class="grid stats"><div class="card"><div class="stat-label">عدد الموظفين</div><div class="stat-value" id="adminEmployeeCount">0</div></div><div class="card"><div class="stat-label">إجمالي التكليفات</div><div class="stat-value" id="adminAssignmentCount">0</div></div><div class="card"><div class="stat-label">قيد التنفيذ</div><div class="stat-value" id="adminActiveCount">0</div></div><div class="card"><div class="stat-label">تحديثات جديدة</div><div class="stat-value" id="adminUpdatesCount">0</div></div></div>
-<div class="card" style="margin-bottom:14px"><div class="head"><h2>طلبات الحسابات الجديدة</h2><button class="btn soft sm" onclick="loadAdminEmployees()">تحديث</button></div><div class="muted tiny" style="margin-bottom:10px">طلبات العملاء والموظفين الجديدة تظهر هنا، ولا تحصل على صلاحية الدخول قبل موافقة المدير.</div><div class="table-wrap" id="pendingSignupTable"><div class="empty">جارٍ تحميل الطلبات…</div></div></div>
+<div class="card" style="margin-bottom:14px"><div class="head"><h2>رابط تسجيل العملاء</h2><span class="pill green">خاص بهذه المؤسسة</span></div><p class="muted tiny" style="line-height:1.8">أنشئ رابطاً خاصاً بمؤسستك وشاركه مع عملائك. كل طلب يصل إلى هذه المؤسسة فقط، ويمكنك تجديد الرابط لإيقاف استخدام الرابط السابق.</p><div class="actions"><button class="btn lime" type="button" onclick="createClientRegistrationLink()">إنشاء / تجديد رابط التسجيل</button></div><div id="clientRegistrationLinkBox" style="margin-top:12px"></div></div>
+<div class="card" style="margin-bottom:14px"><div class="head"><h2>طلبات الحسابات الجديدة</h2><button class="btn soft sm" onclick="loadAdminEmployees()">تحديث</button></div><div class="muted tiny" style="margin-bottom:10px">طلبات العملاء والموظفين التابعة لهذه المؤسسة فقط. لا يحصل العميل على صلاحية الدخول قبل موافقة المدير.</div><div class="table-wrap" id="pendingSignupTable"><div class="empty">جارٍ تحميل الطلبات…</div></div></div>
 <div class="card" style="margin-bottom:14px"><div class="head"><h2>أداء الموظفين</h2><button class="btn soft sm" onclick="loadAdminEmployees()">تحديث البيانات</button></div><div class="table-wrap" id="adminEmployeesTable"><div class="empty">اضغط تحديث البيانات لعرض الأداء.</div></div></div>
 <div class="card"><div class="head"><h2>التكليفات ومتابعة التنفيذ</h2><button class="btn soft sm" onclick="loadAdminEmployees()">تحديث التقارير</button></div><div class="task-filters"><input id="assignmentSearch" placeholder="ابحث باسم المهمة أو العميل..." oninput="renderAdminAssignments()"><select id="assignmentStatusFilter" onchange="renderAdminAssignments()"><option value="">كل الحالات</option><option>لم يبدأ</option><option>قيد التنفيذ</option><option>قيد المراجعة</option><option>مكتمل</option></select><select id="assignmentDueFilter" onchange="renderAdminAssignments()"><option value="">كل المواعيد</option><option value="overdue">متأخرة</option><option value="today">تسليم اليوم</option><option value="upcoming">قادمة</option></select></div><div class="table-wrap" id="adminAssignmentsTable"><div class="empty">جارٍ تحميل التكليفات…</div></div></div>
 </section>
@@ -688,6 +688,7 @@ footer{color:#8790a7}
 const SUPABASE_URL='https://oqkmesadspiibllyjwmj.supabase.co';
 const SUPABASE_KEY='sb_publishable_-xiQKeiUSPw7nOCWRHivsw_gZHrYqdu';
 const TURNSTILE_SITE_KEY='0x4AAAAAAGJqGsExdafsn-o4';
+const clientRegistrationToken=new URLSearchParams(window.location.search).get('client_register')||'';
 let turnstileApiPromise=null;
 const authCaptchaWidgets={login:null,signup:null,recovery:null};
 function loadTurnstileApi(){
@@ -1181,7 +1182,7 @@ async function loadAdminEmployees(){
    sb.from('organization_members').select('user_id,status,role').eq('organization_id',currentOrganizationId).eq('role','employee').order('created_at',{ascending:true}),
    sb.from('employee_assignments').select('id,project_ref,project_name,client_label,due_date,instructions,employee_status,assigned_to,created_at,organization_id').eq('organization_id',currentOrganizationId).order('created_at',{ascending:false}),
    sb.from('employee_updates').select('id,assignment_id,employee_id,body,created_at,organization_id').eq('organization_id',currentOrganizationId).order('created_at',{ascending:false}).limit(150),
-   sb.from('profiles').select('id,full_name,requested_role,created_at').eq('organization_id',currentOrganizationId).eq('approval_status','pending').eq('role','pending').order('created_at',{ascending:true})
+   sb.from('profiles').select('id,full_name,email,phone,company_name,requested_role,created_at').eq('organization_id',currentOrganizationId).eq('approval_status','pending').eq('role','pending').order('created_at',{ascending:true})
   ]);
   if(memberError)throw memberError;if(assignmentError)throw assignmentError;if(updateError)throw updateError;if(pendingError)throw pendingError;
   const memberIds=(members||[]).map(m=>m.user_id);let profiles=[];
@@ -1192,7 +1193,7 @@ async function loadAdminEmployees(){
   const updateIds=adminUpdates.map(u=>u.id);
   if(updateIds.length){const result=await sb.from('employee_update_attachments').select('id,update_id,assignment_id,employee_id,file_name,file_path,mime_type,file_size,created_at').in('update_id',updateIds).eq('organization_id',currentOrganizationId).order('created_at',{ascending:true});if(result.error)throw result.error;adminAttachments=result.data||[];}
   const pendingBox=$('pendingSignupTable');
-  if(pendingBox)pendingBox.innerHTML=(pending||[]).length?table(['الاسم','نوع الحساب','تاريخ الطلب','الإجراء'],pending.map(p=>`<tr><td>${esc(p.full_name||'—')}</td><td><span class="pill amber">${p.requested_role==='employee'?'موظف':'عميل'}</span></td><td>${esc(new Date(p.created_at).toLocaleString('ar-EG'))}</td><td><button class="btn lime sm" onclick="approvePendingSignup('${esc(p.id)}')">موافقة وتفعيل</button></td></tr>`)):'<div class="empty">لا توجد طلبات معلقة حالياً.</div>';
+  if(pendingBox)pendingBox.innerHTML=(pending||[]).length?table(['الاسم','الهاتف','البريد','الشركة','تاريخ الطلب','الإجراء'],pending.map(p=>`<tr><td>${esc(p.full_name||'—')}</td><td>${esc(p.phone||'—')}</td><td>${esc(p.email||'—')}</td><td>${esc(p.company_name||'—')}</td><td>${esc(new Date(p.created_at).toLocaleString('ar-EG'))}</td><td><div class="actions"><button class="btn lime sm" onclick="approvePendingSignup('${esc(p.id)}')">موافقة وإنشاء ملف</button><button class="btn danger sm" onclick="rejectPendingSignup('${esc(p.id)}')">رفض الطلب</button></div></td></tr>`)):'<div class="empty">لا توجد طلبات معلقة حالياً.</div>';
   const updateByEmployee={};adminUpdates.forEach(u=>{(updateByEmployee[u.employee_id]??=[]).push(u)});
   const total=adminAssignments.length,active=adminAssignments.filter(a=>a.employee_status==='قيد التنفيذ').length;
   $('adminEmployeeCount').textContent=adminEmployees.filter(e=>e.membership_status==='active').length;$('adminAssignmentCount').textContent=total;$('adminActiveCount').textContent=active;$('adminUpdatesCount').textContent=unseenAdminUpdates().length;
@@ -1205,13 +1206,44 @@ async function loadAdminEmployees(){
 }
 async function approvePendingSignup(userId){
   if(!isAdminRole())return alert('غير مصرح.');
-  if(!confirm('هل تريد الموافقة على هذا الحساب وتفعيل نوع الصلاحية المطلوب؟'))return;
+  if(!confirm('ستتم الموافقة على العميل وإنشاء ملف له داخل مؤسستك وربط حسابه ببوابة العملاء. هل تريد المتابعة؟'))return;
   try{
     const {error}=await sb.rpc('approve_signup',{p_user_id:userId});
     if(error)throw error;
-    alert('تمت الموافقة على الحساب. يمكن للمستخدم تسجيل الدخول الآن.');
+    alert('تمت الموافقة وإنشاء ملف العميل وربط حسابه بالمؤسسة. يمكنه تسجيل الدخول الآن.');
     await loadAdminEmployees();
-  }catch(e){alert('تعذر تفعيل الحساب: '+(e.message||'خطأ غير معروف'))}
+  }catch(e){alert('تعذر اعتماد طلب العميل: '+(e.message||'خطأ غير معروف'))}
+}
+async function rejectPendingSignup(userId){
+  if(!isAdminRole())return alert('غير مصرح.');
+  if(!confirm('هل تريد رفض طلب التسجيل؟ لن يتم حذف الحساب أو أي بيانات أخرى.'))return;
+  try{
+    const {error}=await sb.rpc('reject_signup',{p_user_id:userId});
+    if(error)throw error;
+    alert('تم رفض طلب التسجيل.');
+    await loadAdminEmployees();
+  }catch(e){alert('تعذر رفض الطلب: '+(e.message||'خطأ غير معروف'))}
+}
+async function createClientRegistrationLink(){
+  if(!isAdminRole()||!currentOrganizationId)return alert('هذه الميزة متاحة لمدير المؤسسة فقط.');
+  if(!['http:','https:'].includes(window.location.protocol))return alert('افتح نسخة الويب المستضافة من WASLA STUDIO لإنشاء رابط قابل للمشاركة.');
+  if(!confirm('سيؤدي إنشاء رابط جديد إلى إيقاف الرابط السابق لهذه المؤسسة. هل تريد المتابعة؟'))return;
+  const button=document.querySelector('#employeePortal button[onclick="createClientRegistrationLink()"]');
+  const box=$('clientRegistrationLinkBox');if(button){button.disabled=true;button.textContent='جارٍ إنشاء الرابط…';}
+  try{
+    const {data,error}=await sb.rpc('create_client_registration_link');
+    if(error)throw error;
+    const token=String(data||'').trim();if(!/^[a-f0-9]{64}$/i.test(token))throw new Error('لم يتم استلام رمز تسجيل صالح.');
+    const url=new URL(window.location.href);url.search='';url.hash='';url.searchParams.set('client_register',token);
+    box.innerHTML='<div class="field"><label>رابط التسجيل الخاص بمؤسستك — احتفظ به وشاركه مع العملاء</label><input id="clientRegistrationUrl" type="text" readonly dir="ltr"></div><div class="actions"><button class="btn soft sm" type="button" onclick="copyClientRegistrationLink()">نسخ الرابط</button></div><div class="muted tiny" style="margin-top:8px">الرابط السابق لم يعد صالحاً بعد التجديد.</div>';
+    $('clientRegistrationUrl').value=url.toString();
+  }catch(e){alert('تعذر إنشاء رابط التسجيل: '+(e.message||'خطأ غير معروف'))}
+  finally{if(button){button.disabled=false;button.textContent='إنشاء / تجديد رابط التسجيل';}}
+}
+async function copyClientRegistrationLink(){
+  const value=$('clientRegistrationUrl')?.value;if(!value)return;
+  try{await navigator.clipboard.writeText(value);alert('تم نسخ رابط تسجيل العملاء.');}
+  catch(_){prompt('انسخ الرابط التالي:',value);}
 }
 async function openEmployeeInvite(){
   if(!isAdminRole()||!currentOrganizationId)return alert('غير مصرح أو لم يتم تحديد المؤسسة.');
@@ -1297,16 +1329,19 @@ function showAuthView(view,message=''){
  if(view==='login'||view==='signup'||view==='request')renderAuthCaptcha(view);
 }
 $('showSignupButton').addEventListener('click',()=>{
-  $('signupName').value='';$('signupEmail').value=$('loginEmail').value.trim();
+  if(!clientRegistrationToken){$('authMessage').textContent='إنشاء حساب العميل متاح من رابط التسجيل الخاص بالشركة فقط.';return;}
+  $('signupName').value='';$('signupPhone').value='';$('signupCompany').value='';$('signupEmail').value=$('loginEmail').value.trim();
   $('signupPassword').value='';$('signupConfirmPassword').value='';
   showAuthView('signup');
 });
 $('signupBackButton').addEventListener('click',()=>showAuthView('login'));
 $('signupForm').addEventListener('submit',async e=>{
   e.preventDefault();
-  const name=$('signupName').value.trim(),email=$('signupEmail').value.trim();
+  const name=$('signupName').value.trim(),phone=$('signupPhone').value.trim(),email=$('signupEmail').value.trim(),company=$('signupCompany').value.trim();
   const password=$('signupPassword').value,confirm=$('signupConfirmPassword').value;
+  if(!clientRegistrationToken){$('authMessage').textContent='رابط تسجيل الشركة غير موجود. اطلب رابطاً جديداً من مدير الشركة.';return}
   if(name.length<2){$('authMessage').textContent='أدخل الاسم الكامل.';return}
+  if(phone.length<6){$('authMessage').textContent='أدخل رقم هاتف صحيحاً.';return}
   if(password.length<8){$('authMessage').textContent='كلمة المرور يجب ألا تقل عن 8 أحرف.';return}
   if(password!==confirm){$('authMessage').textContent='كلمتا المرور غير متطابقتين.';return}
   const button=$('signupButton');button.disabled=true;button.textContent='جارٍ إنشاء الحساب…';
@@ -1315,7 +1350,7 @@ $('signupForm').addEventListener('submit',async e=>{
     const captchaToken=getAuthCaptchaToken('signup');
     const {data,error}=await sb.auth.signUp({
       email,password,
-      options:{data:{full_name:name,requested_role:$('signupRole').value},emailRedirectTo:window.location.origin+window.location.pathname,captchaToken}
+      options:{data:{full_name:name,phone,company_name:company,requested_role:'user',client_registration_token:clientRegistrationToken},emailRedirectTo:window.location.origin+window.location.pathname,captchaToken}
     });
     if(error)throw error;
     if(data?.session)await sb.auth.signOut();
@@ -1375,6 +1410,9 @@ function getRecoveryUrlState(){
   };
 }
 let recoveryMode=getRecoveryUrlState().isRecovery;
+// Client signup is only available through a company-specific registration link.
+if(!clientRegistrationToken)$('showSignupButton').classList.add('auth-hidden');
+else $('showSignupButton').textContent='إنشاء حساب عميل';
 // The login form is visible on first load; initialize its Turnstile widget immediately.
 showAuthView('login');
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('loginButton');button.disabled=true;button.textContent='جارٍ التحقق…';$('authMessage').textContent='';try{const captchaToken=getAuthCaptchaToken('login');const {data:result,error}=await sb.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value,options:{captchaToken}});if(error)throw error;await enterWorkspace(result.session)}catch(err){$('authMessage').textContent=err.message||'تعذر تسجيل الدخول.'}finally{resetAuthCaptcha('login');button.disabled=false;button.textContent='دخول إلى مساحة العمل'}});
