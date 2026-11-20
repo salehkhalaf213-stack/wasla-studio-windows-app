@@ -1358,6 +1358,8 @@ function getRecoveryUrlState(){
   };
 }
 let recoveryMode=getRecoveryUrlState().isRecovery;
+// The login form is visible on first load; initialize its Turnstile widget immediately.
+showAuthView('login');
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('loginButton');button.disabled=true;button.textContent='جارٍ التحقق…';$('authMessage').textContent='';try{const captchaToken=getAuthCaptchaToken('login');const {data:result,error}=await sb.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value,options:{captchaToken}});if(error)throw error;await enterWorkspace(result.session)}catch(err){$('authMessage').textContent=err.message||'تعذر تسجيل الدخول.'}finally{resetAuthCaptcha('login');button.disabled=false;button.textContent='دخول إلى مساحة العمل'}});
 async function logout(){try{clearTimeout(cloudSaveTimer);clearInterval(adminNotificationTimer);clearInterval(unifiedNotificationsTimer);if(currentUser&&(currentRole==='admin'||currentRole==='owner'))await saveCloudData();const {error}=await sb.auth.signOut();if(error)throw error;clearTenantState();$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';$('authScreen').style.display='grid';$('loginPassword').value='';showAuthView('login','تم تسجيل الخروج.')}catch(err){console.error('Logout failed:',err);alert('تعذر تسجيل الخروج: '+(err?.message||'حدث خطأ غير متوقع. حاول مرة أخرى.'));}}
 // Register the listener before reading the session so recovery links are handled first.
