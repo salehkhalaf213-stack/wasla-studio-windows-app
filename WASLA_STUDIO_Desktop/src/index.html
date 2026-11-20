@@ -920,19 +920,32 @@ async function viewAssignmentDetails(id){
  openModal('تفاصيل التكليف',`<div class="task-detail"><b>${esc(a.project_name)}</b>\nالعميل: ${esc(a.client_label||'—')}\nموعد التسليم: ${esc(a.due_date||'غير محدد')}\nالحالة: ${esc(a.employee_status)}\n\nتعليمات المدير:\n${esc(a.instructions||'—')}\n\nتقارير الموظف والمرفقات:</div><div style="margin-top:12px">${history}</div>`,()=>closeModal());
 }
 async function openEmployeeReportFile(path){
- let fileTab=null;
+ let viewer=null;
  try{
   if(!path)throw new Error('مسار الملف غير متوفر.');
-  fileTab=window.open('about:blank','_blank');
-  if(!fileTab)throw new Error('المتصفح منع فتح الملف في نافذة جديدة. اسمح بالنوافذ المنبثقة لهذا التطبيق ثم أعد المحاولة.');
-  fileTab.document.title='جارٍ فتح الملف…';
-  fileTab.document.body.innerHTML='<p style="font-family:sans-serif;text-align:center;margin:40px">جارٍ تجهيز رابط الملف الآمن…</p>';
   const {data,error}=await sb.storage.from('employee-reports').createSignedUrl(path,300);
   if(error)throw error;
   if(!data?.signedUrl)throw new Error('تعذر إنشاء رابط آمن للملف.');
-  fileTab.location.replace(data.signedUrl);
+  const previous=document.getElementById('employeeReportViewer');
+  if(previous)previous.remove();
+  viewer=document.createElement('div');
+  viewer.id='employeeReportViewer';
+  viewer.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(8,12,22,.94);display:flex;flex-direction:column;padding:12px;box-sizing:border-box';
+  const bar=document.createElement('div');
+  bar.style.cssText='display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:4px 4px 12px';
+  const close=document.createElement('button');
+  close.type='button';close.textContent='إغلاق الملف';
+  close.style.cssText='border:0;border-radius:8px;padding:10px 18px;background:#dc3545;color:#fff;font-weight:700;cursor:pointer';
+  close.onclick=()=>viewer?.remove();
+  bar.appendChild(close);
+  const frame=document.createElement('iframe');
+  frame.title='معاينة تقرير الموظف';
+  frame.src=data.signedUrl;
+  frame.style.cssText='width:100%;flex:1;min-height:0;border:0;border-radius:10px;background:#fff';
+  viewer.append(bar,frame);
+  document.body.appendChild(viewer);
  }catch(e){
-  if(fileTab&&!fileTab.closed)fileTab.close();
+  if(viewer?.isConnected)viewer.remove();
   alert('تعذر فتح الملف: '+(e.message||'خطأ غير معروف'));
  }
 }
