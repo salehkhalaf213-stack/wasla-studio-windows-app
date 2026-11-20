@@ -1644,7 +1644,7 @@ async function loadPlatformPaymentRequests(page=0){
  }).join('')+'</tbody></table>':'<div class="empty">لا توجد طلبات اشتراك حتى الآن.</div>';
 }
 
-let platformFinancialSummary=null,platformSubscriptionAudit=[];
+let platformFinancialSummary=null,platformSubscriptionAudit=[],platformFinancialPeople={};
 function platformMoneyMinor(value){return (Number(value||0)/100).toLocaleString('ar-EG',{maximumFractionDigits:2})+' ج.م'}
 function platformPlanName(id){return platformPlans.find(p=>p.id===id)?.name||id||'—'}
 function platformStatusLabel(status){return ({active:'نشط',trialing:'تجريبي',pending:'قيد المراجعة',past_due:'متأخر',cancelled:'ملغي',expired:'منتهي'})[status]||status||'—'}
@@ -1659,7 +1659,13 @@ async function loadPlatformFinancials(){
  platformFinancialSummary=summary||{};
  platformSubscriptionAudit=audit||[];
  if(auditError){const el=$('platformSubscriptionAuditTable');if(el)el.innerHTML='<div class="empty">تعذر تحميل سجل التدقيق: '+esc(auditError.message)+'</div>'}
- renderPlatformFinancialDashboard();renderPlatformAuditTable();renderPlatformExpiringSubscriptions();
+ const personIds=[...new Set([...(platformPaymentRequests||[]).map(x=>x.reviewed_by),...platformSubscriptionAudit.map(x=>x.actor_user_id)].filter(Boolean))];
+ platformFinancialPeople={};
+ if(personIds.length){
+  const {data:people}=await sb.from('profiles').select('id,full_name').in('id',personIds);
+  (people||[]).forEach(p=>{platformFinancialPeople[p.id]=p.full_name||String(p.id).slice(0,8)});
+ }
+ renderPlatformFinancialDashboard();renderPlatformPaymentHistory();renderPlatformAuditTable();renderPlatformExpiringSubscriptions();
 }
 function renderPlatformFinancialDashboard(){
  const d=platformFinancialSummary;if(!d)return;
@@ -1698,7 +1704,7 @@ function renderPlatformPaymentHistory(){
  const table=rows.length?'<table><thead><tr><th>المؤسسة</th><th>الباقة</th><th>المبلغ</th><th>مرجع التحويل</th><th>الحالة</th><th>تاريخ الطلب</th><th>قرار المراجعة</th><th>المراجع</th><th>الإيصال</th></tr></thead><tbody>'+rows.map(x=>{
   const org=platformOrganizations.find(o=>o.id===x.organization_id);
   const reviewed=x.reviewed_at?new Date(x.reviewed_at).toLocaleString('ar-EG'):'—';
-  const reviewer=x.reviewed_by?esc(String(x.reviewed_by).slice(0,8)):'—';
+  const reviewer=x.reviewed_by?esc(platformFinancialPeople[x.reviewed_by]||String(x.reviewed_by).slice(0,8)):'—';
   const state=x.status==='approved'?'approved':x.status==='rejected'?'rejected':'pending';
   return '<tr><td>'+esc(org?.name||x.organization_id)+'</td><td>'+esc(platformPlanName(x.plan_id))+'</td><td>'+platformMoneyMinor(x.amount_minor)+'</td><td dir="ltr">'+esc(x.transfer_reference||'—')+'</td><td><span class="finance-status '+state+'">'+(labels[x.status]||esc(x.status))+'</span>'+(x.review_note?'<div class="muted tiny">'+esc(x.review_note)+'</div>':'')+'</td><td>'+new Date(x.submitted_at).toLocaleDateString('ar-EG')+'</td><td>'+reviewed+'</td><td dir="ltr">'+reviewer+'</td><td><button class="btn soft sm" onclick="viewSubscriptionReceipt(\''+esc(x.receipt_path)+'\')">عرض</button></td></tr>';
  }).join('')+'</tbody></table>':'<div class="empty">لا توجد مدفوعات تطابق البحث في هذه الصفحة.</div>';
@@ -1711,7 +1717,7 @@ function renderPlatformAuditTable(){
   const org=platformOrganizations.find(o=>o.id===x.organization_id),old=x.old_values||{},next=x.new_values||{};
   const before=old.plan_id?platformPlanName(old.plan_id)+' · '+platformStatusLabel(old.status):'—';
   const after=next.plan_id?platformPlanName(next.plan_id)+' · '+platformStatusLabel(next.status):'—';
-  return '<div class="finance-audit-row"><b>'+esc(org?.name||x.organization_id)+'</b> — '+(labels[x.action]||esc(x.action))+'<div class="muted tiny">من: '+esc(before)+' ← إلى: '+esc(after)+'</div><div class="muted tiny">'+new Date(x.occurred_at).toLocaleString('ar-EG')+' · المنفذ: '+esc(x.actor_user_id?String(x.actor_user_id).slice(0,8):'النظام')+'</div></div>';
+  return '<div class="finance-audit-row"><b>'+esc(org?.name||x.organization_id)+'</b> — '+(labels[x.action]||esc(x.action))+'<div class="muted tiny">من: '+esc(before)+' ← إلى: '+esc(after)+'</div><div class="muted tiny">'+new Date(x.occurred_at).toLocaleString('ar-EG')+' · المنفذ: '+esc(x.actor_user_id?(platformFinancialPeople[x.actor_user_id]||String(x.actor_user_id).slice(0,8)):'النظام')+'</div></div>';
  }).join(''):'<div class="empty">لا توجد تغييرات اشتراك مسجلة بعد تفعيل سجل التدقيق.</div>';
 }
 function renderPlatformExpiringSubscriptions(){
