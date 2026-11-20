@@ -678,7 +678,7 @@ footer{color:#8790a7}
 const SUPABASE_URL='https://oqkmesadspiibllyjwmj.supabase.co';
 const SUPABASE_KEY='sb_publishable_-xiQKeiUSPw7nOCWRHivsw_gZHrYqdu';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}});
-let currentUser=null, currentRole=null, currentOrganizationId=null, isPlatformAdmin=false, cloudSaveTimer=null, cloudBusy=false;
+let currentUser=null, currentRole=null, currentOrganizationId=null, currentOrganizationIsInternal=false, isPlatformAdmin=false, cloudSaveTimer=null, cloudBusy=false;
 const $=id=>document.getElementById(id);let KEY='wasla_mvp_02';
 const blank={clients:[],projects:[],contents:[],finance:[]};
 // Do not load shared pre-login cache. Tenant data is loaded only after an active organization membership is resolved.
@@ -696,7 +696,7 @@ function resetWorkspaceNavigation(){
  const pageTitle=$('pageTitle');if(pageTitle)pageTitle.textContent='لوحة التحكم';
 }
 function clearTenantState(){
- currentUser=null;currentRole=null;currentOrganizationId=null;isPlatformAdmin=false;
+ currentUser=null;currentRole=null;currentOrganizationId=null;currentOrganizationIsInternal=false;isPlatformAdmin=false;
  syncPlatformAdminVisibility();resetWorkspaceNavigation();
  KEY='wasla_mvp_02';data=JSON.parse(JSON.stringify(blank));
 }
@@ -728,7 +728,8 @@ async function enterWorkspace(session){
   const membership=preferredMembership||((memberships||[]).length===1?(memberships||[])[0]:null);
   if(membershipError||!membership?.organization_id){await sb.auth.signOut();currentUser=null;currentRole=null;currentOrganizationId=null;$('authScreen').style.display='grid';$('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='none';showAuthView('login',(memberships||[]).length>1?'لديك أكثر من عضوية، لكن لم يتم تحديد المؤسسة الافتراضية. تواصل مع مسؤول المنصة.':'لا توجد عضوية مؤسسة نشطة لهذا الحساب. تواصل مع مسؤول المؤسسة.');return;}
   currentUser=session.user;currentRole=membership.role;currentOrganizationId=membership.organization_id;KEY='wasla_mvp_02:'+currentOrganizationId;try{data=JSON.parse(localStorage.getItem(KEY))||JSON.parse(JSON.stringify(blank));}catch(e){data=JSON.parse(JSON.stringify(blank));}
-  const {data:organizationInfo}=await sb.from('organizations').select('name').eq('id',currentOrganizationId).maybeSingle();
+  const {data:organizationInfo}=await sb.from('organizations').select('name,is_internal').eq('id',currentOrganizationId).maybeSingle();
+  currentOrganizationIsInternal=organizationInfo?.is_internal===true;
   const organizationName=organizationInfo?.name||'مساحة المؤسسة';
   const organizationWelcomeName=$('organizationWelcomeName');if(organizationWelcomeName)organizationWelcomeName.textContent=organizationName;
   const organizationBrandName=$('organizationBrandName');if(organizationBrandName)organizationBrandName.textContent=organizationName;
@@ -1353,6 +1354,7 @@ function renderPlatformSubscriptions(){
  const statuses=[['pending','بانتظار التفعيل'],['trialing','فترة تجريبية'],['active','نشط'],['past_due','متأخر'],['cancelled','ملغي'],['expired','منتهي']];
  el.innerHTML=platformOrganizations.length?'<table><thead><tr><th>المؤسسة</th><th>الباقة</th><th>الحالة</th><th>ينتهي في</th><th>الاشتراك الحالي</th><th>إجراء</th></tr></thead><tbody>'+platformOrganizations.map(org=>{
   const sub=platformSubscriptions.find(x=>x.organization_id===org.id),selectedPlan=sub?.plan_id||'',date=sub?.current_period_end?new Date(sub.current_period_end).toISOString().slice(0,10):'';
+  if(org.is_internal)return '<tr><td><b>'+esc(org.name)+'</b><div class="muted tiny" dir="ltr">'+esc(org.slug)+'</div></td><td colspan="4"><span class="pill green">مؤسسة داخلية مجانية — معفاة من الاشتراك</span></td><td><span class="muted tiny">لا يلزم إجراء</span></td></tr>';
   const opts=platformPlans.filter(p=>p.is_active||p.id===selectedPlan).map(p=>'<option value="'+esc(p.id)+'" '+(p.id===selectedPlan?'selected':'')+'>'+esc(p.name)+' · '+planPriceLabel(p)+'</option>').join('');
   return '<tr><td><b>'+esc(org.name)+'</b><div class="muted tiny" dir="ltr">'+esc(org.slug)+'</div></td><td><select id="subscriptionPlan-'+org.id+'" style="min-width:150px"><option value="">اختر باقة</option>'+opts+'</select></td><td><select id="subscriptionStatus-'+org.id+'">'+statuses.map(x=>'<option value="'+x[0]+'" '+((sub?.status||'trialing')===x[0]?'selected':'')+'>'+x[1]+'</option>').join('')+'</select></td><td><input id="subscriptionEnd-'+org.id+'" type="date" value="'+date+'"></td><td>'+(sub?'<span class="pill '+(sub.status==='active'?'green':'amber')+'">'+esc(sub.status)+'</span>':'<span class="muted tiny">لا يوجد اشتراك</span>')+'</td><td><button class="btn lime sm" onclick="saveOrganizationSubscription(\''+org.id+'\')">حفظ</button></td></tr>';
  }).join('')+'</tbody></table>':'<div class="empty">لا توجد مؤسسات لربط اشتراكات بها.</div>';
@@ -1361,7 +1363,7 @@ async function loadPlatformAdmin(){
  if(!isPlatformAdmin)return;
  const tableEl=$('platformOrganizationsTable');if(tableEl)tableEl.innerHTML='<div class="empty">جارٍ تحميل المؤسسات…</div>';
  const [{data:orgs,error:orgError},{data:subs,error:subsError},{data:plans,error:plansError}]=await Promise.all([
-  sb.from('organizations').select('id,name,slug,status,created_at').order('created_at',{ascending:false}),
+  sb.from('organizations').select('id,name,slug,status,is_internal,created_at').order('created_at',{ascending:false}),
   sb.from('organization_subscriptions').select('id,organization_id,plan_id,status,current_period_start,current_period_end,cancel_at_period_end'),
   sb.from('subscription_plans').select('id,name,billing_interval,price_minor,currency,employee_limit,client_limit,project_limit,is_active,description,trial_days,sort_order').order('sort_order').order('name')
  ]);
@@ -1374,7 +1376,7 @@ async function loadPlatformAdmin(){
  $('platformActiveCount').textContent=platformOrganizations.filter(x=>x.status==='active').length;
  $('platformManagerCount').textContent=membersError?'—':(members||[]).filter(x=>x.status==='active'&&x.role==='admin').length;
  $('platformSubscriptionCount').textContent=platformSubscriptions.length;
- if(tableEl)tableEl.innerHTML=platformOrganizations.length?'<table><thead><tr><th>المؤسسة</th><th>المعرّف</th><th>الحالة</th><th>تاريخ الإنشاء</th></tr></thead><tbody>'+platformOrganizations.map(o=>'<tr><td>'+esc(o.name)+'</td><td dir="ltr">'+esc(o.slug)+'</td><td><span class="pill '+(o.status==='active'?'green':'amber')+'">'+esc(o.status)+'</span></td><td>'+new Date(o.created_at).toLocaleDateString('ar-EG')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">لا توجد مؤسسات مسجلة.</div>';
+ if(tableEl)tableEl.innerHTML=platformOrganizations.length?'<table><thead><tr><th>المؤسسة</th><th>المعرّف</th><th>الحالة</th><th>تاريخ الإنشاء</th></tr></thead><tbody>'+platformOrganizations.map(o=>'<tr><td>'+esc(o.name)+(o.is_internal?' <span class="pill green">داخلي مجاني</span>':'')+'</td><td dir="ltr">'+esc(o.slug)+'</td><td><span class="pill '+(o.status==='active'?'green':'amber')+'">'+esc(o.status)+'</span></td><td>'+new Date(o.created_at).toLocaleDateString('ar-EG')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">لا توجد مؤسسات مسجلة.</div>';
  renderPlatformPlans();renderPlatformSubscriptions();await loadPlatformPaymentRequests();await loadPlatformFinancials();loadPlatformInvitations();
 }
 async function createSubscriptionPlan(){
@@ -1400,6 +1402,7 @@ async function toggleSubscriptionPlan(id,active){
 }
 async function saveOrganizationSubscription(orgId){
  if(!isPlatformAdmin)return;
+ if(platformOrganizations.find(x=>x.id===orgId)?.is_internal){alert('هذه مؤسسة داخلية مجانية ولا تحتاج إلى اشتراك مدفوع.');return;}
  const planId=$('subscriptionPlan-'+orgId).value,status=$('subscriptionStatus-'+orgId).value,endInput=$('subscriptionEnd-'+orgId).value;
  if(!planId){alert('اختر باقة أولاً.');return}
  const plan=platformPlans.find(p=>p.id===planId);if(!plan){alert('الباقة المحددة غير موجودة.');return}
@@ -1496,6 +1499,16 @@ function renderManagerSubscription(){
  const visible=(currentRole==='admin'||currentRole==='owner')&&!!currentOrganizationId;
  card.style.display=visible?'block':'none';if(!visible)return;
  const sub=managerSubscriptionRecord,plan=sub?.plan||null;
+  const paymentPanel=$('managerPaymentPanel');
+  if(currentOrganizationIsInternal){
+   $('managerSubscriptionStatus').textContent='داخلي مجاني';$('managerSubscriptionStatus').className='pill green';
+   $('managerPlanName').textContent='WASLA STUDIO — مؤسسة داخلية';$('managerPlanPeriod').textContent='استخدام داخلي مجاني دون تجديد';$('managerPlanEnd').textContent='لا ينتهي';
+   [['managerEmployeesUsage',managerEmployeeUsage],['managerClientsUsage',(data.clients||[]).length],['managerProjectsUsage',(data.projects||[]).length]].forEach(([id,n])=>{$(id).textContent=String(n)+' / غير محدود'});
+   ['managerEmployeesBar','managerClientsBar','managerProjectsBar'].forEach(id=>{$(id).style.width='0%'});
+   $('managerSubscriptionNote').textContent='هذه مساحة WASLA STUDIO الداخلية. مجانية بالكامل ومعفاة من الباقات وحدود الاستخدام ورسوم التجديد.';
+   const chooser=$('managerSubscriptionChooser');if(chooser)chooser.style.display='none';if(paymentPanel)paymentPanel.style.display='none';return;
+  }
+  if(paymentPanel)paymentPanel.style.display='block';
  const statusLabels={active:'نشط',trialing:'فترة تجريبية',pending:'بانتظار التفعيل',past_due:'متأخر السداد',cancelled:'ملغي',expired:'منتهي'};
  const status=$('managerSubscriptionStatus');
  status.textContent=sub?(statusLabels[sub.status]||sub.status):'لا يوجد اشتراك';
@@ -1583,6 +1596,7 @@ function renderManagerPaymentPanel(){
  }).join(''):'<div class="empty">لا توجد باقات متاحة حالياً.</div>';
 }
 function openSubscriptionPayment(planId){
+ if(currentOrganizationIsInternal)return alert('مساحة WASLA STUDIO الداخلية معفاة من الاشتراكات المدفوعة.');
  if(!(currentRole==='admin'||currentRole==='owner')||!currentOrganizationId)return;
  const p=managerSubscriptionPlans.find(x=>x.id===planId&&x.is_active);if(!p)return alert('الباقة غير متاحة.');
  const interval=p.billing_interval==='lifetime'?'مدى الحياة — دفعة واحدة':p.billing_interval==='yearly'?'سنوي':'شهري';
