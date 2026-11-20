@@ -470,6 +470,12 @@ footer{color:#8790a7}
  </div>
  <div class="note" id="managerSubscriptionNote">يتم تحميل بيانات الباقة والاستخدام.</div>
  <div id="managerSubscriptionChooser" style="display:none;margin-top:16px"></div>
+ <div id="managerPaymentPanel" style="margin-top:18px">
+  <div class="head"><div><h3 style="margin:0">تجديد أو ترقية الاشتراك</h3><p class="muted tiny">الدفع اليدوي الآمن عبر InstaPay</p></div></div>
+  <div id="managerPaymentPlans" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px"></div>
+  <div class="note" style="margin-top:12px">طلبات الدفع لا تفعّل الاشتراك تلقائياً. يراجع مالك المنصة التحويل ثم يعتمد الطلب.</div>
+  <div id="managerPaymentRequests" class="table-wrap" style="margin-top:12px"></div>
+ </div>
 </div>
 <div class="grid stats dashboard-stats">
 <div class="card stat-card"><div class="stat-top"><span class="stat-icon violet">♙</span><span class="stat-trend">إدارة العلاقات</span></div><div class="stat-label">إجمالي العملاء</div><div class="stat-value" id="sClients">0</div><div class="stat-foot">كل العملاء المسجلين</div></div>
@@ -572,6 +578,7 @@ footer{color:#8790a7}
      <p class="muted tiny" style="line-height:1.8">اختر باقة وحالة الاشتراك وتاريخ الانتهاء لكل مؤسسة. لا يتم تفعيل اشتراك تلقائي للمؤسسات الحالية دون قرار من مالك المنصة.</p>
      <div class="table-wrap" id="platformSubscriptionsTable"><div class="empty">جارٍ تحميل الاشتراكات…</div></div>
    </div>
+   <div class="card" style="margin-bottom:16px"><div class="head"><h2>طلبات اشتراك InstaPay</h2><button class="btn soft sm" onclick="loadPlatformAdmin()">تحديث الطلبات</button></div><div class="table-wrap" id="platformPaymentRequestsTable"><div class="empty">جارٍ تحميل طلبات الدفع…</div></div></div>
    <div class="card"><div class="head"><h2>المؤسسات المسجلة</h2><button class="btn soft sm" onclick="loadPlatformAdmin()">تحديث القائمة</button></div><div class="table-wrap" id="platformOrganizationsTable"><div class="empty">جارٍ تحميل المؤسسات…</div></div></div>
 </section>
 <footer><span id="organizationFooterName">مساحة المؤسسة</span> · Cloud Workspace · مزامنة Supabase</footer>
@@ -1305,7 +1312,7 @@ async function loadPlatformAdmin(){
  $('platformManagerCount').textContent=membersError?'—':(members||[]).filter(x=>x.status==='active'&&x.role==='admin').length;
  $('platformSubscriptionCount').textContent=platformSubscriptions.length;
  if(tableEl)tableEl.innerHTML=platformOrganizations.length?'<table><thead><tr><th>المؤسسة</th><th>المعرّف</th><th>الحالة</th><th>تاريخ الإنشاء</th></tr></thead><tbody>'+platformOrganizations.map(o=>'<tr><td>'+esc(o.name)+'</td><td dir="ltr">'+esc(o.slug)+'</td><td><span class="pill '+(o.status==='active'?'green':'amber')+'">'+esc(o.status)+'</span></td><td>'+new Date(o.created_at).toLocaleDateString('ar-EG')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">لا توجد مؤسسات مسجلة.</div>';
- renderPlatformPlans();renderPlatformSubscriptions();loadPlatformInvitations();
+ renderPlatformPlans();renderPlatformSubscriptions();await loadPlatformPaymentRequests();loadPlatformInvitations();
 }
 async function createSubscriptionPlan(){
  if(!isPlatformAdmin)return;
@@ -1418,7 +1425,7 @@ function openEmployeeReports(){go('employeePortal');requestAnimationFrame(()=>{$
 function openClientComments(){go('clientManagement');requestAnimationFrame(()=>{$('adminPortalDetails')?.scrollIntoView({behavior:'smooth',block:'center'});});}
 function table(headers,rows){return rows.length?'<table><thead><tr>'+headers.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>':'<div class="empty">لا توجد سجلات بعد. أضف أول سجل للبدء.</div>'}
 
-let managerSubscriptionRecord=null,managerEmployeeUsage=0,managerSubscriptionPlans=[],managerTrialStarting=false;
+let managerSubscriptionRecord=null,managerEmployeeUsage=0,managerSubscriptionPlans=[],managerTrialStarting=false,platformPaymentRequests=[];
 function managerLimitLabel(used,limit){return limit===null||limit===undefined?'غير محدود':String(used)+' / '+String(limit)}
 function managerUsagePercent(used,limit){if(limit===null||limit===undefined)return 0;const n=Number(limit);return n<=0?(used>0?100:0):Math.min(100,Math.max(0,(Number(used)/n)*100))}
 function renderManagerSubscription(){
@@ -1441,7 +1448,7 @@ function renderManagerSubscription(){
  values.forEach(([labelId,barId,used,limit])=>{$(labelId).textContent=managerLimitLabel(used,limit);$(barId).style.width=managerUsagePercent(used,limit)+'%'});
  const note=$('managerSubscriptionNote'),chooser=$('managerSubscriptionChooser');
  if(!sub){
-  note.textContent='لا يوجد اشتراك مرتبط بهذه المؤسسة. اختر إحدى الباقات وابدأ تجربتك المجانية لمدة 30 يوماً. لا يلزم إدخال وسيلة دفع لبدء التجربة.';
+  note.textContent='لا يوجد اشتراك مرتبط بهذه المؤسسة. يمكنك بدء التجربة المجانية إن كانت متاحة، أو اختيار باقة مدفوعة وإرسال إيصال التحويل للمراجعة.';
   if(chooser){chooser.style.display='block';renderManagerTrialOptions()}
  }
  else{
@@ -1454,7 +1461,7 @@ function renderManagerSubscription(){
 }
 function renderManagerTrialOptions(){
  const el=$('managerSubscriptionChooser');if(!el)return;
- const monthly=managerSubscriptionPlans.filter(p=>p.billing_interval==='monthly'&&p.is_active);
+ const monthly=managerSubscriptionPlans.filter(p=>p.billing_interval==='monthly'&&p.is_active&&Number(p.trial_days)===30);
  if(!monthly.length){el.innerHTML='<div class="empty">لا توجد باقات تجريبية متاحة حالياً. يرجى التواصل مع إدارة المنصة.</div>';return}
  const cards=monthly.map(p=>{
   const yearly=managerSubscriptionPlans.find(x=>x.id===p.id+'_yearly'&&x.is_active);
@@ -1489,14 +1496,107 @@ async function loadManagerSubscription(){
   const [{data:sub,error:subError},{count:employeeCount,error:employeeError},{data:plans,error:plansError}]=await Promise.all([
    sb.from('organization_subscriptions').select('id,status,current_period_start,current_period_end,cancel_at_period_end,plan:subscription_plans(id,name,billing_interval,employee_limit,client_limit,project_limit)').eq('organization_id',currentOrganizationId).maybeSingle(),
    sb.from('profiles').select('id',{count:'exact',head:true}).eq('organization_id',currentOrganizationId).eq('role','employee'),
-   sb.from('subscription_plans').select('id,name,billing_interval,price_minor,currency,employee_limit,client_limit,project_limit,is_active,trial_days,sort_order').eq('is_active',true).eq('trial_days',30).in('billing_interval',['monthly','yearly']).order('sort_order').order('name')
+   sb.from('subscription_plans').select('id,name,billing_interval,price_minor,currency,employee_limit,client_limit,project_limit,is_active,trial_days,sort_order').eq('is_active',true).order('sort_order').order('name')
   ]);
   if(subError)throw subError;if(employeeError)throw employeeError;if(plansError)throw plansError;
-  managerSubscriptionRecord=sub||null;managerEmployeeUsage=Number(employeeCount||0);managerSubscriptionPlans=plans||[];renderManagerSubscription();
+  managerSubscriptionRecord=sub||null;managerEmployeeUsage=Number(employeeCount||0);managerSubscriptionPlans=plans||[];renderManagerSubscription();renderManagerPaymentPanel();await loadManagerPaymentRequests();
  }catch(e){
   console.error('Manager subscription panel:',e);
   const note=$('managerSubscriptionNote');if(note)note.textContent='تعذر تحميل ملخص الاشتراك الآن. استخدم «مزامنة الآن» أو أعد فتح الصفحة.';
  }
+}
+
+
+function waslaPlanAmount(p){
+ const n=Number(p?.price_minor||0)/100;
+ return n.toLocaleString('ar-EG',{maximumFractionDigits:2})+' ج.م';
+}
+function renderManagerPaymentPanel(){
+ const el=$('managerPaymentPlans');if(!el)return;
+ const plans=managerSubscriptionPlans.filter(p=>p.is_active);
+ el.innerHTML=plans.length?plans.map(p=>{
+  const interval=p.billing_interval==='lifetime'?'دفعة واحدة مدى الحياة':p.billing_interval==='yearly'?'سنوي':'شهري';
+  return '<div class="card" style="padding:14px"><div class="eyebrow">WASLA PLAN</div><b>'+esc(p.name)+'</b><div class="stat-value" style="font-size:22px;margin:7px 0">'+waslaPlanAmount(p)+'</div><div class="muted tiny">'+interval+'</div><button class="btn lime sm" style="width:100%;margin-top:12px" onclick="openSubscriptionPayment(\''+esc(p.id)+'\')">اشترك الآن</button></div>';
+ }).join(''):'<div class="empty">لا توجد باقات متاحة حالياً.</div>';
+}
+function openSubscriptionPayment(planId){
+ if(!(currentRole==='admin'||currentRole==='owner')||!currentOrganizationId)return;
+ const p=managerSubscriptionPlans.find(x=>x.id===planId&&x.is_active);if(!p)return alert('الباقة غير متاحة.');
+ const interval=p.billing_interval==='lifetime'?'مدى الحياة — دفعة واحدة':p.billing_interval==='yearly'?'سنوي':'شهري';
+ const body='<div class="note">الباقة: <b>'+esc(p.name)+'</b> · '+interval+'<br>المبلغ المطلوب: <b>'+waslaPlanAmount(p)+'</b></div>'+
+ '<div class="card" style="padding:16px;margin:12px 0;text-align:center"><div class="muted tiny">حوّل المبلغ إلى رقم InstaPay التالي</div><div dir="ltr" style="font-size:25px;font-weight:800;letter-spacing:1px;margin:8px 0">01012517123</div><button type="button" class="btn soft sm" onclick="GenUIcopyInstaPay()">نسخ الرقم</button></div>'+
+ '<div class="field"><label>رقم العملية / مرجع التحويل (إن وجد)</label><input id="paymentTransferReference" maxlength="120" placeholder="اكتب رقم العملية"></div>'+
+ '<div class="field"><label>إيصال التحويل (صورة أو PDF — حتى 10MB)</label><input id="paymentReceiptFile" type="file" accept="image/jpeg,image/png,image/webp,application/pdf"></div>'+
+ '<p class="muted tiny">بعد إرسال الطلب سيظهر «قيد المراجعة». لن يتغير اشتراكك إلا بعد أن يتحقق مالك المنصة من وصول المبلغ ويعتمد الطلب.</p>';
+ openModal('الدفع والاشتراك عبر InstaPay',body,()=>submitSubscriptionPayment(planId));
+ $('saveBtn').textContent='إرسال طلب الاشتراك';
+}
+function GenUIcopyInstaPay(){
+ const value='01012517123';
+ if(navigator.clipboard?.writeText)navigator.clipboard.writeText(value).then(()=>alert('تم نسخ رقم InstaPay')).catch(()=>alert('انسخ الرقم يدوياً: '+value));
+ else alert('رقم InstaPay: '+value);
+}
+async function submitSubscriptionPayment(planId){
+ const p=managerSubscriptionPlans.find(x=>x.id===planId&&x.is_active),file=$('paymentReceiptFile')?.files?.[0];
+ if(!p)return alert('الباقة لم تعد متاحة.');
+ if(!file)return alert('اختر صورة أو ملف PDF للإيصال.');
+ const allowed=['image/jpeg','image/png','image/webp','application/pdf'];
+ if(!allowed.includes(file.type)||file.size>10*1024*1024)return alert('نوع الملف غير مدعوم أو يتجاوز 10MB.');
+ const requestId=crypto.randomUUID(),safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(-90)||'receipt';
+ const receiptPath=currentOrganizationId+'/'+requestId+'/'+safeName;
+ $('saveBtn').disabled=true;$('saveBtn').textContent='جارٍ إرسال الطلب…';
+ try{
+  const {error:uploadError}=await sb.storage.from('subscription-receipts').upload(receiptPath,file,{contentType:file.type,upsert:false});
+  if(uploadError)throw uploadError;
+  const {error:insertError}=await sb.from('subscription_payment_requests').insert({
+   id:requestId,organization_id:currentOrganizationId,submitted_by:currentUser.id,plan_id:p.id,
+   amount_minor:p.price_minor,currency:'EGP',
+   transfer_reference:$('paymentTransferReference')?.value.trim()||null,receipt_path:receiptPath,status:'pending'
+  });
+  if(insertError){await sb.storage.from('subscription-receipts').remove([receiptPath]);throw insertError;}
+  closeModal();await loadManagerPaymentRequests();alert('تم إرسال طلب الاشتراك بنجاح. سيبقى قيد المراجعة حتى التحقق من التحويل.');
+ }catch(e){alert('تعذر إرسال الطلب: '+(e.message||'خطأ غير معروف'))}
+ finally{$('saveBtn').disabled=false;$('saveBtn').textContent='حفظ'}
+}
+async function loadManagerPaymentRequests(){
+ const el=$('managerPaymentRequests');if(!el||!currentOrganizationId)return;
+ const {data,error}=await sb.from('subscription_payment_requests').select('id,plan_id,amount_minor,status,submitted_at,review_note').eq('organization_id',currentOrganizationId).order('submitted_at',{ascending:false}).limit(8);
+ if(error){el.innerHTML='<div class="empty">تعذر تحميل طلبات الدفع: '+esc(error.message)+'</div>';return}
+ const labels={pending:'قيد المراجعة',approved:'تم الاعتماد',rejected:'مرفوض'};
+ el.innerHTML=data?.length?'<h4>طلبات الدفع السابقة</h4><table><thead><tr><th>الباقة</th><th>المبلغ</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>'+data.map(x=>'<tr><td>'+esc(managerSubscriptionPlans.find(p=>p.id===x.plan_id)?.name||x.plan_id)+'</td><td>'+((Number(x.amount_minor)/100).toLocaleString('ar-EG'))+' ج.م</td><td><span class="pill '+(x.status==='approved'?'green':x.status==='rejected'?'':'amber')+'">'+(labels[x.status]||x.status)+'</span>'+(x.review_note?'<div class="muted tiny">'+esc(x.review_note)+'</div>':'')+'</td><td>'+new Date(x.submitted_at).toLocaleDateString('ar-EG')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">لا توجد طلبات دفع حتى الآن.</div>';
+}
+async function loadPlatformPaymentRequests(){
+ const el=$('platformPaymentRequestsTable');if(!el)return;
+ el.innerHTML='<div class="empty">جارٍ تحميل طلبات الدفع…</div>';
+ const {data,error}=await sb.from('subscription_payment_requests').select('id,organization_id,submitted_by,plan_id,amount_minor,transfer_reference,receipt_path,status,submitted_at').order('submitted_at',{ascending:false}).limit(100);
+ if(error){el.innerHTML='<div class="empty">تعذر تحميل الطلبات: '+esc(error.message)+'</div>';return}
+ platformPaymentRequests=data||[];
+ const labels={pending:'قيد المراجعة',approved:'معتمد',rejected:'مرفوض'};
+ el.innerHTML=platformPaymentRequests.length?'<table><thead><tr><th>المؤسسة</th><th>الباقة</th><th>المبلغ</th><th>مرجع التحويل</th><th>الإيصال</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody>'+platformPaymentRequests.map(x=>{
+  const org=platformOrganizations.find(o=>o.id===x.organization_id),plan=platformPlans.find(p=>p.id===x.plan_id);
+  const actions=x.status==='pending'?'<button class="btn lime sm" onclick="reviewSubscriptionPayment(\''+x.id+'\',\'approved\')">اعتماد وتفعيل</button> <button class="btn danger sm" onclick="reviewSubscriptionPayment(\''+x.id+'\',\'rejected\')">رفض</button>':'—';
+  return '<tr><td>'+esc(org?.name||x.organization_id)+'</td><td>'+esc(plan?.name||x.plan_id)+'</td><td>'+(Number(x.amount_minor)/100).toLocaleString('ar-EG')+' ج.م</td><td dir="ltr">'+esc(x.transfer_reference||'—')+'</td><td><button class="btn soft sm" onclick="viewSubscriptionReceipt(\''+esc(x.receipt_path)+'\')">عرض الإيصال</button></td><td><span class="pill '+(x.status==='approved'?'green':x.status==='pending'?'amber':'')+'">'+(labels[x.status]||x.status)+'</span></td><td>'+actions+'</td></tr>';
+ }).join('')+'</tbody></table>':'<div class="empty">لا توجد طلبات اشتراك حتى الآن.</div>';
+}
+async function viewSubscriptionReceipt(path){
+ const {data,error}=await sb.storage.from('subscription-receipts').createSignedUrl(path,300);
+ if(error)return alert('تعذر فتح الإيصال: '+error.message);
+ let overlay=document.getElementById('subscriptionReceiptViewer');if(overlay)overlay.remove();
+ overlay=document.createElement('div');overlay.id='subscriptionReceiptViewer';
+ overlay.style.cssText='position:fixed;inset:0;z-index:10050;background:rgba(10,15,25,.88);display:flex;flex-direction:column;padding:18px;gap:12px';
+ overlay.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;color:white"><b>إيصال التحويل — رابط مؤقت 5 دقائق</b><button class="btn lime" type="button">إغلاق</button></div><iframe title="إيصال التحويل" style="background:white;border:0;border-radius:12px;flex:1;width:100%" referrerpolicy="no-referrer"></iframe>';
+ overlay.querySelector('iframe').src=data.signedUrl;overlay.querySelector('button').onclick=()=>overlay.remove();document.body.appendChild(overlay);
+}
+async function reviewSubscriptionPayment(id,status){
+ if(!isPlatformAdmin||!['approved','rejected'].includes(status))return;
+ const row=platformPaymentRequests.find(x=>x.id===id);if(!row||row.status!=='pending')return alert('هذا الطلب تمت مراجعته بالفعل.');
+ if(status==='approved'&&!confirm('هل تحققت بنفسك من وصول المبلغ إلى حساب InstaPay وتطابقه مع الباقة؟ سيؤدي الاعتماد إلى تفعيل الاشتراك فوراً.'))return;
+ const note=status==='rejected'?(prompt('سبب الرفض (اختياري):')||null):null;
+ const {data,error}=await sb.from('subscription_payment_requests').update({status,review_note:note}).eq('id',id).eq('status','pending').select('id').maybeSingle();
+ if(error)return alert('تعذر مراجعة الطلب: '+error.message);
+ if(!data)return alert('لم يتم تغيير الطلب؛ ربما تمت مراجعته من مسؤول آخر.');
+ await loadPlatformAdmin();
+ alert(status==='approved'?'تم اعتماد التحويل وتفعيل الاشتراك.':'تم رفض طلب الاشتراك.');
 }
 
 function renderDashboardExtras(){
