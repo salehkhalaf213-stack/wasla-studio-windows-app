@@ -11,7 +11,7 @@ const checks = [
   ['Cloudflare Turnstile site key and widgets', html.includes('const TURNSTILE_SITE_KEY=') && html.includes('id="loginCaptcha"') && html.includes('id="signupCaptcha"') && html.includes('id="recoveryCaptcha"')],
   ['Supabase Auth CAPTCHA token wiring', html.includes('options:{captchaToken}') && html.includes('captchaToken}') && html.includes('resetPasswordForEmail(email,{redirectTo,captchaToken})')],
   ['New account signup form', html.includes('id="signupForm"') && html.includes("sb.auth.signUp(")],
-  ['Client and employee account selection', html.includes('value="user">عميل') && html.includes('value="employee">موظف')],
+  ['Tenant-specific client signup form', html.includes('id="signupPhone"') && html.includes('client_registration_token') && html.includes('clientRegistrationToken')],
   ['Admin approval queue', html.includes('pendingSignupTable') && html.includes("sb.rpc('approve_signup'")],
   ['Pending account access gate', html.includes("profile?.approval_status==='pending'") ]];
 for (const [label, ok] of checks) console.log(`${ok ? 'OK' : 'MISSING'}  ${label}`);
