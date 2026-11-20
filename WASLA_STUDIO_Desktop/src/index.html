@@ -998,6 +998,19 @@ async function openNotificationTarget(type,id,notificationId){
 // Manager tools: employee performance, assignment management, and update notifications.
 let adminEmployees=[], adminAssignments=[], adminUpdates=[], adminAttachments=[], adminNotificationTimer=null, unifiedNotificationsTimer=null;
 const ADMIN_SEEN_KEY='wasla_admin_seen_updates_v1';
+let unifiedNotifications=[], unifiedNotificationsBusy=false;
+const NOTIFICATION_POLL_MS=20000;
+function notificationDate(value){
+  const date=new Date(value);
+  return Number.isNaN(date.getTime())?'':date.toLocaleString('ar-EG',{dateStyle:'medium',timeStyle:'short'});
+}
+function updateNotificationBadges(){
+  const unread=unifiedNotifications.filter(item=>!item.is_read).length;
+  ['adminNotificationCount','employeeNotificationCount','clientNotificationCount'].forEach(id=>{
+    const el=$(id);if(el)el.textContent=String(unread);
+  });
+}
+
 // Employee portal marker: employeePortal
 // Performance and notification handlers: loadAdminEmployees, pollAdminNotifications
 function isAdminRole(){return currentRole==='owner'||currentRole==='admin'}
