@@ -586,7 +586,7 @@ footer{color:#8790a7}
   </div>
   <div class="card" style="margin-bottom:16px">
     <div class="head"><div><h2>سجل المدفوعات والتجديدات والترقيات</h2><p class="muted tiny">كل طلبات InstaPay المسجلة مع قرار المراجعة وتاريخها.</p></div><button class="btn soft sm" onclick="loadPlatformPaymentRequests()">تحديث السجل</button></div>
-    <div class="finance-filter"><input id="financePaymentSearch" type="search" placeholder="ابحث باسم المؤسسة أو رقم العملية" oninput="renderPlatformPaymentHistory()"><select id="financePaymentStatus" onchange="renderPlatformPaymentHistory()"><option value="">كل الحالات</option><option value="approved">معتمد</option><option value="pending">قيد المراجعة</option><option value="rejected">مرفوض</option></select></div>
+    <div class="finance-filter"><input id="financePaymentSearch" type="search" placeholder="ابحث في هذه الصفحة: المؤسسة أو رقم العملية" oninput="renderPlatformPaymentHistory()"><select id="financePaymentStatus" onchange="renderPlatformPaymentHistory()"><option value="">كل الحالات</option><option value="approved">معتمد</option><option value="pending">قيد المراجعة</option><option value="rejected">مرفوض</option></select></div>
     <div class="table-wrap" id="platformFinancialPaymentsTable"><div class="empty">جارٍ تحميل سجل المدفوعات…</div></div>
   </div>
   <div class="finance-section-grid">
@@ -1488,7 +1488,7 @@ function openEmployeeReports(){go('employeePortal');requestAnimationFrame(()=>{$
 function openClientComments(){go('clientManagement');requestAnimationFrame(()=>{$('adminPortalDetails')?.scrollIntoView({behavior:'smooth',block:'center'});});}
 function table(headers,rows){return rows.length?'<table><thead><tr>'+headers.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>':'<div class="empty">لا توجد سجلات بعد. أضف أول سجل للبدء.</div>'}
 
-let managerSubscriptionRecord=null,managerEmployeeUsage=0,managerSubscriptionPlans=[],managerTrialStarting=false,platformPaymentRequests=[];
+let managerSubscriptionRecord=null,managerEmployeeUsage=0,managerSubscriptionPlans=[],managerTrialStarting=false,platformPaymentRequests=[],platformPaymentRequestsTotal=0,platformPaymentRequestsPage=0;
 function managerLimitLabel(used,limit){return limit===null||limit===undefined?'غير محدود':String(used)+' / '+String(limit)}
 function managerUsagePercent(used,limit){if(limit===null||limit===undefined)return 0;const n=Number(limit);return n<=0?(used>0?100:0):Math.min(100,Math.max(0,(Number(used)/n)*100))}
 function renderManagerSubscription(){
@@ -1628,12 +1628,13 @@ async function loadManagerPaymentRequests(){
  const labels={pending:'قيد المراجعة',approved:'تم الاعتماد',rejected:'مرفوض'};
  el.innerHTML=data?.length?'<h4>طلبات الدفع السابقة</h4><table><thead><tr><th>الباقة</th><th>المبلغ</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>'+data.map(x=>'<tr><td>'+esc(managerSubscriptionPlans.find(p=>p.id===x.plan_id)?.name||x.plan_id)+'</td><td>'+((Number(x.amount_minor)/100).toLocaleString('ar-EG'))+' ج.م</td><td><span class="pill '+(x.status==='approved'?'green':x.status==='rejected'?'':'amber')+'">'+(labels[x.status]||x.status)+'</span>'+(x.review_note?'<div class="muted tiny">'+esc(x.review_note)+'</div>':'')+'</td><td>'+new Date(x.submitted_at).toLocaleDateString('ar-EG')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">لا توجد طلبات دفع حتى الآن.</div>';
 }
-async function loadPlatformPaymentRequests(){
+async function loadPlatformPaymentRequests(page=0){
  const el=$('platformPaymentRequestsTable');if(!el)return;
+ platformPaymentRequestsPage=Math.max(0,Number(page)||0);
  el.innerHTML='<div class="empty">جارٍ تحميل طلبات الدفع…</div>';
- const {data,error}=await sb.from('subscription_payment_requests').select('id,organization_id,submitted_by,plan_id,amount_minor,currency,transfer_reference,receipt_path,status,submitted_at,reviewed_at,reviewed_by,review_note').order('submitted_at',{ascending:false}).limit(500);
+ const {data,error,count}=await sb.from('subscription_payment_requests').select('id,organization_id,submitted_by,plan_id,amount_minor,currency,transfer_reference,receipt_path,status,submitted_at,reviewed_at,reviewed_by,review_note',{count:'exact'}).order('submitted_at',{ascending:false}).range(platformPaymentRequestsPage*50,platformPaymentRequestsPage*50+49);
  if(error){el.innerHTML='<div class="empty">تعذر تحميل الطلبات: '+esc(error.message)+'</div>';return}
- platformPaymentRequests=data||[];
+ platformPaymentRequests=data||[];platformPaymentRequestsTotal=Number(count||0);
  renderPlatformFinancialDashboard();renderPlatformPaymentHistory();
  const labels={pending:'قيد المراجعة',approved:'معتمد',rejected:'مرفوض'};
  el.innerHTML=platformPaymentRequests.length?'<table><thead><tr><th>المؤسسة</th><th>الباقة</th><th>المبلغ</th><th>مرجع التحويل</th><th>الإيصال</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody>'+platformPaymentRequests.map(x=>{
@@ -1692,13 +1693,16 @@ function renderPlatformPaymentHistory(){
   return (!query||hay.includes(query))&&(!status||x.status===status);
  });
  const labels={pending:'قيد المراجعة',approved:'معتمد',rejected:'مرفوض'};
- el.innerHTML=rows.length?'<table><thead><tr><th>المؤسسة</th><th>الباقة</th><th>المبلغ</th><th>مرجع التحويل</th><th>الحالة</th><th>تاريخ الطلب</th><th>قرار المراجعة</th><th>المراجع</th><th>الإيصال</th></tr></thead><tbody>'+rows.map(x=>{
+ const totalPages=Math.max(1,Math.ceil(platformPaymentRequestsTotal/50));
+ const first=platformPaymentRequestsTotal?platformPaymentRequestsPage*50+1:0,last=Math.min((platformPaymentRequestsPage+1)*50,platformPaymentRequestsTotal);
+ const table=rows.length?'<table><thead><tr><th>المؤسسة</th><th>الباقة</th><th>المبلغ</th><th>مرجع التحويل</th><th>الحالة</th><th>تاريخ الطلب</th><th>قرار المراجعة</th><th>المراجع</th><th>الإيصال</th></tr></thead><tbody>'+rows.map(x=>{
   const org=platformOrganizations.find(o=>o.id===x.organization_id);
   const reviewed=x.reviewed_at?new Date(x.reviewed_at).toLocaleString('ar-EG'):'—';
   const reviewer=x.reviewed_by?esc(String(x.reviewed_by).slice(0,8)):'—';
   const state=x.status==='approved'?'approved':x.status==='rejected'?'rejected':'pending';
   return '<tr><td>'+esc(org?.name||x.organization_id)+'</td><td>'+esc(platformPlanName(x.plan_id))+'</td><td>'+platformMoneyMinor(x.amount_minor)+'</td><td dir="ltr">'+esc(x.transfer_reference||'—')+'</td><td><span class="finance-status '+state+'">'+(labels[x.status]||esc(x.status))+'</span>'+(x.review_note?'<div class="muted tiny">'+esc(x.review_note)+'</div>':'')+'</td><td>'+new Date(x.submitted_at).toLocaleDateString('ar-EG')+'</td><td>'+reviewed+'</td><td dir="ltr">'+reviewer+'</td><td><button class="btn soft sm" onclick="viewSubscriptionReceipt(\''+esc(x.receipt_path)+'\')">عرض</button></td></tr>';
- }).join('')+'</tbody></table>':'<div class="empty">لا توجد مدفوعات تطابق البحث.</div>';
+ }).join('')+'</tbody></table>':'<div class="empty">لا توجد مدفوعات تطابق البحث في هذه الصفحة.</div>';
+ el.innerHTML=table+'<div class="actions" style="justify-content:space-between;align-items:center;margin-top:12px"><span class="muted tiny">عرض '+first+'–'+last+' من '+platformPaymentRequestsTotal+' طلب</span><div class="actions"><button class="btn soft sm" '+(platformPaymentRequestsPage<=0?'disabled':'')+' onclick="loadPlatformPaymentRequests('+(platformPaymentRequestsPage-1)+')">السابق</button><span class="muted tiny" style="padding:8px">صفحة '+(platformPaymentRequestsPage+1)+' / '+totalPages+'</span><button class="btn soft sm" '+(platformPaymentRequestsPage+1>=totalPages?'disabled':'')+' onclick="loadPlatformPaymentRequests('+(platformPaymentRequestsPage+1)+')">التالي</button></div></div>';
 }
 function renderPlatformAuditTable(){
  const el=$('platformSubscriptionAuditTable');if(!el)return;
