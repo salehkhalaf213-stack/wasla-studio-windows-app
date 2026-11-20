@@ -866,7 +866,7 @@ async function loadClientPortal(){
  try{
   const {data:account,error:accountError}=await sb.from('client_accounts').select('legacy_client_id').eq('auth_user_id',currentUser.id).maybeSingle();
   if(accountError)throw accountError;if(!account)throw new Error('لا يوجد ربط لهذا الحساب بملف عميل. يرجى التواصل مع إدارة WASLA STUDIO.');
-  const {data:projects,error:projectsError}=await sb.from('client_projects').select('legacy_project_id,legacy_client_id,project_name,created_at').eq('legacy_client_id',account.legacy_client_id).order('created_at',{ascending:false});
+  const {data:projects,error:projectsError}=await sb.from('client_projects').select('legacy_project_id,legacy_client_id,project_name,created_at,is_visible_to_client').eq('legacy_client_id',account.legacy_client_id).eq('is_visible_to_client',true).order('created_at',{ascending:false});
   if(projectsError)throw projectsError;clientProjectRows=projects||[];$('clientProjectCount').textContent=clientProjectRows.length;$('clientLastUpdated').textContent='آخر تحديث: '+new Date().toLocaleString('ar-EG');
   box.innerHTML=clientProjectRows.length?clientProjectRows.map(project=>`<article class="client-project-card">
    <div class="client-project-cover" aria-hidden="true"><span class="cover-mark">W</span><svg viewBox="0 0 320 150" role="presentation"><path d="M25 125V73L112 22l87 51v52M112 22v103M199 73h91v52M214 73V46l38-22 38 22v27M214 125V94h76v31" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M0 126h320" stroke="currentColor" stroke-width="3" opacity=".5"/></svg><span class="cover-caption">WASLA STUDIO · PROJECT</span></div>
@@ -967,16 +967,33 @@ async function reviewClientDesign(id,decision){
 async function loadAdminClientPortal(){
  if(!isAdminRole())return;
  const sel=$('adminPortalProject');if(!sel)return;sel.innerHTML='<option value="">جارٍ تحميل المشاريع…</option>';
- try{const {data,error}=await sb.from('client_projects').select('legacy_project_id,legacy_client_id,project_name,created_at').order('created_at',{ascending:false});if(error)throw error;adminClientProjects=data||[];
-  sel.innerHTML='<option value="">اختر المشروع</option>'+adminClientProjects.map(x=>`<option value="${esc(x.legacy_project_id)}">${esc(x.project_name)} — #${esc(x.legacy_project_id)}</option>`).join('');
+ try{const {data,error}=await sb.from('client_projects').select('legacy_project_id,legacy_client_id,project_name,created_at,is_visible_to_client').order('created_at',{ascending:false});if(error)throw error;adminClientProjects=data||[];
+  sel.innerHTML='<option value="">اختر المشروع</option>'+adminClientProjects.map(x=>`<option value="${esc(x.legacy_project_id)}">${esc(x.project_name)} — #${esc(x.legacy_project_id)} · ${x.is_visible_to_client?'ظاهر':'مخفي'}</option>`).join('');
   if(!adminClientProjects.length)$('adminPortalProjectInfo').textContent='لا توجد مشاريع مرتبطة بملفات العملاء في client_projects.';
  }catch(e){sel.innerHTML='<option value="">تعذر تحميل المشاريع</option>';alert('تعذر تحميل مشاريع بوابة العملاء: '+(e.message||'خطأ غير معروف'))}
 }
 async function loadAdminPortalProject(){
  const pid=Number($('adminPortalProject')?.value);if(!pid){activeAdminPortalProject=null;$('adminPortalDetails').textContent='اختر مشروعاً لعرض التفاصيل.';return}
  activeAdminPortalProject=adminClientProjects.find(x=>Number(x.legacy_project_id)===pid);if(!activeAdminPortalProject)return;
- $('adminPortalProjectInfo').textContent=activeAdminPortalProject.project_name+' · رقم المشروع '+pid;
+ $('adminPortalProjectInfo').innerHTML='<div>'+esc(activeAdminPortalProject.project_name)+' · رقم المشروع '+pid+'</div><label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13px;font-weight:700"><input id="adminProjectClientVisibility" type="checkbox" '+(activeAdminPortalProject.is_visible_to_client?'checked':'')+' onchange="setActiveClientProjectVisibility(this.checked)"> إظهار المشروع للعميل</label><div class="muted tiny" style="margin-top:5px">'+(activeAdminPortalProject.is_visible_to_client?'المشروع ظاهر في بوابة العميل':'المشروع مخفي عن العميل افتراضياً')+'</div>';
  await renderAdminPortalDetails();
+}
+async function setActiveClientProjectVisibility(visible){
+ const project=activeAdminPortalProject,pid=Number(project?.legacy_project_id),control=$('adminProjectClientVisibility');
+ if(!project||!pid||!isAdminRole()){if(control)control.checked=!!project?.is_visible_to_client;return}
+ if(control)control.disabled=true;
+ try{
+  const {error}=await sb.from('client_projects').update({is_visible_to_client:visible}).eq('legacy_project_id',pid).eq('organization_id',currentOrganizationId);
+  if(error)throw error;
+  project.is_visible_to_client=visible;
+  const option=$('adminPortalProject')?.selectedOptions?.[0];
+  if(option)option.textContent=project.project_name+' — #'+pid+' · '+(visible?'ظاهر':'مخفي');
+  $('adminPortalProjectInfo').innerHTML='<div>'+esc(project.project_name)+' · رقم المشروع '+pid+'</div><label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13px;font-weight:700"><input id="adminProjectClientVisibility" type="checkbox" '+(visible?'checked':'')+' onchange="setActiveClientProjectVisibility(this.checked)"> إظهار المشروع للعميل</label><div class="muted tiny" style="margin-top:5px">'+(visible?'المشروع ظاهر في بوابة العميل':'المشروع مخفي عن العميل')+'</div>';
+  alert(visible?'تم إظهار المشروع في بوابة العميل.':'تم إخفاء المشروع عن العميل.');
+ }catch(e){
+  if(control)control.checked=!visible;
+  alert('تعذر تحديث ظهور المشروع: '+(e.message||'خطأ غير معروف'));
+ }finally{if($('adminProjectClientVisibility'))$('adminProjectClientVisibility').disabled=false}
 }
 async function renderAdminPortalDetails(){
  const pid=Number(activeAdminPortalProject?.legacy_project_id);if(!pid)return;
