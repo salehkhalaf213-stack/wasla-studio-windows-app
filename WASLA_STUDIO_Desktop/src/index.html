@@ -386,6 +386,27 @@ footer{color:#8790a7}
 @media(max-width:1050px){.top-tools{flex-wrap:wrap}.top-icon-label{display:none}.top-icon-btn{width:42px;padding:6px}.top-icon-btn.theme-toggle .theme-icon{display:inline}.top-icon-btn.theme-toggle .theme-label{display:none}}
 @media(max-width:850px){.top{align-items:flex-start}.top-tools{width:100%;justify-content:space-between}.top-icon-group{justify-content:flex-end}.top-icon-label{display:none}}
 @media(max-width:480px){.top-tools{align-items:flex-start;flex-direction:column}.top-icon-group{width:100%;justify-content:space-between;gap:5px}.top-icon-btn{min-width:38px;width:38px;height:40px;border-radius:11px}.sync-pill{font-size:10px}}
+
+/* Platform financial command center */
+.finance-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}
+.finance-kpi{background:linear-gradient(145deg,#fff,#f8f9fb);border:1px solid #e5eaf1;border-radius:14px;padding:16px;min-width:0}
+.finance-kpi .label{font-size:11px;color:#78879a;font-weight:700}
+.finance-kpi .value{font-size:24px;font-weight:900;color:#17263b;margin:9px 0 4px;overflow-wrap:anywhere}
+.finance-kpi .hint{font-size:10px;color:#8995a5}
+.finance-chart{display:grid;gap:9px;padding:8px 0}
+.finance-month{display:grid;grid-template-columns:75px minmax(40px,1fr) 105px;align-items:center;gap:9px;font-size:11px}
+.finance-month-track{height:10px;border-radius:20px;background:#edf1f6;overflow:hidden}
+.finance-month-track span{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,#bd8736,#e5c17e);min-width:0}
+.finance-section-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:14px;margin:14px 0}
+.finance-filter{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
+.finance-filter input,.finance-filter select{border:1px solid #dfe6ef;border-radius:9px;padding:10px 12px;background:#fff;min-width:160px}
+.finance-status{display:inline-block;border-radius:30px;padding:5px 9px;font-size:10px;font-weight:800}
+.finance-status.approved{background:#e8f5ed;color:#28744a}.finance-status.pending{background:#fff3dc;color:#9b6b1c}.finance-status.rejected{background:#fff0ee;color:#a33b2c}
+.finance-audit-row{padding:11px 0;border-bottom:1px solid #edf0f4;font-size:11px;line-height:1.8}
+.finance-audit-row:last-child{border:0}
+@media(max-width:1000px){.finance-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.finance-section-grid{grid-template-columns:1fr}}
+@media(max-width:480px){.finance-kpi .value{font-size:20px}.finance-month{grid-template-columns:58px minmax(30px,1fr) 82px;font-size:10px}}
+
 </style></head>
 <body>
 <section class="auth-screen" id="authScreen">
@@ -536,6 +557,48 @@ footer{color:#8790a7}
 <section class="page" id="settings"><div class="card"><h2 style="font-size:17px">النسخ الاحتياطي واستعادة البيانات</h2><p class="muted" style="font-size:13px;line-height:1.8">بيانات WASLA STUDIO تتم مزامنتها مع قاعدة بيانات Supabase عند تسجيل دخول المدير. احتفظ بنسخة احتياطية دورية كإجراء إضافي.</p><div class="actions"><button class="btn lime" onclick="exportData()">تنزيل نسخة احتياطية JSON</button><label class="btn soft" for="importFile">استعادة نسخة احتياطية</label><input id="importFile" type="file" accept="application/json" hidden onchange="importData(event)"></div><div class="note">تُحفظ التغييرات محلياً فوراً ثم تُرفع إلى السحابة تلقائياً. استخدم «مزامنة الآن» بعد الانتقال بين الأجهزة. عند تعديل البيانات من جهازين في الوقت نفسه، اعتمد جهازاً واحداً للتعديل لتجنب استبدال آخر تحديث.</div></div></section>
 <section class="page" id="platformAdmin">
   <div class="hero"><span class="eyebrow">PLATFORM CONTROL CENTER</span><h2>إدارة الشركات والمؤسسات</h2><p>لوحة خاصة بمالك المنصة لإدارة المؤسسات وحسابات مديريها. لا تمنح هذه الصلاحية لمدير أي مؤسسة.</p></div>
+  <div class="card" id="platformFinanceDashboard" style="margin-bottom:16px">
+    <div class="head"><div><span class="eyebrow" style="color:#bd8736">FINANCIAL OVERVIEW</span><h2>المركز المالي للمنصة</h2><p class="muted tiny">الأرقام مبنية على طلبات InstaPay المعتمدة فقط. المبالغ المعلقة أو المرفوضة لا تدخل ضمن الإيرادات.</p></div><button class="btn soft sm" type="button" onclick="loadPlatformFinancials()">تحديث المؤشرات</button></div>
+    <div class="finance-kpi-grid">
+      <div class="finance-kpi"><div class="label">إجمالي التحصيلات المعتمدة</div><div class="value" id="financeTotalRevenue">—</div><div class="hint">منذ بدء تسجيل طلبات الدفع</div></div>
+      <div class="finance-kpi"><div class="label">تحصيلات الشهر الحالي</div><div class="value" id="financeMonthRevenue">—</div><div class="hint">حسب تاريخ اعتماد التحويل</div></div>
+      <div class="finance-kpi"><div class="label">تحصيلات السنة الحالية</div><div class="value" id="financeYearRevenue">—</div><div class="hint">حسب تاريخ اعتماد التحويل</div></div>
+      <div class="finance-kpi"><div class="label">الاشتراكات النشطة</div><div class="value" id="financeActiveSubscriptions">—</div><div class="hint">نشط أو تجريبي ولم تنتهِ مدته</div></div>
+      <div class="finance-kpi"><div class="label">طلبات قيد المراجعة</div><div class="value" id="financePendingCount">—</div><div class="hint">لا تُحتسب إيراداً قبل الاعتماد</div></div>
+      <div class="finance-kpi"><div class="label">طلبات معتمدة</div><div class="value" id="financeApprovedCount">—</div><div class="hint">عمليات التحصيل المسجلة</div></div>
+      <div class="finance-kpi"><div class="label">طلبات مرفوضة</div><div class="value" id="financeRejectedCount">—</div><div class="hint">مستبعدة من الإيرادات</div></div>
+      <div class="finance-kpi"><div class="label">اشتراكات تنتهي خلال 7 أيام</div><div class="value" id="financeExpiringCount">—</div><div class="hint">تحتاج متابعة وتجديداً</div></div>
+    </div>
+    <div class="finance-section-grid">
+      <div class="card" style="box-shadow:none">
+        <div class="head"><h2>الإيرادات خلال آخر 12 شهراً</h2><span class="muted tiny">جنيه مصري</span></div>
+        <div class="finance-chart" id="financeMonthlyChart"><div class="empty">جارٍ تحميل الإيرادات الشهرية…</div></div>
+      </div>
+      <div class="card" style="box-shadow:none">
+        <div class="head"><h2>حالة الاشتراكات</h2></div>
+        <div class="task">اشتراكات نشطة <b id="financeActiveSide" style="float:left">—</b></div>
+        <div class="task">تنتهي خلال 7 أيام <b id="financeExpiringSide" style="float:left">—</b></div>
+        <div class="task">اشتراكات انتهت مدتها <b id="financeExpiredSide" style="float:left">—</b></div>
+        <div class="task">إجمالي طلبات الدفع <b id="financePaymentsSide" style="float:left">—</b></div>
+        <div class="note">يُحتسب الإيراد عند اعتماد طلب الدفع فقط. تغييرات الاشتراك اليدوية تُسجل في سجل التدقيق ولا تُعامل تلقائياً كتحصيل مالي.</div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="head"><div><h2>سجل المدفوعات والتجديدات والترقيات</h2><p class="muted tiny">كل طلبات InstaPay المسجلة مع قرار المراجعة وتاريخها.</p></div><button class="btn soft sm" onclick="loadPlatformPaymentRequests()">تحديث السجل</button></div>
+    <div class="finance-filter"><input id="financePaymentSearch" type="search" placeholder="ابحث باسم المؤسسة أو رقم العملية" oninput="renderPlatformPaymentHistory()"><select id="financePaymentStatus" onchange="renderPlatformPaymentHistory()"><option value="">كل الحالات</option><option value="approved">معتمد</option><option value="pending">قيد المراجعة</option><option value="rejected">مرفوض</option></select></div>
+    <div class="table-wrap" id="platformFinancialPaymentsTable"><div class="empty">جارٍ تحميل سجل المدفوعات…</div></div>
+  </div>
+  <div class="finance-section-grid">
+    <div class="card">
+      <div class="head"><h2>تنبيهات قرب انتهاء الاشتراك</h2><span class="pill amber">7 أيام</span></div>
+      <div class="table-wrap" id="platformExpiringSubscriptionsTable"><div class="empty">جارٍ تحميل التنبيهات…</div></div>
+    </div>
+    <div class="card">
+      <div class="head"><h2>سجل تدقيق تغييرات الاشتراك</h2><button class="btn soft sm" onclick="loadPlatformFinancials()">تحديث</button></div>
+      <div id="platformSubscriptionAuditTable"><div class="empty">جارٍ تحميل سجل التدقيق…</div></div>
+    </div>
+  </div>
   <div class="grid stats">
     <div class="card"><div class="stat-label">إجمالي المؤسسات</div><div class="stat-value" id="platformOrgCount">—</div></div>
     <div class="card"><div class="stat-label">المؤسسات النشطة</div><div class="stat-value" id="platformActiveCount">—</div></div>
@@ -1312,7 +1375,7 @@ async function loadPlatformAdmin(){
  $('platformManagerCount').textContent=membersError?'—':(members||[]).filter(x=>x.status==='active'&&x.role==='admin').length;
  $('platformSubscriptionCount').textContent=platformSubscriptions.length;
  if(tableEl)tableEl.innerHTML=platformOrganizations.length?'<table><thead><tr><th>المؤسسة</th><th>المعرّف</th><th>الحالة</th><th>تاريخ الإنشاء</th></tr></thead><tbody>'+platformOrganizations.map(o=>'<tr><td>'+esc(o.name)+'</td><td dir="ltr">'+esc(o.slug)+'</td><td><span class="pill '+(o.status==='active'?'green':'amber')+'">'+esc(o.status)+'</span></td><td>'+new Date(o.created_at).toLocaleDateString('ar-EG')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">لا توجد مؤسسات مسجلة.</div>';
- renderPlatformPlans();renderPlatformSubscriptions();await loadPlatformPaymentRequests();loadPlatformInvitations();
+ renderPlatformPlans();renderPlatformSubscriptions();await loadPlatformPaymentRequests();await loadPlatformFinancials();loadPlatformInvitations();
 }
 async function createSubscriptionPlan(){
  if(!isPlatformAdmin)return;
@@ -1568,9 +1631,10 @@ async function loadManagerPaymentRequests(){
 async function loadPlatformPaymentRequests(){
  const el=$('platformPaymentRequestsTable');if(!el)return;
  el.innerHTML='<div class="empty">جارٍ تحميل طلبات الدفع…</div>';
- const {data,error}=await sb.from('subscription_payment_requests').select('id,organization_id,submitted_by,plan_id,amount_minor,transfer_reference,receipt_path,status,submitted_at').order('submitted_at',{ascending:false}).limit(100);
+ const {data,error}=await sb.from('subscription_payment_requests').select('id,organization_id,submitted_by,plan_id,amount_minor,currency,transfer_reference,receipt_path,status,submitted_at,reviewed_at,reviewed_by,review_note').order('submitted_at',{ascending:false}).limit(500);
  if(error){el.innerHTML='<div class="empty">تعذر تحميل الطلبات: '+esc(error.message)+'</div>';return}
  platformPaymentRequests=data||[];
+ renderPlatformFinancialDashboard();renderPlatformPaymentHistory();
  const labels={pending:'قيد المراجعة',approved:'معتمد',rejected:'مرفوض'};
  el.innerHTML=platformPaymentRequests.length?'<table><thead><tr><th>المؤسسة</th><th>الباقة</th><th>المبلغ</th><th>مرجع التحويل</th><th>الإيصال</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody>'+platformPaymentRequests.map(x=>{
   const org=platformOrganizations.find(o=>o.id===x.organization_id),plan=platformPlans.find(p=>p.id===x.plan_id);
@@ -1578,6 +1642,84 @@ async function loadPlatformPaymentRequests(){
   return '<tr><td>'+esc(org?.name||x.organization_id)+'</td><td>'+esc(plan?.name||x.plan_id)+'</td><td>'+(Number(x.amount_minor)/100).toLocaleString('ar-EG')+' ج.م</td><td dir="ltr">'+esc(x.transfer_reference||'—')+'</td><td><button class="btn soft sm" onclick="viewSubscriptionReceipt(\''+esc(x.receipt_path)+'\')">عرض الإيصال</button></td><td><span class="pill '+(x.status==='approved'?'green':x.status==='pending'?'amber':'')+'">'+(labels[x.status]||x.status)+'</span></td><td>'+actions+'</td></tr>';
  }).join('')+'</tbody></table>':'<div class="empty">لا توجد طلبات اشتراك حتى الآن.</div>';
 }
+
+let platformFinancialSummary=null,platformSubscriptionAudit=[];
+function platformMoneyMinor(value){return (Number(value||0)/100).toLocaleString('ar-EG',{maximumFractionDigits:2})+' ج.م'}
+function platformPlanName(id){return platformPlans.find(p=>p.id===id)?.name||id||'—'}
+function platformStatusLabel(status){return ({active:'نشط',trialing:'تجريبي',pending:'قيد المراجعة',past_due:'متأخر',cancelled:'ملغي',expired:'منتهي'})[status]||status||'—'}
+async function loadPlatformFinancials(){
+ if(!isPlatformAdmin)return;
+ const chart=$('financeMonthlyChart');if(chart)chart.innerHTML='<div class="empty">جارٍ تحديث المؤشرات…</div>';
+ const [{data:summary,error:summaryError},{data:audit,error:auditError}]=await Promise.all([
+  sb.rpc('get_platform_financial_summary'),
+  sb.from('platform_subscription_audit').select('id,organization_id,action,old_values,new_values,actor_user_id,occurred_at').order('occurred_at',{ascending:false}).limit(60)
+ ]);
+ if(summaryError){if(chart)chart.innerHTML='<div class="empty">تعذر تحميل الملخص المالي: '+esc(summaryError.message)+'</div>';return}
+ platformFinancialSummary=summary||{};
+ platformSubscriptionAudit=audit||[];
+ if(auditError){const el=$('platformSubscriptionAuditTable');if(el)el.innerHTML='<div class="empty">تعذر تحميل سجل التدقيق: '+esc(auditError.message)+'</div>'}
+ renderPlatformFinancialDashboard();renderPlatformAuditTable();renderPlatformExpiringSubscriptions();
+}
+function renderPlatformFinancialDashboard(){
+ const d=platformFinancialSummary;if(!d)return;
+ const set=(id,value)=>{const el=$(id);if(el)el.textContent=value};
+ set('financeTotalRevenue',platformMoneyMinor(d.total_collected_minor));
+ set('financeMonthRevenue',platformMoneyMinor(d.month_collected_minor));
+ set('financeYearRevenue',platformMoneyMinor(d.year_collected_minor));
+ set('financeActiveSubscriptions',Number(d.active_subscriptions||0).toLocaleString('ar-EG'));
+ set('financePendingCount',Number(d.pending_count||0).toLocaleString('ar-EG'));
+ set('financeApprovedCount',Number(d.approved_count||0).toLocaleString('ar-EG'));
+ set('financeRejectedCount',Number(d.rejected_count||0).toLocaleString('ar-EG'));
+ set('financeExpiringCount',Number(d.expiring_soon||0).toLocaleString('ar-EG'));
+ set('financeActiveSide',Number(d.active_subscriptions||0).toLocaleString('ar-EG'));
+ set('financeExpiringSide',Number(d.expiring_soon||0).toLocaleString('ar-EG'));
+ set('financeExpiredSide',Number(d.expired_subscriptions||0).toLocaleString('ar-EG'));
+ set('financePaymentsSide',(Number(d.pending_count||0)+Number(d.approved_count||0)+Number(d.rejected_count||0)).toLocaleString('ar-EG'));
+ const rows=Array.isArray(d.monthly_revenue)?d.monthly_revenue:[];
+ const max=Math.max(1,...rows.map(x=>Number(x.amount_minor||0)));
+ const el=$('financeMonthlyChart');if(el)el.innerHTML=rows.length?rows.map(x=>{
+  const amount=Number(x.amount_minor||0),width=amount?Math.max(2,amount/max*100):0;
+  const monthLabel=x.month?new Date(x.month+'-01T00:00:00').toLocaleDateString('ar-EG',{month:'short',year:'2-digit'}):esc(x.label||'');
+  return '<div class="finance-month"><span>'+esc(monthLabel)+'</span><div class="finance-month-track"><span style="width:'+width.toFixed(1)+'%"></span></div><b style="text-align:left">'+(amount/100).toLocaleString('ar-EG',{maximumFractionDigits:0})+'</b></div>';
+ }).join(''):'<div class="empty">لا توجد تحصيلات معتمدة خلال الفترة.</div>';
+}
+function renderPlatformPaymentHistory(){
+ const el=$('platformFinancialPaymentsTable');if(!el)return;
+ const query=($('financePaymentSearch')?.value||'').trim().toLowerCase(),status=$('financePaymentStatus')?.value||'';
+ const rows=(platformPaymentRequests||[]).filter(x=>{
+  const org=platformOrganizations.find(o=>o.id===x.organization_id),plan=platformPlanName(x.plan_id);
+  const hay=[org?.name,plan,x.transfer_reference,x.status].join(' ').toLowerCase();
+  return (!query||hay.includes(query))&&(!status||x.status===status);
+ });
+ const labels={pending:'قيد المراجعة',approved:'معتمد',rejected:'مرفوض'};
+ el.innerHTML=rows.length?'<table><thead><tr><th>المؤسسة</th><th>الباقة</th><th>المبلغ</th><th>مرجع التحويل</th><th>الحالة</th><th>تاريخ الطلب</th><th>قرار المراجعة</th><th>المراجع</th><th>الإيصال</th></tr></thead><tbody>'+rows.map(x=>{
+  const org=platformOrganizations.find(o=>o.id===x.organization_id);
+  const reviewed=x.reviewed_at?new Date(x.reviewed_at).toLocaleString('ar-EG'):'—';
+  const reviewer=x.reviewed_by?esc(String(x.reviewed_by).slice(0,8)):'—';
+  const state=x.status==='approved'?'approved':x.status==='rejected'?'rejected':'pending';
+  return '<tr><td>'+esc(org?.name||x.organization_id)+'</td><td>'+esc(platformPlanName(x.plan_id))+'</td><td>'+platformMoneyMinor(x.amount_minor)+'</td><td dir="ltr">'+esc(x.transfer_reference||'—')+'</td><td><span class="finance-status '+state+'">'+(labels[x.status]||esc(x.status))+'</span>'+(x.review_note?'<div class="muted tiny">'+esc(x.review_note)+'</div>':'')+'</td><td>'+new Date(x.submitted_at).toLocaleDateString('ar-EG')+'</td><td>'+reviewed+'</td><td dir="ltr">'+reviewer+'</td><td><button class="btn soft sm" onclick="viewSubscriptionReceipt(\''+esc(x.receipt_path)+'\')">عرض</button></td></tr>';
+ }).join('')+'</tbody></table>':'<div class="empty">لا توجد مدفوعات تطابق البحث.</div>';
+}
+function renderPlatformAuditTable(){
+ const el=$('platformSubscriptionAuditTable');if(!el)return;
+ const labels={created:'إنشاء اشتراك',updated:'تعديل اشتراك',deleted:'حذف اشتراك'};
+ el.innerHTML=platformSubscriptionAudit.length?platformSubscriptionAudit.map(x=>{
+  const org=platformOrganizations.find(o=>o.id===x.organization_id),old=x.old_values||{},next=x.new_values||{};
+  const before=old.plan_id?platformPlanName(old.plan_id)+' · '+platformStatusLabel(old.status):'—';
+  const after=next.plan_id?platformPlanName(next.plan_id)+' · '+platformStatusLabel(next.status):'—';
+  return '<div class="finance-audit-row"><b>'+esc(org?.name||x.organization_id)+'</b> — '+(labels[x.action]||esc(x.action))+'<div class="muted tiny">من: '+esc(before)+' ← إلى: '+esc(after)+'</div><div class="muted tiny">'+new Date(x.occurred_at).toLocaleString('ar-EG')+' · المنفذ: '+esc(x.actor_user_id?String(x.actor_user_id).slice(0,8):'النظام')+'</div></div>';
+ }).join(''):'<div class="empty">لا توجد تغييرات اشتراك مسجلة بعد تفعيل سجل التدقيق.</div>';
+}
+function renderPlatformExpiringSubscriptions(){
+ const el=$('platformExpiringSubscriptionsTable');if(!el)return;
+ const now=Date.now(),limit=now+7*24*60*60*1000;
+ const rows=platformSubscriptions.filter(x=>['active','trialing'].includes(x.status)&&x.current_period_end&&new Date(x.current_period_end).getTime()>=now&&new Date(x.current_period_end).getTime()<limit).sort((a,b)=>new Date(a.current_period_end)-new Date(b.current_period_end));
+ el.innerHTML=rows.length?'<table><thead><tr><th>المؤسسة</th><th>الباقة</th><th>تاريخ الانتهاء</th><th>المتبقي</th></tr></thead><tbody>'+rows.map(x=>{
+  const org=platformOrganizations.find(o=>o.id===x.organization_id),days=Math.max(0,Math.ceil((new Date(x.current_period_end).getTime()-now)/86400000));
+  return '<tr><td>'+esc(org?.name||x.organization_id)+'</td><td>'+esc(platformPlanName(x.plan_id))+'</td><td>'+new Date(x.current_period_end).toLocaleDateString('ar-EG')+'</td><td><span class="pill amber">'+days+' يوم</span></td></tr>';
+ }).join('')+'</tbody></table>':'<div class="empty">لا توجد اشتراكات تنتهي خلال الأيام السبعة القادمة.</div>';
+}
+
 async function viewSubscriptionReceipt(path){
  const {data,error}=await sb.storage.from('subscription-receipts').createSignedUrl(path,300);
  if(error)return alert('تعذر فتح الإيصال: '+error.message);
