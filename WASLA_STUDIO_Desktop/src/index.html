@@ -920,8 +920,21 @@ async function viewAssignmentDetails(id){
  openModal('تفاصيل التكليف',`<div class="task-detail"><b>${esc(a.project_name)}</b>\nالعميل: ${esc(a.client_label||'—')}\nموعد التسليم: ${esc(a.due_date||'غير محدد')}\nالحالة: ${esc(a.employee_status)}\n\nتعليمات المدير:\n${esc(a.instructions||'—')}\n\nتقارير الموظف والمرفقات:</div><div style="margin-top:12px">${history}</div>`,()=>closeModal());
 }
 async function openEmployeeReportFile(path){
- try{const {data,error}=await sb.storage.from('employee-reports').createSignedUrl(path,300);if(error)throw error;if(!data?.signedUrl)throw new Error('تعذر إنشاء رابط الملف.');window.open(data.signedUrl,'_blank','noopener,noreferrer');}
- catch(e){alert('تعذر فتح الملف: '+(e.message||'خطأ غير معروف'));}
+ let fileTab=null;
+ try{
+  if(!path)throw new Error('مسار الملف غير متوفر.');
+  fileTab=window.open('about:blank','_blank');
+  if(!fileTab)throw new Error('المتصفح منع فتح الملف في نافذة جديدة. اسمح بالنوافذ المنبثقة لهذا التطبيق ثم أعد المحاولة.');
+  fileTab.document.title='جارٍ فتح الملف…';
+  fileTab.document.body.innerHTML='<p style="font-family:sans-serif;text-align:center;margin:40px">جارٍ تجهيز رابط الملف الآمن…</p>';
+  const {data,error}=await sb.storage.from('employee-reports').createSignedUrl(path,300);
+  if(error)throw error;
+  if(!data?.signedUrl)throw new Error('تعذر إنشاء رابط آمن للملف.');
+  fileTab.location.replace(data.signedUrl);
+ }catch(e){
+  if(fileTab&&!fileTab.closed)fileTab.close();
+  alert('تعذر فتح الملف: '+(e.message||'خطأ غير معروف'));
+ }
 }
 async function refreshUnifiedNotifications(){
   if(!currentUser||unifiedNotificationsBusy)return;
