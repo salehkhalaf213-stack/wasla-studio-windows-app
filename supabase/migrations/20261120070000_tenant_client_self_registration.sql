@@ -6,6 +6,20 @@ alter table public.profiles
   add column if not exists phone text,
   add column if not exists company_name text;
 
+-- Restrict profile reads to the signed-in user's tenant.
+-- This is RESTRICTIVE so it also constrains older permissive admin-read policies.
+drop policy if exists "profiles_tenant_read_boundary" on public.profiles;
+create policy "profiles_tenant_read_boundary"
+on public.profiles
+as restrictive
+for select
+to authenticated
+using (
+  id = (select auth.uid())
+  or organization_id = (select private.current_organization_id())
+  or (select private.is_platform_admin())
+);
+
 create sequence if not exists public.client_legacy_id_seq
   as bigint
   start with 2000000000000
