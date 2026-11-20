@@ -335,6 +335,7 @@ tr:hover td{background:#f8f9fe}
 footer{color:#8790a7}
 .theme-toggle{min-width:112px;border-radius:10px}
 .theme-toggle .theme-icon{font-size:16px}
+.dashboard-ops-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0}.dashboard-ops-grid .card{min-width:0}.dashboard-ops-item{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--stroke);font-size:12px;line-height:1.7}.dashboard-ops-item:last-child{border-bottom:0}.dashboard-ops-item strong{display:block;color:var(--text)}.dashboard-ops-item small{display:block;color:var(--text-soft);margin-top:3px}.dashboard-finance-line{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--stroke);font-size:13px}.dashboard-finance-line:last-child{border-bottom:0;font-weight:800}.dashboard-finance-line b{font-variant-numeric:tabular-nums}@media(max-width:760px){.dashboard-ops-grid{grid-template-columns:1fr}}
 @media(max-width:1050px){.layout{grid-template-columns:230px minmax(0,1fr)}main{padding:22px 18px}}
 @media(max-width:850px){.layout{grid-template-columns:1fr}aside{position:relative;height:auto;padding:14px 16px}nav{display:flex;overflow:auto}nav button{white-space:nowrap}.top{position:relative;top:auto}.employee-shell,.client-shell{padding:16px}}
 @media(max-width:560px){main{padding:14px 10px 25px}.top{padding:13px}.top .actions{width:100%}.hero{padding:22px 19px}.hero h2{font-size:20px}.auth-card{padding:23px}.employee-top{padding:13px}.theme-toggle{min-width:42px}}
@@ -508,7 +509,13 @@ footer{color:#8790a7}
 <div class="card chart-card"><div class="head"><div><h2>حالة المشاريع</h2><p class="muted tiny">توزيع المشاريع حسب مرحلة التنفيذ</p></div><button class="btn soft sm" onclick="go('projects')">كل المشاريع ←</button></div><div id="projectChart" class="project-chart"><div class="empty">لا توجد بيانات كافية لعرض الرسم.</div></div></div>
 <div class="card activity-card"><div class="head"><div><h2>آخر المشاريع</h2><p class="muted tiny">أحدث المشاريع المسجلة في مساحة العمل</p></div><button class="btn soft sm" onclick="go('projects')">عرض الكل</button></div><div id="recentProjects"></div></div>
 </div>
-<div class="card recent-client-card"><div class="head"><div><h2>أحدث العملاء</h2><p class="muted tiny">آخر العملاء الذين تمت إضافتهم</p></div><button class="btn soft sm" onclick="go('clients')">إدارة العملاء</button></div><div class="table-wrap" id="recentClients"></div></div>
+<div class="grid dashboard-ops-grid">
+  <div class="card"><div class="head"><div><h2>المشاريع المتأخرة</h2><p class="muted tiny">موعد التسليم مضى والحالة لم تصبح مكتملة</p></div><span class="pill task-overdue" id="dashboardOverdueProjectCount">0</span></div><div id="dashboardOverdueProjects"><div class="empty">لا توجد مشاريع متأخرة.</div></div><button class="btn soft sm" style="margin-top:12px" onclick="go('projects')">مراجعة المشاريع</button></div>
+  <div class="card"><div class="head"><div><h2>مهام اليوم</h2><p class="muted tiny">التكليفات المسندة بموعد تسليم اليوم</p></div><span class="pill amber" id="dashboardTodayTaskCount">0</span></div><div id="dashboardTodayTasks"><div class="empty">جارٍ تحميل التكليفات…</div></div><button class="btn soft sm" style="margin-top:12px" onclick="go('employeePortal')">إدارة التكليفات</button></div>
+  <div class="card"><div class="head"><div><h2>متابعة العملاء</h2><p class="muted tiny">العملاء المحتملون ومن تم التواصل معهم</p></div><span class="pill amber" id="dashboardFollowupCount">0</span></div><div id="dashboardClientFollowups"><div class="empty">لا توجد عملاء بحاجة إلى متابعة.</div></div><button class="btn soft sm" style="margin-top:12px" onclick="go('clients')">فتح سجل العملاء</button></div>
+  <div class="card"><div class="head"><div><h2>ملخص الأداء المالي</h2><p class="muted tiny">حسابات المؤسسة فقط — لا تشمل تحصيلات اشتراكات المنصة</p></div><span class="pill">ج.م</span></div><div id="dashboardFinanceSummary"></div><button class="btn soft sm" style="margin-top:12px" onclick="go('finance')">تفاصيل الإيرادات والمصروفات</button></div>
+ </div>
+ <div class="card recent-client-card"><div class="head"><div><h2>أحدث العملاء</h2><p class="muted tiny">آخر العملاء الذين تمت إضافتهم</p></div><button class="btn soft sm" onclick="go('clients')">إدارة العملاء</button></div><div class="table-wrap" id="recentClients"></div></div>
 </section>
 <section class="page" id="clients"><div class="head"><h2>العملاء وفرص البيع</h2><button class="btn lime" onclick="openClient()">＋ إضافة عميل</button></div><div class="toolbar"><input id="clientSearch" placeholder="ابحث بالاسم أو النشاط..." oninput="renderClients()"><select id="clientFilter" onchange="renderClients()"><option value="">كل الحالات</option><option>عميل محتمل</option><option>تم التواصل</option><option>عميل نشط</option><option>غير مهتم</option></select></div><div class="card table-wrap" id="clientsTable"></div></section>
 <section class="page" id="projects"><div class="head"><h2>إدارة المشاريع</h2><button class="btn lime" onclick="openProject()">＋ مشروع جديد</button></div><div class="card table-wrap" id="projectsTable"></div></section>
@@ -1139,7 +1146,7 @@ async function loadAdminEmployees(){
    const list=adminAssignments.filter(a=>a.assigned_to===e.id),done=list.filter(a=>a.employee_status==='مكتمل').length,working=list.filter(a=>a.employee_status==='قيد التنفيذ').length,last=(updateByEmployee[e.id]||[])[0],activeMember=e.membership_status==='active';
    return `<tr><td>${esc(e.full_name||e.id)}</td><td><span class="pill ${activeMember?'green':'amber'}">${activeMember?'نشط':'موقوف'}</span></td><td>${list.length}</td><td>${working}</td><td>${done}</td><td>${last?esc(new Date(last.created_at).toLocaleString('ar-EG')):'لا يوجد'}</td><td><div class="actions"><button class="btn soft sm" onclick="editEmployee('${esc(e.id)}')">تعديل</button><button class="btn ${activeMember?'danger':'lime'} sm" onclick="toggleEmployeeStatus('${esc(e.id)}')">${activeMember?'إيقاف':'تفعيل'}</button></div></td></tr>`;
   })):'<div class="empty">لا يوجد موظفون في هذه المؤسسة.</div>';
-  if(assignBox)renderAdminAssignments();
+  if(assignBox)renderAdminAssignments();renderDashboardOperations();
  }catch(e){console.error(e);if(empBox)empBox.innerHTML='<div class="empty">تعذر تحميل بيانات الموظفين: '+esc(e.message||'خطأ غير معروف')+'</div>';}
 }
 async function approvePendingSignup(userId){
@@ -1779,7 +1786,28 @@ function renderDashboardExtras(){
  const recent=$('recentProjects');
  if(recent){const list=[...data.projects].slice(-5).reverse();recent.innerHTML=list.length?list.map(p=>`<div class="recent-project"><div><strong>${esc(p.name)}</strong><small>${esc(p.client||'بدون عميل')} · التسليم: ${esc(p.due||'غير محدد')}</small></div><span class="pill ${p.status==='مكتمل'?'green':p.status==='قيد التنفيذ'?'amber':''}">${esc(p.status||'مخطط')}</span></div>`).join(''):'<div class="empty">لم تتم إضافة مشاريع بعد.</div>';}
 }
-function refresh(){let income=data.finance.filter(x=>x.kind==='إيراد').reduce((a,x)=>a+Number(x.amount),0),expense=data.finance.filter(x=>x.kind==='مصروف').reduce((a,x)=>a+Number(x.amount),0);$('sClients').textContent=data.clients.length;$('sLeads').textContent=data.clients.filter(x=>['عميل محتمل','تم التواصل'].includes(x.status)).length;$('sProjects').textContent=data.projects.filter(x=>x.status==='قيد التنفيذ').length;$('sBalance').textContent=money(income-expense);$('recentClients').innerHTML=table(['العميل','الحالة'],data.clients.slice(-5).reverse().map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.status)}</td></tr>`));$('income').textContent=money(income);$('expense').textContent=money(expense);$('balance').textContent=money(income-expense);$('transactions').textContent=data.finance.length;renderDashboardExtras();renderManagerSubscription();renderClients();renderProjects();renderContent();renderFinance()}
+function renderDashboardOperations(){
+ const today=localDateKey();
+ const overdueProjects=data.projects.filter(p=>p.due&&p.due<today&&p.status!=='مكتمل').sort((a,b)=>String(a.due).localeCompare(String(b.due)));
+ const todayTasks=adminAssignments.filter(a=>a.due_date===today);
+ const followups=data.clients.filter(x=>['عميل محتمل','تم التواصل'].includes(x.status));
+ const overdueCount=$('dashboardOverdueProjectCount'),overdueBox=$('dashboardOverdueProjects');
+ if(overdueCount)overdueCount.textContent=overdueProjects.length;
+ if(overdueBox)overdueBox.innerHTML=overdueProjects.length?overdueProjects.slice(0,5).map(p=>'<div class="dashboard-ops-item"><div><strong>'+esc(p.name)+'</strong><small>'+esc(p.client||'بدون عميل')+' · التسليم '+esc(p.due)+'</small></div><span class="pill task-overdue">'+esc(p.status||'مخطط')+'</span></div>').join(''):'<div class="empty">لا توجد مشاريع متأخرة.</div>';
+ const todayCount=$('dashboardTodayTaskCount'),todayBox=$('dashboardTodayTasks');
+ if(todayCount)todayCount.textContent=todayTasks.length;
+ if(todayBox)todayBox.innerHTML=todayTasks.length?todayTasks.slice(0,5).map(a=>'<div class="dashboard-ops-item"><div><strong>'+esc(a.project_name)+'</strong><small>'+esc(a.client_label||'بدون عميل')+' · '+esc(a.assigned_to?adminEmployees.find(e=>e.id===a.assigned_to)?.full_name||'موظف':'غير مسند')+'</small></div><span class="pill '+(a.employee_status==='مكتمل'?'green':'amber')+'">'+esc(a.employee_status||'لم يبدأ')+'</span></div>').join(''):'<div class="empty">لا توجد تكليفات موعدها اليوم.</div>';
+ const followCount=$('dashboardFollowupCount'),followBox=$('dashboardClientFollowups');
+ if(followCount)followCount.textContent=followups.length;
+ if(followBox)followBox.innerHTML=followups.length?followups.slice(-5).reverse().map(x=>'<div class="dashboard-ops-item"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.type||'')+'</small></div><span class="pill amber">'+esc(x.status)+'</span></div>').join(''):'<div class="empty">لا توجد عملاء بحاجة إلى متابعة.</div>';
+ const financeBox=$('dashboardFinanceSummary');
+ if(financeBox){
+  const income=data.finance.filter(x=>x.kind==='إيراد').reduce((a,x)=>a+Number(x.amount||0),0);
+  const expense=data.finance.filter(x=>x.kind==='مصروف').reduce((a,x)=>a+Number(x.amount||0),0);
+  financeBox.innerHTML='<div class="dashboard-finance-line"><span>الإيرادات</span><b>'+money(income)+'</b></div><div class="dashboard-finance-line"><span>المصروفات</span><b>'+money(expense)+'</b></div><div class="dashboard-finance-line"><span>صافي الربح / الخسارة</span><b>'+money(income-expense)+'</b></div>';
+ }
+}
+function refresh(){let income=data.finance.filter(x=>x.kind==='إيراد').reduce((a,x)=>a+Number(x.amount),0),expense=data.finance.filter(x=>x.kind==='مصروف').reduce((a,x)=>a+Number(x.amount),0);$('sClients').textContent=data.clients.length;$('sLeads').textContent=data.clients.filter(x=>['عميل محتمل','تم التواصل'].includes(x.status)).length;$('sProjects').textContent=data.projects.filter(x=>x.status==='قيد التنفيذ').length;$('sBalance').textContent=money(income-expense);$('recentClients').innerHTML=table(['العميل','الحالة'],data.clients.slice(-5).reverse().map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.status)}</td></tr>`));$('income').textContent=money(income);$('expense').textContent=money(expense);$('balance').textContent=money(income-expense);$('transactions').textContent=data.finance.length;renderDashboardExtras();renderDashboardOperations();renderManagerSubscription();renderClients();renderProjects();renderContent();renderFinance()}
 function openModal(title,body,fn){$('modalTitle').textContent=title;$('modalBody').innerHTML=body;$('saveBtn').onclick=fn;$('modal').classList.add('show')}
 function closeModal(){$('modal').classList.remove('show')}
 function input(id,label,value='',type='text'){return `<div class="field"><label>${label}</label><input id="${id}" type="${type}" value="${esc(value)}"></div>`}
