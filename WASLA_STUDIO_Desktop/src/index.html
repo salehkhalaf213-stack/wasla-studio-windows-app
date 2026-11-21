@@ -515,7 +515,7 @@ footer{color:#8790a7}
   <div class="card"><div class="head"><div><h2>المشاريع المتأخرة</h2><p class="muted tiny">موعد التسليم مضى والحالة لم تصبح مكتملة</p></div><span class="pill task-overdue" id="dashboardOverdueProjectCount">0</span></div><div id="dashboardOverdueProjects"><div class="empty">لا توجد مشاريع متأخرة.</div></div><button class="btn soft sm" style="margin-top:12px" onclick="go('projects')">مراجعة المشاريع</button></div>
   <div class="card"><div class="head"><div><h2>مهام اليوم</h2><p class="muted tiny">التكليفات المسندة بموعد تسليم اليوم</p></div><span class="pill amber" id="dashboardTodayTaskCount">0</span></div><div id="dashboardTodayTasks"><div class="empty">جارٍ تحميل التكليفات…</div></div><button class="btn soft sm" style="margin-top:12px" onclick="go('employeePortal')">إدارة التكليفات</button></div>
   <div class="card"><div class="head"><div><h2>متابعة العملاء</h2><p class="muted tiny">العملاء المحتملون ومن تم التواصل معهم</p></div><span class="pill amber" id="dashboardFollowupCount">0</span></div><div id="dashboardClientFollowups"><div class="empty">لا توجد عملاء بحاجة إلى متابعة.</div></div><button class="btn soft sm" style="margin-top:12px" onclick="go('clients')">فتح سجل العملاء</button></div>
-  <div class="card"><div class="head"><div><h2>ملخص الأداء المالي</h2><p class="muted tiny">حسابات المؤسسة فقط — لا تشمل تحصيلات اشتراكات المنصة</p></div><span class="pill">ج.م</span></div><div id="dashboardFinanceSummary"></div><button class="btn soft sm" style="margin-top:12px" onclick="go('finance')">تفاصيل الإيرادات والمصروفات</button></div>
+  <div class="card" id="dashboardFinanceCard"><div class="head"><div><h2>ملخص الأداء المالي</h2><p class="muted tiny">حسابات المؤسسة فقط — لا تشمل تحصيلات اشتراكات المنصة</p></div><span class="pill">ج.م</span></div><div id="dashboardFinanceSummary"></div><button class="btn soft sm" style="margin-top:12px" onclick="go('finance')">تفاصيل الإيرادات والمصروفات</button></div>
  </div>
  <div class="card recent-client-card"><div class="head"><div><h2>أحدث العملاء</h2><p class="muted tiny">آخر العملاء الذين تمت إضافتهم</p></div><button class="btn soft sm" onclick="go('clients')">إدارة العملاء</button></div><div class="table-wrap" id="recentClients"></div></div>
 </section>
@@ -1910,7 +1910,8 @@ function renderDashboardOperations(){
  if(followCount)followCount.textContent=followups.length;
  if(followBox)followBox.innerHTML=followups.length?followups.slice(-5).reverse().map(x=>'<div class="dashboard-ops-item"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.type||'')+'</small></div><span class="pill amber">'+esc(x.status)+'</span></div>').join(''):'<div class="empty">لا توجد عملاء بحاجة إلى متابعة.</div>';
  const financeBox=$('dashboardFinanceSummary');
- if(financeBox){
+ const financeCard=$('dashboardFinanceCard');const showLegacyFinanceSummary=financeCanManage()||financeHasRole('accountant');if(financeCard)financeCard.style.display=showLegacyFinanceSummary?'':'none';
+ if(financeBox&&showLegacyFinanceSummary){
   const income=data.finance.filter(x=>x.kind==='إيراد').reduce((a,x)=>a+Number(x.amount||0),0);
   const expense=data.finance.filter(x=>x.kind==='مصروف').reduce((a,x)=>a+Number(x.amount||0),0);
   financeBox.innerHTML='<div class="dashboard-finance-line"><span>الإيرادات</span><b>'+money(income)+'</b></div><div class="dashboard-finance-line"><span>المصروفات</span><b>'+money(expense)+'</b></div><div class="dashboard-finance-line"><span>صافي الربح / الخسارة</span><b>'+money(income-expense)+'</b></div>';
