@@ -2033,9 +2033,9 @@ async function loadFinanceMembers(){
  if(!currentOrganizationId||!financeCanManage())return;
  const {data:members,error}=await sb.from('organization_members').select('user_id,role,status').eq('organization_id',currentOrganizationId).eq('status','active');
  if(error){$('financeMemberSelect').innerHTML='<option value="">تعذر تحميل الأعضاء</option>';return;}
- const ids=(members||[]).map(m=>m.user_id);let profiles=[];
+ const eligibleMembers=(members||[]).filter(m=>m.role==='employee'&&m.status==='active');const ids=eligibleMembers.map(m=>m.user_id);let profiles=[];
  if(ids.length){const result=await sb.from('profiles').select('id,full_name').in('id',ids);if(!result.error)profiles=result.data||[];}
- financeMembers=(members||[]).filter(m=>m.role==='employee'&&m.status==='active').map(m=>({...m,full_name:profiles.find(p=>p.id===m.user_id)?.full_name||m.user_id}));
+ financeMembers=eligibleMembers.map(m=>({...m,full_name:profiles.find(p=>p.id===m.user_id)?.full_name||m.user_id}));
  $('financeMemberSelect').innerHTML='<option value="">اختر عضواً</option>'+financeMembers.map(m=>'<option value="'+m.user_id+'">'+esc(m.full_name)+' — '+esc(m.role)+'</option>').join('');
  const projects=data.projects||[];
  $('financeProjectSelect').innerHTML='<option value="">اختر المشروع</option>'+projects.map(p=>'<option value="'+String(p.id)+'">'+esc(p.name)+'</option>').join('');
