@@ -2082,7 +2082,7 @@ async function loadFinanceInvoices(){
   const remaining=Math.max(0,Number(i.total_original||0)-Number(i.paid_original||0));
   const status=i.status==='draft'?'مسودة':i.status==='paid'?'مدفوعة':'صادرة';
   const actionButton=i.status==='draft'?(financeCanManage()?'<button class="btn lime sm" onclick="issueFinanceInvoice(\''+i.id+'\')">اعتماد وإصدار</button>':'بانتظار الإصدار'):i.status==='issued'?(financeCanManage()?'<button class="btn soft sm" onclick="recordFinanceInvoicePayment(\''+i.id+'\')">تسجيل تحصيل</button>':'صادرة'): 'مكتملة';
-  const actions=actionButton+' <button class="btn soft sm" onclick="exportFinanceInvoicePdf(\''+i.id+'\')">تصدير PDF</button>';
+  const actions=actionButton+' <button class="btn soft sm" onclick="printFinanceInvoice(\''+i.id+'\')">طباعة</button> <button class="btn soft sm" onclick="exportFinanceInvoicePdf(\''+i.id+'\')">تصدير PDF</button>';
   return '<tr><td>'+esc(i.invoice_number)+'</td><td>'+esc(i.customer_name)+'</td><td>'+esc(i.invoice_date)+'</td><td>'+financeReportMoney(i.total_original,i.currency_code)+'</td><td>'+financeReportMoney(i.paid_original,i.currency_code)+'</td><td>'+financeReportMoney(remaining,i.currency_code)+'</td><td><span class="pill '+(i.status==='paid'?'green':i.status==='draft'?'amber':'blue')+'">'+status+'</span></td><td>'+actions+'</td></tr>';
  });
  $('financeInvoicesTable').innerHTML=table(['رقم الفاتورة','العميل','التاريخ','الإجمالي','المحصّل','المتبقي','الحالة','إجراء'],rows);
@@ -2234,31 +2234,68 @@ async function issueFinanceInvoice(id){
  try{const {data,error}=await sb.rpc('issue_finance_invoice',{p_invoice_id:id});if(error)throw error;await loadFinanceWorkspace();alert('تم إصدار الفاتورة وإنشاء القيد المحاسبي المرتبط بها.');}
  catch(e){alert('تعذر إصدار الفاتورة: '+(e.message||e));}
 }
-async function exportFinanceInvoicePdf(id){
- const printWindow=window.open('','_blank');
- if(!printWindow)return alert('اسمح بفتح النوافذ المنبثقة لتصدير الفاتورة PDF.');
- try{
-  const [{data:invoice,error:invoiceError},{data:lines,error:linesError},{data:payments,error:paymentsError},{data:org,error:orgError}]=await Promise.all([
-   sb.from('finance_invoices').select('*').eq('id',id).eq('organization_id',currentOrganizationId).single(),
-   sb.from('finance_invoice_lines').select('description,quantity,unit_price,line_total').eq('invoice_id',id).eq('organization_id',currentOrganizationId).order('created_at'),
-   sb.from('finance_invoice_payments').select('payment_date,amount_original,currency_code,reference').eq('invoice_id',id).eq('organization_id',currentOrganizationId).order('payment_date'),
-   sb.from('organizations').select('name').eq('id',currentOrganizationId).maybeSingle()
-  ]);
-  if(invoiceError)throw invoiceError;if(linesError)throw linesError;if(paymentsError)throw paymentsError;if(orgError)throw orgError;
-  if(!invoice)throw new Error('الفاتورة غير موجودة.');
-  const legacy=!Number(invoice.subtotal_original)&&Number(invoice.total_original)>0;
-  const subtotal=legacy?Number(invoice.total_original):Number(invoice.subtotal_original||0);
-  const vat=legacy?0:Number(invoice.vat_original||0);
-  const total=Number(invoice.total_original||subtotal+vat);
-  const paid=Number(invoice.paid_original||0),remaining=Math.max(0,total-paid),currency=invoice.currency_code||'';
-  const money=n=>financeReportMoney(Number(n||0),currency);
-  const lineRows=(lines||[]).map((l,n)=>'<tr><td>'+(n+1)+'</td><td>'+esc(l.description||'')+'</td><td>'+Number(l.quantity||0).toLocaleString('en-US')+'</td><td>'+money(l.unit_price)+'</td><td>'+money(l.line_total)+'</td></tr>').join('');
-  const paymentRows=(payments||[]).map(p=>'<tr><td>'+esc(p.payment_date||'')+'</td><td>'+money(p.amount_original)+'</td><td>'+esc(p.reference||'—')+'</td></tr>').join('');
-  const status=invoice.status==='draft'?'مسودة':invoice.status==='paid'?'مدفوعة':'صادرة';
-  const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>فاتورة '+esc(invoice.invoice_number)+'</title><style>*{box-sizing:border-box}body{font-family:Tahoma,Arial,sans-serif;color:#20251d;margin:0;padding:35px;font-size:13px}.top{display:flex;justify-content:space-between;border-bottom:3px solid #263323;padding-bottom:18px;margin-bottom:22px}.brand{font-size:23px;font-weight:bold}.muted{color:#687263}.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}.meta div{padding:10px;background:#f4f6f1;border-radius:6px}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{padding:10px;border-bottom:1px solid #dfe4da;text-align:right}th{background:#f1f4ed}.totals{width:360px;max-width:100%;margin-right:auto}.totals div{display:flex;justify-content:space-between;padding:7px;border-bottom:1px solid #e5e8e1}.grand{font-size:17px;font-weight:bold;background:#f1f4ed}.foot{margin-top:35px;border-top:1px solid #ddd;padding-top:12px;color:#697365;font-size:11px}@media print{body{padding:12mm}@page{size:A4;margin:12mm}}}</style></head><body><div class="top"><div><div class="brand">'+esc(org?.name||'المؤسسة')+'</div><div class="muted">فاتورة ضريبية / '+(vat>0?'Tax Invoice':'Invoice')+'</div></div><div><h2 style="margin:0">فاتورة</h2><b>'+esc(invoice.invoice_number)+'</b><div class="muted">الحالة: '+status+'</div></div></div><div class="meta"><div><b>العميل</b><br>'+esc(invoice.customer_name||'—')+'<br>'+esc(invoice.customer_email||'')+'</div><div><b>التاريخ</b><br>'+esc(invoice.invoice_date||'—')+'<br><span class="muted">الاستحقاق: '+esc(invoice.due_date||'—')+'</span></div></div><table><thead><tr><th>#</th><th>الوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>'+lineRows+'</tbody></table><div class="totals"><div><span>الإجمالي قبل الضريبة</span><b>'+money(subtotal)+'</b></div><div><span>ضريبة القيمة المضافة ('+Number(invoice.vat_rate||0)+'%)</span><b>'+money(vat)+'</b></div><div class="grand"><span>الإجمالي شامل الضريبة</span><b>'+money(total)+'</b></div><div><span>المحصّل</span><b>'+money(paid)+'</b></div><div><span>المتبقي</span><b>'+money(remaining)+'</b></div></div>'+(paymentRows?'<h3>التحصيلات</h3><table><thead><tr><th>التاريخ</th><th>المبلغ</th><th>المرجع</th></tr></thead><tbody>'+paymentRows+'</tbody></table>':'')+'<div class="foot">صدرت هذه الفاتورة من نظام '+esc(org?.name||'WASLA STUDIO')+'. يرجى الاحتفاظ بنسخة منها.</div><script>window.onload=function(){window.focus();window.print();};<\/script></body></html>';
-  printWindow.document.open();printWindow.document.write(html);printWindow.document.close();
- }catch(e){printWindow.close();alert('تعذر تجهيز ملف PDF: '+(e.message||e));}
+async function buildFinanceInvoicePrintDocument(id){
+ const [{data:invoice,error:invoiceError},{data:lines,error:linesError},{data:payments,error:paymentsError},{data:org,error:orgError}]=await Promise.all([
+  sb.from('finance_invoices').select('*').eq('id',id).eq('organization_id',currentOrganizationId).single(),
+  sb.from('finance_invoice_lines').select('description,quantity,unit_price,line_total').eq('invoice_id',id).eq('organization_id',currentOrganizationId).order('created_at'),
+  sb.from('finance_invoice_payments').select('payment_date,amount_original,currency_code,reference').eq('invoice_id',id).eq('organization_id',currentOrganizationId).order('payment_date'),
+  sb.from('organizations').select('name').eq('id',currentOrganizationId).maybeSingle()
+ ]);
+ if(invoiceError)throw invoiceError;
+ if(linesError)throw linesError;
+ if(paymentsError)throw paymentsError;
+ if(orgError)throw orgError;
+ if(!invoice)throw new Error('الفاتورة غير موجودة.');
+ const legacy=invoice.subtotal_original==null&&!Number(invoice.vat_original||0);
+ const subtotal=legacy?Number(invoice.total_original||0):Number(invoice.subtotal_original||0);
+ const vat=legacy?0:Number(invoice.vat_original||0);
+ const total=Number(invoice.total_original||subtotal+vat);
+ const paid=Number(invoice.paid_original||0);
+ const remaining=Math.max(0,total-paid);
+ const currency=invoice.currency_code||'';
+ const money=n=>financeReportMoney(Number(n||0),currency);
+ const lineRows=(lines||[]).map((l,n)=>'<tr><td>'+(n+1)+'</td><td>'+esc(l.description||'')+'</td><td>'+Number(l.quantity||0).toLocaleString('en-US')+'</td><td>'+money(l.unit_price)+'</td><td>'+money(l.line_total)+'</td></tr>').join('');
+ const paymentRows=(payments||[]).map(p=>'<tr><td>'+esc(p.payment_date||'')+'</td><td>'+money(p.amount_original)+'</td><td>'+esc(p.reference||'—')+'</td></tr>').join('');
+ const status=invoice.status==='draft'?'مسودة':invoice.status==='paid'?'مدفوعة':'صادرة';
+ const orgName=esc(org?.name||'المؤسسة');
+ const invoiceNumber=esc(invoice.invoice_number||'');
+ const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>فاتورة '+invoiceNumber+'</title></head><body><header class="invoice-head"><div><div class="brand">'+orgName+'</div><div class="muted">'+(vat>0?'فاتورة ضريبية':'فاتورة')+'</div></div><div class="invoice-title"><h1>فاتورة</h1><strong>'+invoiceNumber+'</strong><div class="muted">الحالة: '+status+'</div></div></header><section class="meta"><div><b>العميل</b><br>'+esc(invoice.customer_name||'—')+'<br>'+esc(invoice.customer_email||'')+'</div><div><b>التاريخ</b><br>'+esc(invoice.invoice_date||'—')+'<br><span class="muted">الاستحقاق: '+esc(invoice.due_date||'—')+'</span></div></section><table class="items"><thead><tr><th>#</th><th>الوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>'+(lineRows||'<tr><td colspan="5">لا توجد بنود مسجلة</td></tr>')+'</tbody></table><section class="totals"><div><span>الإجمالي قبل الضريبة</span><b>'+money(subtotal)+'</b></div><div><span>ضريبة القيمة المضافة ('+Number(invoice.vat_rate||0)+'%)</span><b>'+money(vat)+'</b></div><div class="grand"><span>الإجمالي شامل الضريبة</span><b>'+money(total)+'</b></div><div><span>المحصّل</span><b>'+money(paid)+'</b></div><div><span>المتبقي</span><b>'+money(remaining)+'</b></div></section>'+(paymentRows?'<h2>التحصيلات</h2><table><thead><tr><th>التاريخ</th><th>المبلغ</th><th>المرجع</th></tr></thead><tbody>'+paymentRows+'</tbody></table>':'')+'<footer>صدرت هذه الفاتورة من نظام '+orgName+'. يرجى الاحتفاظ بنسخة منها.</footer></body></html>';
+ return html;
 }
+function cleanupFinanceInvoicePrint(){
+ const root=document.getElementById('wasla-invoice-print-root');
+ const style=document.getElementById('wasla-invoice-print-style');
+ if(root)root.remove();
+ if(style)style.remove();
+ document.body.classList.remove('wasla-invoice-print-mode');
+}
+async function openFinanceInvoicePrint(id){
+ cleanupFinanceInvoicePrint();
+ try{
+  const html=await buildFinanceInvoicePrintDocument(id);
+  const parser=new DOMParser();
+  const parsed=parser.parseFromString(html,'text/html');
+  const root=document.createElement('section');
+  root.id='wasla-invoice-print-root';
+  root.setAttribute('dir','rtl');
+  root.innerHTML=parsed.body.innerHTML;
+  const style=document.createElement('style');
+  style.id='wasla-invoice-print-style';
+  style.textContent='@page{size:A4 portrait;margin:12mm}#wasla-invoice-print-root{display:none}@media print{html,body{background:#fff!important;margin:0!important;padding:0!important;min-height:0!important}body.wasla-invoice-print-mode>*:not(#wasla-invoice-print-root){display:none!important}body.wasla-invoice-print-mode #wasla-invoice-print-root{display:block!important;position:static!important;width:100%!important;margin:0!important;padding:0!important;color:#20251d!important;background:#fff!important;font:12px Tahoma,Arial,sans-serif!important;direction:rtl!important;visibility:visible!important}#wasla-invoice-print-root *{visibility:visible!important;box-sizing:border-box!important}.invoice-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #263323;padding-bottom:16px;margin-bottom:20px}.brand{font-size:22px;font-weight:bold}.invoice-title{text-align:left}.invoice-title h1{font-size:23px;margin:0 0 5px}.muted{color:#687263}.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}.meta>div{padding:10px;background:#f4f6f1;border:1px solid #e3e8df;border-radius:5px}.items{width:100%;border-collapse:collapse;margin:15px 0}.items th,.items td, #wasla-invoice-print-root table th,#wasla-invoice-print-root table td{padding:9px;border:1px solid #dfe4da;text-align:right}.items th,#wasla-invoice-print-root table th{background:#f1f4ed!important;font-weight:bold}.items tr,.totals>div{break-inside:avoid;page-break-inside:avoid}.totals{width:360px;max-width:100%;margin:18px 0 18px auto}.totals>div{display:flex;justify-content:space-between;gap:20px;padding:7px;border-bottom:1px solid #e5e8e1}.totals .grand{font-size:16px;font-weight:bold;background:#f1f4ed!important}.foot,#wasla-invoice-print-root footer{margin-top:28px;border-top:1px solid #ddd;padding-top:10px;color:#697365;font-size:10px}#wasla-invoice-print-root h2{font-size:15px;margin:20px 0 8px}#wasla-invoice-print-root table{width:100%;border-collapse:collapse;margin:12px 0}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
+  document.body.appendChild(root);
+  document.head.appendChild(style);
+  document.body.classList.add('wasla-invoice-print-mode');
+  const afterPrint=()=>{window.removeEventListener('afterprint',afterPrint);cleanupFinanceInvoicePrint();};
+  window.addEventListener('afterprint',afterPrint);
+  window.focus();
+  window.print();
+ }catch(e){
+  cleanupFinanceInvoicePrint();
+  alert('تعذر تجهيز الفاتورة للطباعة: '+(e.message||e));
+ }
+}
+function printFinanceInvoice(id){openFinanceInvoicePrint(id);}
+function exportFinanceInvoicePdf(id){openFinanceInvoicePrint(id);}
 
 async function recordFinanceInvoicePayment(id){
  if(!financeCanManage())return alert('تسجيل التحصيل متاح لمدير المؤسسة فقط.');
