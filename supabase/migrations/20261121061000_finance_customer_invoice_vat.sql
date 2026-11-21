@@ -7,13 +7,7 @@ alter table public.finance_invoices
   add column if not exists vat_base numeric(20,4) not null default 0,
   add column if not exists vat_account_id uuid;
 
-update public.finance_invoices
-set subtotal_original = total_original,
-    subtotal_base = total_base,
-    vat_rate = 0,
-    vat_original = 0,
-    vat_base = 0
-where subtotal_original = 0 and total_original > 0;
+-- Historical invoices remain untouched by the immutable-invoice guard. PDF rendering falls back to total_original for legacy rows.
 
 -- Add a dedicated output VAT liability account for each organization where one is not already configured.
 insert into public.finance_accounts
