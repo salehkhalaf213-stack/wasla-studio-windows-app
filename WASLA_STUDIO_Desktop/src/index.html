@@ -2105,8 +2105,8 @@ async function loadFinanceCustomerStatement(){
    .select('id,invoice_id,payment_number,payment_date,amount_original,currency_code,reference')
    .eq('organization_id',currentOrganizationId).in('invoice_id',invoiceIds).order('payment_date',{ascending:true}));
   const events=[];
-  customerInvoices.forEach(i=>events.push({date:i.invoice_date,type:'invoice',priority:0,currency:i.currency_code||'—',debit:0,credit:Number(i.total_original||0),reference:i.invoice_number,detail:'فاتورة عميل',due:i.due_date||'—'}));
-  payments.forEach(p=>events.push({date:p.payment_date,type:'payment',priority:1,currency:p.currency_code||'—',debit:Number(p.amount_original||0),credit:0,reference:p.reference||p.payment_number,detail:'تحصيل فاتورة عميل',due:'—'}));
+  customerInvoices.forEach(i=>events.push({date:i.invoice_date,type:'invoice',priority:0,currency:i.currency_code||'—',debit:Number(i.total_original||0),credit:0,reference:i.invoice_number,detail:'فاتورة عميل',due:i.due_date||'—'}));
+  payments.forEach(p=>events.push({date:p.payment_date,type:'payment',priority:1,currency:p.currency_code||'—',debit:0,credit:Number(p.amount_original||0),reference:p.reference||p.payment_number,detail:'تحصيل فاتورة عميل',due:'—'}));
   events.sort((a,b)=>String(a.date).localeCompare(String(b.date))||a.priority-b.priority||String(a.reference).localeCompare(String(b.reference)));
   const currencies=[...new Set(events.map(e=>e.currency))];
   let html='<div class="note" style="margin:10px 0">العميل: <b>'+esc(customerInvoices[0].customer_name)+'</b> — الفترة: '+esc(startDate)+' إلى '+esc(endDate)+'. الفواتير المسودة غير مدرجة، وكل عملة تظهر في كشف مستقل.</div>';
@@ -2117,10 +2117,10 @@ async function loadFinanceCustomerStatement(){
    let balance=opening,invoiced=0,collected=0;
    const rows=['<tr><td colspan="4"><b>الرصيد الافتتاحي</b></td><td>—</td><td>—</td><td><b>'+financeReportMoney(balance,currency)+'</b></td></tr>'];
    period.forEach(e=>{
-    balance+=e.debit-e.credit;invoiced+=e.credit;collected+=e.debit;
+    balance+=e.debit-e.credit;invoiced+=e.debit;collected+=e.credit;
     rows.push('<tr><td>'+esc(e.date)+'</td><td>'+(e.type==='invoice'?'فاتورة صادرة':'دفعة تحصيل')+'</td><td>'+esc(e.reference)+'</td><td>'+esc(e.detail)+'</td><td>'+(e.debit?financeReportMoney(e.debit,currency):'—')+'</td><td>'+(e.credit?financeReportMoney(e.credit,currency):'—')+'</td><td><b>'+financeReportMoney(balance,currency)+'</b></td></tr>');
    });
-   html+='<div class="card" style="padding:12px;margin:12px 0;box-shadow:none;border:1px solid var(--line)"><div class="head"><h4 style="margin:0">كشف '+esc(currency)+'</h4><span class="pill '+(balance>0?'amber':'green')+'">'+(balance>0?'رصيد مستحق على العميل':'لا يوجد رصيد مستحق')+'</span></div><div class="grid stats"><div><div class="stat-label">الرصيد الافتتاحي</div><div class="stat-value">'+financeReportMoney(opening,currency)+'</div></div><div><div class="stat-label">فواتير الفترة</div><div class="stat-value">'+financeReportMoney(invoiced,currency)+'</div></div><div><div class="stat-label">تحصيلات الفترة</div><div class="stat-value">'+financeReportMoney(collected,currency)+'</div></div><div><div class="stat-label">الرصيد الختامي</div><div class="stat-value">'+financeReportMoney(balance,currency)+'</div></div></div><div class="table-wrap">'+table(['التاريخ','نوع الحركة','رقم المرجع','البيان','مدين — تحصيل','دائن — فاتورة','الرصيد'],rows)+'</div></div>';
+   html+='<div class="card" style="padding:12px;margin:12px 0;box-shadow:none;border:1px solid var(--line)"><div class="head"><h4 style="margin:0">كشف '+esc(currency)+'</h4><span class="pill '+(balance>0?'amber':'green')+'">'+(balance>0?'رصيد مستحق على العميل':'لا يوجد رصيد مستحق')+'</span></div><div class="grid stats"><div><div class="stat-label">الرصيد الافتتاحي</div><div class="stat-value">'+financeReportMoney(opening,currency)+'</div></div><div><div class="stat-label">فواتير الفترة</div><div class="stat-value">'+financeReportMoney(invoiced,currency)+'</div></div><div><div class="stat-label">تحصيلات الفترة</div><div class="stat-value">'+financeReportMoney(collected,currency)+'</div></div><div><div class="stat-label">الرصيد الختامي</div><div class="stat-value">'+financeReportMoney(balance,currency)+'</div></div></div><div class="table-wrap">'+table(['التاريخ','نوع الحركة','رقم المرجع','البيان','مدين — فاتورة','دائن — تحصيل','الرصيد'],rows)+'</div></div>';
   }
   content.innerHTML=html;
  }catch(e){console.error(e);if(content)content.innerHTML='<div class="empty">تعذر إعداد كشف العميل: '+esc(e.message||'خطأ غير معروف')+'</div>';}
