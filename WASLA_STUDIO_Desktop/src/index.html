@@ -2246,7 +2246,7 @@ async function buildFinanceInvoicePrintDocument(id){
  if(paymentsError)throw paymentsError;
  if(orgError)throw orgError;
  if(!invoice)throw new Error('الفاتورة غير موجودة.');
- const legacy=invoice.subtotal_original==null&&!Number(invoice.vat_original||0);
+ const legacy=!Number(invoice.subtotal_original)&&Number(invoice.total_original)>0&&!Number(invoice.vat_original||0);
  const subtotal=legacy?Number(invoice.total_original||0):Number(invoice.subtotal_original||0);
  const vat=legacy?0:Number(invoice.vat_original||0);
  const total=Number(invoice.total_original||subtotal+vat);
