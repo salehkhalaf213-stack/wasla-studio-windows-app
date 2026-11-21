@@ -572,6 +572,34 @@ footer{color:#8790a7}
  <div class="actions"><button class="btn lime" id="financeInvoiceCreateBtn" onclick="createFinanceInvoiceDraft()">حفظ الفاتورة كمسودة</button><span class="muted tiny">يلزم إنشاء حساب مستقل باسم الذمم المدينة؛ لا تستخدم حساب الصندوق لهذا الغرض.</span></div>
  <div id="financeInvoicesTable" style="margin-top:14px"><div class="empty">جارٍ تحميل الفواتير…</div></div>
 </div>
+<div class="card" id="financeVendorBillsPanel" style="padding:16px;margin:14px 0">
+ <div class="head"><div><h3>الموردون والمصروفات</h3><div class="muted tiny">تسجيل الموردين وفواتير الشراء والمصروفات، مع إنشاء قيد المصروف والمستحقات عند الاعتماد والسداد.</div></div><span class="pill green">مرحلة أولى</span></div>
+ <div class="grid two">
+  <div class="card" style="padding:13px;box-shadow:none">
+   <h4 style="margin:0 0 8px">إضافة مورد</h4>
+   <div class="field"><label for="financeVendorName">اسم المورد</label><input id="financeVendorName" maxlength="180" placeholder="اسم المورد أو مقدم الخدمة"></div>
+   <div class="grid two"><div class="field"><label for="financeVendorEmail">البريد الإلكتروني</label><input id="financeVendorEmail" type="email" placeholder="vendor@example.com"></div><div class="field"><label for="financeVendorPhone">الهاتف</label><input id="financeVendorPhone" placeholder="رقم الهاتف"></div></div>
+   <div class="field"><label for="financeVendorTax">الرقم الضريبي (اختياري)</label><input id="financeVendorTax" placeholder="الرقم الضريبي"></div>
+   <button class="btn soft" id="financeVendorCreateBtn" onclick="createFinanceVendor()">حفظ المورد</button>
+  </div>
+  <div class="card" style="padding:13px;box-shadow:none">
+   <h4 style="margin:0 0 8px">فاتورة مورد / مصروف جديد</h4>
+   <div class="field"><label for="financeVendorSelect">المورد</label><select id="financeVendorSelect"><option value="">اختر المورد</option></select></div>
+   <div class="grid two"><div class="field"><label for="financeVendorBillDate">تاريخ الفاتورة</label><input id="financeVendorBillDate" type="date"></div><div class="field"><label for="financeVendorBillDue">تاريخ الاستحقاق</label><input id="financeVendorBillDue" type="date"></div></div>
+   <div class="grid two"><div class="field"><label for="financeVendorBillNumber">رقم فاتورة المورد</label><input id="financeVendorBillNumber" placeholder="رقم داخلي أو مرجع"></div><div class="field"><label for="financeVendorBillCurrency">العملة</label><select id="financeVendorBillCurrency"><option value="EGP">EGP</option><option value="SAR">SAR</option><option value="AED">AED</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></div></div>
+   <div class="field"><label for="financeVendorBillRate">سعر الصرف إلى العملة الأساسية</label><input id="financeVendorBillRate" type="number" min="0.00000001" step="0.00000001" value="1"></div>
+   <div class="field"><label for="financeVendorPayable">حساب الموردين / الدائنين (التزامات)</label><select id="financeVendorPayable"><option value="">اختر حساب الالتزامات</option></select></div>
+   <div class="field"><label for="financeVendorExpenseAccount">حساب المصروف</label><select id="financeVendorExpenseAccount"><option value="">اختر حساب المصروف</option></select></div>
+   <div class="field"><label for="financeVendorBillDescription">وصف المصروف</label><input id="financeVendorBillDescription" placeholder="إيجار، اشتراك، خدمة، مشتريات..."></div>
+   <div class="grid two"><div class="field"><label for="financeVendorBillQty">الكمية</label><input id="financeVendorBillQty" type="number" min="0.0001" step="0.0001" value="1"></div><div class="field"><label for="financeVendorBillPrice">سعر الوحدة</label><input id="financeVendorBillPrice" type="number" min="0.0001" step="0.0001" placeholder="0.00"></div></div>
+   <div class="field"><label for="financeVendorBillProject">مرجع المشروع (اختياري)</label><input id="financeVendorBillProject" placeholder="معرّف المشروع"></div>
+   <button class="btn lime" id="financeVendorBillCreateBtn" onclick="createFinanceVendorBillDraft()">حفظ فاتورة المورد كمسودة</button>
+  </div>
+ </div>
+ <div class="note">يلزم وجود حساب من نوع «مصروفات» وحساب من نوع «التزامات» في دليل الحسابات. لن يتم تسجيل أي مصروف في التقارير قبل اعتماد فاتورة المورد.</div>
+ <div style="margin-top:14px"><h4>سجل الموردين</h4><div id="financeVendorsTable"><div class="empty">جارٍ تحميل الموردين…</div></div></div>
+ <div style="margin-top:14px"><h4>فواتير الموردين والمبالغ المستحقة</h4><div id="financeVendorBillsTable"><div class="empty">جارٍ تحميل الفواتير…</div></div></div>
+</div>
 <div class="card" id="financeReportsPanel" style="padding:16px;margin-bottom:14px;display:none">
  <div class="head"><div><h3>التقارير المالية</h3><div class="muted tiny">الأرقام بالعملة الأساسية، وتشمل القيود المرحلة والمعكوسة لإظهار صافي الحركة التاريخية.</div></div><span class="pill green">تقارير محاسبية</span></div>
  <div class="finance-filter"><label class="tiny">من تاريخ <input id="financeReportStart" type="date"></label><label class="tiny">إلى تاريخ <input id="financeReportEnd" type="date"></label><button class="btn lime" id="financeReportRunBtn" onclick="loadFinanceReports()">تحديث التقارير</button></div>
@@ -2067,6 +2095,84 @@ async function recordFinanceInvoicePayment(id){
  try{const {error}=await sb.rpc('record_finance_invoice_payment',{p_invoice_id:id,p_amount:amount,p_cash_account_id:account.id,p_payment_date:new Date().toISOString().slice(0,10),p_reference:null});if(error)throw error;await loadFinanceWorkspace();alert('تم تسجيل التحصيل وإنشاء القيد المرتبط به.');}
  catch(e){alert('تعذر تسجيل التحصيل: '+(e.message||e));}
 }
+let financeVendors=[],financeVendorBills=[];
+function financeVendorFillAccounts(){
+ const liabilities=financeAccounts.filter(a=>a.is_active&&a.account_type==='liability');
+ const expenses=financeAccounts.filter(a=>a.is_active&&a.account_type==='expense');
+ const fill=(id,rows,label)=>{const el=$(id);if(!el)return;const old=el.value;el.innerHTML='<option value="">'+label+'</option>'+rows.map(a=>'<option value="'+a.id+'">'+esc(a.account_code)+' — '+esc(a.account_name)+'</option>').join('');if(rows.some(a=>a.id===old))el.value=old;};
+ fill('financeVendorPayable',liabilities,'اختر حساب الالتزامات');
+ fill('financeVendorExpenseAccount',expenses,'اختر حساب المصروف');
+ const assets=financeAccounts.filter(a=>a.is_active&&a.account_type==='asset'&&/(صندوق|بنك|cash|bank)/i.test(a.account_name||''));
+ window.financeVendorCashAccounts=assets;
+}
+async function loadFinanceVendorsBills(){
+ if(!currentOrganizationId||!(financeCanManage()||financeHasRole('accountant')))return;
+ const [vr,br]=await Promise.all([
+  sb.from('finance_vendors').select('id,vendor_name,email,phone,tax_number,is_active').eq('organization_id',currentOrganizationId).order('vendor_name'),
+  sb.from('finance_vendor_bills').select('id,bill_number,vendor_id,vendor_invoice_number,bill_date,due_date,currency_code,total_original,paid_original,status').eq('organization_id',currentOrganizationId).order('bill_date',{ascending:false}).limit(200)
+ ]);
+ if(vr.error)throw vr.error;if(br.error)throw br.error;
+ financeVendors=vr.data||[];financeVendorBills=br.data||[];
+ const sel=$('financeVendorSelect'),old=sel?.value;
+ if(sel){sel.innerHTML='<option value="">اختر المورد</option>'+financeVendors.filter(v=>v.is_active).map(v=>'<option value="'+v.id+'">'+esc(v.vendor_name)+'</option>').join('');if(financeVendors.some(v=>v.id===old))sel.value=old;}
+ $('financeVendorsTable').innerHTML=table(['المورد','البريد','الهاتف','الحالة'],financeVendors.map(v=>'<tr><td>'+esc(v.vendor_name)+'</td><td>'+esc(v.email||'—')+'</td><td>'+esc(v.phone||'—')+'</td><td><span class="pill '+(v.is_active?'green':'amber')+'">'+(v.is_active?'نشط':'متوقف')+'</span></td></tr>'));
+ $('financeVendorBillsTable').innerHTML=table(['رقم الفاتورة','المورد','التاريخ','الإجمالي','المسدّد','المتبقي','الحالة','إجراء'],financeVendorBills.map(b=>{
+  const vendor=financeVendors.find(v=>v.id===b.vendor_id);
+  const remaining=Math.max(0,Number(b.total_original||0)-Number(b.paid_original||0));
+  const status=b.status==='draft'?'مسودة':b.status==='paid'?'مدفوعة':'معتمدة';
+  const action=b.status==='draft'?(financeCanManage()?'<button class="btn lime sm" onclick="issueFinanceVendorBill(\''+b.id+'\')">اعتماد وترحيل</button>':'بانتظار الاعتماد'):b.status==='issued'?(financeCanManage()?'<button class="btn soft sm" onclick="recordFinanceVendorBillPayment(\''+b.id+'\')">تسجيل سداد</button>':'مستحق'): 'مكتملة';
+  return '<tr><td>'+esc(b.bill_number)+'</td><td>'+esc(vendor?.vendor_name||'—')+'</td><td>'+esc(b.bill_date)+'</td><td>'+financeReportMoney(b.total_original,b.currency_code)+'</td><td>'+financeReportMoney(b.paid_original,b.currency_code)+'</td><td>'+financeReportMoney(remaining,b.currency_code)+'</td><td><span class="pill '+(b.status==='paid'?'green':b.status==='draft'?'amber':'blue')+'">'+status+'</span></td><td>'+action+'</td></tr>';
+ }));
+}
+async function createFinanceVendor(){
+ if(!financeCanWrite())return alert('لا تملك صلاحية إضافة مورد.');
+ const name=$('financeVendorName').value.trim();if(!name)return alert('اكتب اسم المورد.');
+ const btn=$('financeVendorCreateBtn');btn.disabled=true;
+ try{
+  const {error}=await sb.from('finance_vendors').insert({organization_id:currentOrganizationId,vendor_name:name,email:$('financeVendorEmail').value.trim()||null,phone:$('financeVendorPhone').value.trim()||null,tax_number:$('financeVendorTax').value.trim()||null,created_by:currentUser.id});
+  if(error)throw error;
+  ['financeVendorName','financeVendorEmail','financeVendorPhone','financeVendorTax'].forEach(id=>$(id).value='');
+  await loadFinanceVendorsBills();alert('تم حفظ المورد.');
+ }catch(e){alert('تعذر حفظ المورد: '+(e.message||e));}finally{btn.disabled=false;}
+}
+async function createFinanceVendorBillDraft(){
+ if(!financeCanWrite())return alert('لا تملك صلاحية تسجيل فاتورة مورد.');
+ const vendor=$('financeVendorSelect').value,number=$('financeVendorBillNumber').value.trim(),currency=$('financeVendorBillCurrency').value,rate=Number($('financeVendorBillRate').value||0);
+ const payable=$('financeVendorPayable').value,expense=$('financeVendorExpenseAccount').value,description=$('financeVendorBillDescription').value.trim();
+ const qty=Number($('financeVendorBillQty').value||0),price=Number($('financeVendorBillPrice').value||0),project=$('financeVendorBillProject').value.trim()||null;
+ const date=$('financeVendorBillDate').value||new Date().toISOString().slice(0,10),due=$('financeVendorBillDue').value||null;
+ if(!vendor||!number||!payable||!expense||!description||qty<=0||price<=0||rate<=0)return alert('أكمل المورد ورقم الفاتورة والحسابات والوصف والكمية والسعر وسعر الصرف.');
+ const base=financeSettings?.base_currency;if(!base)return alert('حدد العملة الأساسية للمؤسسة أولاً.');
+ if(currency===base&&rate!==1)return alert('سعر الصرف يجب أن يساوي 1 عند استخدام العملة الأساسية.');
+ const btn=$('financeVendorBillCreateBtn');btn.disabled=true;
+ try{
+  const billNumber='VBILL-'+Date.now();
+  const {error}=await sb.rpc('create_finance_vendor_bill_draft',{p_bill_number:billNumber,p_vendor_id:vendor,p_vendor_invoice_number:number,p_bill_date:date,p_due_date:due,p_currency_code:currency,p_exchange_rate:rate,p_payable_account_id:payable,p_line_description:description,p_quantity:qty,p_unit_price:price,p_expense_account_id:expense,p_project_ref:project});
+  if(error)throw error;
+  $('financeVendorBillNumber').value='';$('financeVendorBillDescription').value='';$('financeVendorBillPrice').value='';$('financeVendorBillProject').value='';
+  await loadFinanceVendorsBills();alert('تم حفظ فاتورة المورد كمسودة. لم يُسجل المصروف بعد.');
+ }catch(e){alert('تعذر حفظ فاتورة المورد: '+(e.message||e));}finally{btn.disabled=false;}
+}
+async function issueFinanceVendorBill(id){
+ if(!financeCanManage())return alert('اعتماد فواتير الموردين متاح لمدير المؤسسة فقط.');
+ const bill=financeVendorBills.find(x=>x.id===id);if(!bill)return;
+ if(!confirm('سيتم اعتماد فاتورة المورد '+bill.bill_number+' وإنشاء قيد مصروف ومستحقات. لا يمكن تعديلها بعد الاعتماد. هل تريد المتابعة؟'))return;
+ try{const {error}=await sb.rpc('issue_finance_vendor_bill',{p_bill_id:id});if(error)throw error;await loadFinanceWorkspace();alert('تم اعتماد فاتورة المورد وترحيل قيد المصروف والمستحقات.');}
+ catch(e){alert('تعذر اعتماد الفاتورة: '+(e.message||e));}
+}
+async function recordFinanceVendorBillPayment(id){
+ if(!financeCanManage())return alert('سداد فواتير الموردين متاح لمدير المؤسسة فقط.');
+ const bill=financeVendorBills.find(x=>x.id===id);if(!bill)return;
+ const amount=Number(prompt('أدخل مبلغ السداد بعملة الفاتورة ('+bill.currency_code+'). المتبقي: '+(Number(bill.total_original)-Number(bill.paid_original))));
+ if(!Number.isFinite(amount)||amount<=0)return;
+ const assets=window.financeVendorCashAccounts||[];if(!assets.length)return alert('لا يوجد حساب صندوق أو بنك نشط.');
+ const code=prompt('اكتب كود حساب الصندوق أو البنك:\n'+assets.map(a=>a.account_code+' — '+a.account_name).join('\n'));if(!code)return;
+ const account=assets.find(a=>a.account_code===code.trim());if(!account)return alert('كود الحساب غير صحيح.');
+ const reference=prompt('مرجع التحويل أو الإيصال (اختياري):')||null;
+ if(!confirm('سيتم تسجيل السداد وإنشاء قيد مستقل لتخفيض مستحقات المورد. هل تريد المتابعة؟'))return;
+ try{const {error}=await sb.rpc('record_finance_vendor_bill_payment',{p_bill_id:id,p_amount:amount,p_cash_account_id:account.id,p_payment_date:new Date().toISOString().slice(0,10),p_reference:reference});if(error)throw error;await loadFinanceWorkspace();alert('تم تسجيل سداد فاتورة المورد.');}
+ catch(e){alert('تعذر تسجيل السداد: '+(e.message||e));}
+}
 async function loadFinanceWorkspace(showToast=false){
  if(!currentOrganizationId)return;
  try{
@@ -2093,7 +2199,7 @@ async function loadFinanceWorkspace(showToast=false){
   if(canSeeAccounts)requests.push(sb.from('finance_accounts').select('id,account_code,account_name,account_type,is_active,is_system,parent_id').eq('organization_id',currentOrganizationId).order('account_code'));
   const results=await Promise.all(requests);for(const r of results)if(r.error)throw r.error;
   financeSettings=results[0].data||null;financeJournals=results[1].data||[];financeAccounts=canSeeAccounts?(results[2]?.data||[]):[];
-  financeInvoiceFillAccounts();
+  financeInvoiceFillAccounts();financeVendorFillAccounts();
   if($('financeInvoiceCurrency')&&financeSettings?.base_currency){$('financeInvoiceCurrency').value=financeSettings.base_currency;$('financeInvoiceRate').value='1';}
   if($('financeInvoiceDate')&&!$('financeInvoiceDate').value)$('financeInvoiceDate').value=new Date().toISOString().slice(0,10);
   $('financeBaseCurrency').textContent=financeSettings?.base_currency||'غير محددة';
@@ -2103,9 +2209,9 @@ async function loadFinanceWorkspace(showToast=false){
   $('financePostedCount').textContent=financeJournals.filter(x=>['posted','reversed'].includes(x.status)).length;
   if(canSeeAccounts)$('financeAccountsTable').innerHTML=table(['الكود','اسم الحساب','النوع','الحالة'],financeAccounts.map(a=>'<tr><td>'+esc(a.account_code)+'</td><td>'+esc(a.account_name)+'</td><td>'+esc(({asset:'أصول',liability:'التزامات',equity:'حقوق ملكية',revenue:'إيرادات',expense:'مصروفات'})[a.account_type]||a.account_type)+'</td><td><span class="pill '+(a.is_active?'green':'amber')+'">'+(a.is_active?'نشط':'متوقف')+'</span></td></tr>'));
   $('financeJournalsTable').innerHTML=table(['رقم القيد','التاريخ','البيان','العملة','الحالة','إجراء'],financeJournals.map(j=>'<tr><td><button class="btn soft sm" onclick="openFinanceJournalDetails(\''+j.id+'\')">'+esc(j.entry_number)+'</button></td><td>'+esc(j.entry_date)+'</td><td>'+esc(j.description)+'</td><td>'+esc(j.currency_code)+'</td><td><span class="pill '+(j.status==='posted'?'green':'amber')+'">'+(j.status==='posted'?'مرحّل':j.status==='reversed'?'معكوس':'مسودة')+'</span></td><td><button class="btn soft sm" onclick="openFinanceJournalDetails(\''+j.id+'\')">التفاصيل</button> '+(j.status==='draft'&&financeCanManage()?'<button class="btn lime sm" onclick="postFinanceJournal(\''+j.id+'\')">اعتماد وترحيل</button>':j.status==='posted'&&financeCanWrite()?'<button class="btn soft sm" onclick="createFinanceReversal(\''+j.id+'\')">إنشاء قيد عكسي</button>':j.status==='draft'?'مسودة — بانتظار الاعتماد':j.status==='reversed'?'تم إنشاء القيد العكسي':'<span class="muted tiny">مقفل</span>')+'</td></tr>'));
-  financeSetVisible('financeInvoicesPanel',canSeeAccounts);
+  financeSetVisible('financeInvoicesPanel',canSeeAccounts);financeSetVisible('financeVendorBillsPanel',canSeeAccounts);
   financeSetVisible('financeReportsPanel',canSeeAccounts);
-  if(canSeeAccounts){await loadFinanceReports();await loadFinanceInvoices();}
+  if(canSeeAccounts){await loadFinanceReports();await loadFinanceInvoices();await loadFinanceVendorsBills();}
   financeSetVisible('financeProjectSummaryPanel',financeHasRole('project_manager')||financeHasRole('finance_viewer'));
   if(financeHasRole('project_manager')||financeHasRole('finance_viewer')){
    const {data:summary,error}=await sb.rpc('finance_my_project_summaries');if(error)throw error;
