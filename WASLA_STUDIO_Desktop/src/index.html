@@ -2145,6 +2145,50 @@ function openFinanceAccount(){
   if(error)return alert('تعذر إضافة الحساب: '+error.message);closeModal();await loadFinanceWorkspace();
  });
 }
+let financeJournalLineCounter=0;
+function financeJournalLineHtml(line={},editable=true){
+ const selected=line.account_id||'';
+ const choices=(financeAccounts||[]).filter(a=>a.is_active||a.id===selected).map(a=>'<option value="'+a.id+'" '+(a.id===selected?'selected':'')+'>'+esc(a.account_code+' — '+a.account_name+(a.is_active?'':' (متوقف)'))+'</option>').join('');
+ return '<div class="card finance-journal-line" data-line-id="'+esc(line.id||'')+'" style="padding:10px;margin:8px 0">'+
+  '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px">'+
+  '<div class="field"><label>الحساب</label><select class="fjl-account" '+(editable?'':'disabled')+'>'+choices+'</select></div>'+
+  '<div class="field"><label>بيان السطر</label><input class="fjl-description" value="'+esc(line.line_description||'')+'" '+(editable?'':'disabled')+'></div>'+
+  '<div class="field"><label>مدين</label><input class="fjl-debit" type="number" min="0" step="0.0001" value="'+(Number(line.debit_original)||'')+'" '+(editable?'oninput="financeUpdateJournalTotals()"':'disabled')+'></div>'+
+  '<div class="field"><label>دائن</label><input class="fjl-credit" type="number" min="0" step="0.0001" value="'+(Number(line.credit_original)||'')+'" '+(editable?'oninput="financeUpdateJournalTotals()"':'disabled')+'></div>'+
+  '</div>'+(editable?'<div style="display:flex;justify-content:flex-end"><button type="button" class="btn danger sm" onclick="financeRemoveJournalLine(this)">حذف السطر</button></div>':'')+
+ '</div>';
+}
+function financeAddJournalLine(containerId,line={}){
+ const host=$(containerId);if(!host)return;
+ host.insertAdjacentHTML('beforeend',financeJournalLineHtml(line,true));
+ financeUpdateJournalTotals();
+}
+function financeRemoveJournalLine(button){
+ const row=button.closest('.finance-journal-line');if(row)row.remove();
+ financeUpdateJournalTotals();
+}
+function financeCollectJournalLines(){
+ return [...document.querySelectorAll('#financeJournalLines .finance-journal-line')].map(row=>({
+  id:row.dataset.lineId||null,
+  account_id:row.querySelector('.fjl-account')?.value||'',
+  line_description:row.querySelector('.fjl-description')?.value.trim()||'',
+  debit:Number(row.querySelector('.fjl-debit')?.value||0),
+  credit:Number(row.querySelector('.fjl-credit')?.value||0)
+ }));
+}
+function financeUpdateJournalTotals(){
+ const rows=financeCollectJournalLines();
+ const debit=rows.reduce((s,x)=>s+x.debit,0),credit=rows.reduce((s,x)=>s+x.credit,0);
+ const el=$('financeJournalTotals');
+ if(el)el.textContent='إجمالي المدين: '+debit.toFixed(4)+' — إجمالي الدائن: '+credit.toFixed(4)+' — الفرق: '+(debit-credit).toFixed(4);
+}
+function financeValidateJournalLines(rows,rate){
+ if(rows.length<2)return 'يجب إضافة سطرين على الأقل.';
+ if(rows.some(x=>!x.account_id||!Number.isFinite(x.debit)||!Number.isFinite(x.credit)||x.debit<0||x.credit<0||((x.debit>0)===(x.credit>0))))return 'كل سطر يجب أن يحتوي على حساب ومبلغ في جانب واحد فقط (مدين أو دائن).';
+ const debitBase=rows.reduce((s,x)=>s+x.debit*rate,0),creditBase=rows.reduce((s,x)=>s+x.credit*rate,0);
+ if(debitBase<=0||creditBase<=0||Math.abs(debitBase-creditBase)>0.0001)return 'القيد غير متوازن. يجب أن يتساوى إجمالي المدين مع إجمالي الدائن.';
+ return null;
+}
 async function openFinanceJournalDetails(id){
  const journal=financeJournals.find(x=>x.id===id);
  if(!journal)return alert('لم يتم العثور على القيد. حدّث البيانات وحاول مرة أخرى.');
@@ -2152,67 +2196,73 @@ async function openFinanceJournalDetails(id){
  if(error)return alert('تعذر تحميل تفاصيل القيد: '+error.message);
  const editable=journal.status==='draft'&&financeCanWrite();
  const accounts=financeAccounts||[];
- const accountOptions=(selected)=>accounts.map(a=>'<option value="'+a.id+'" '+(a.id===selected?'selected':'')+'>'+esc(a.account_code+' — '+a.account_name+(a.is_active?'':' (متوقف)'))+'</option>').join('');
- const debitLine=(lines||[]).find(x=>Number(x.debit_original)>0);
- const creditLine=(lines||[]).find(x=>Number(x.credit_original)>0);
- const canEdit=editable&&debitLine&&creditLine&&(lines||[]).length===2&&accounts.length>0;
- const details=(lines||[]).map((line,index)=>{const a=accounts.find(x=>x.id===line.account_id);return '<tr><td>'+(a?esc(a.account_code+' — '+a.account_name):esc(line.account_id))+'</td><td>'+(Number(line.debit_original)>0?'مدين':'دائن')+'</td><td>'+esc(String(Number(line.debit_original||line.credit_original)))+'</td><td>'+esc(line.currency_code||journal.currency_code)+'</td></tr>'}).join('');
+ const details=(lines||[]).map(line=>{const a=accounts.find(x=>x.id===line.account_id);return '<tr><td>'+(a?esc(a.account_code+' — '+a.account_name):esc(line.account_id))+'</td><td>'+esc(String(Number(line.debit_original||0)))+'</td><td>'+esc(String(Number(line.credit_original||0)))+'</td><td>'+esc(line.currency_code||journal.currency_code)+'</td></tr>'}).join('');
  let body='';
- if(canEdit){
+ if(editable){
   body=input('fjdDate','تاريخ القيد',journal.entry_date,'date')+input('fjdDesc','بيان القيد',journal.description)+
-   '<div class="field"><label>الحساب المدين</label><select id="fjdDebit">'+accountOptions(debitLine.account_id)+'</select></div>'+
-   '<div class="field"><label>الحساب الدائن</label><select id="fjdCredit">'+accountOptions(creditLine.account_id)+'</select></div>'+
-   input('fjdAmount','المبلغ بالعملة الأصلية',String(Number(debitLine.debit_original)),'number')+
    '<div class="field"><label>عملة العملية</label><select id="fjdCurrency">'+['EGP','SAR','AED','USD','EUR','GBP'].map(x=>'<option value="'+x+'" '+(x===journal.currency_code?'selected':'')+'>'+x+'</option>').join('')+'</select></div>'+
    input('fjdRate','سعر الصرف مقابل العملة الأساسية',String(Number(journal.exchange_rate)),'number')+
-   input('fjdProject','مرجع المشروع (اختياري)',journal.project_ref||'');
+   input('fjdProject','مرجع المشروع (اختياري)',journal.project_ref||'')+
+   '<div class="head" style="margin-top:12px"><h4>سطور القيد</h4><button type="button" class="btn soft sm" onclick="financeAddJournalLine(\'financeJournalLines\')">＋ إضافة سطر</button></div>'+
+   '<div id="financeJournalLines">'+(lines||[]).map(line=>financeJournalLineHtml(line,true)).join('')+'</div>'+
+   '<div class="note" id="financeJournalTotals"></div><div class="note">يمكن تعديل المسودة فقط. يجب أن يتساوى إجمالي المدين والدائن قبل الحفظ.</div>';
  }else{
   body='<div class="grid stats"><div class="card"><div class="stat-label">رقم القيد</div><div class="stat-value">'+esc(journal.entry_number)+'</div></div><div class="card"><div class="stat-label">الحالة</div><div class="stat-value">'+esc(journal.status==='posted'?'مرحّل':journal.status==='reversed'?'معكوس':'مسودة')+'</div></div></div>'+
    '<p><b>التاريخ:</b> '+esc(journal.entry_date)+'</p><p><b>البيان:</b> '+esc(journal.description)+'</p>'+
    '<p><b>العملة:</b> '+esc(journal.currency_code)+' — <b>سعر الصرف:</b> '+esc(String(Number(journal.exchange_rate)))+'</p>'+
-   '<div class="table-wrap">'+table(['الحساب','النوع','المبلغ','العملة'],details)+'</div>'+
-   (editable?'<div class="note">تعذر تفعيل التعديل: يجب أن يحتوي القيد على سطر مدين وسطر دائن فقط، وأن تكون الحسابات متاحة.</div>':'<div class="note">القيود المرحلة لا تقبل التعديل. يمكن تعديل المسودات قبل اعتمادها.</div>');
+   '<div class="table-wrap">'+table(['الحساب','مدين','دائن','العملة'],details)+'</div>'+
+   '<div class="note">القيود المرحلة لا تقبل التعديل. يمكن تعديل المسودات قبل اعتمادها.</div>';
  }
  openModal('تفاصيل القيد — '+journal.entry_number,body,async()=>{
-  if(!canEdit)return;
-  const amount=Number($('fjdAmount').value),rate=Number($('fjdRate').value),debit=$('fjdDebit').value,credit=$('fjdCredit').value,description=$('fjdDesc').value.trim(),date=$('fjdDate').value||journal.entry_date,currency=$('fjdCurrency').value,projectRef=$('fjdProject').value.trim()||null;
-  if(!description||!Number.isFinite(amount)||amount<=0||!Number.isFinite(rate)||rate<=0)return alert('أدخل بياناً ومبلغاً وسعر صرف صحيحاً.');
-  if(debit===credit)return alert('اختر حسابين مختلفين.');
-  const base=Number((amount*rate).toFixed(4));
-  const debitUpdate=await sb.from('finance_journal_lines').update({account_id:debit,line_description:description,currency_code:currency,exchange_rate:rate,debit_original:amount,credit_original:0,debit_base:base,credit_base:0,project_ref:projectRef}).eq('id',debitLine.id).eq('organization_id',currentOrganizationId).eq('journal_id',id);
-  if(debitUpdate.error)return alert('تعذر تحديث السطر المدين: '+debitUpdate.error.message);
-  const creditUpdate=await sb.from('finance_journal_lines').update({account_id:credit,line_description:description,currency_code:currency,exchange_rate:rate,debit_original:0,credit_original:amount,debit_base:0,credit_base:base,project_ref:projectRef}).eq('id',creditLine.id).eq('organization_id',currentOrganizationId).eq('journal_id',id);
-  if(creditUpdate.error){alert('تعذر تحديث السطر الدائن. أعد فتح المسودة لمراجعة السطرين قبل الاعتماد: '+creditUpdate.error.message);return;}
+  if(!editable)return;
+  const description=$('fjdDesc').value.trim(),date=$('fjdDate').value||journal.entry_date,currency=$('fjdCurrency').value,rate=Number($('fjdRate').value),projectRef=$('fjdProject').value.trim()||null,rows=financeCollectJournalLines();
+  if(!description||!Number.isFinite(rate)||rate<=0)return alert('أدخل بياناً وسعر صرف صحيحاً.');
+  const validation=financeValidateJournalLines(rows,rate);if(validation)return alert(validation);
   const headerUpdate=await sb.from('finance_journals').update({entry_date:date,description,currency_code:currency,exchange_rate:rate,rate_date:date,project_ref:projectRef}).eq('id',id).eq('organization_id',currentOrganizationId).eq('status','draft');
-  if(headerUpdate.error){alert('تم تحديث السطور لكن تعذر تحديث بيانات رأس القيد. أعد فتح المسودة لمراجعتها: '+headerUpdate.error.message);return;}
-  closeModal();await loadFinanceWorkspace();alert('تم تحديث المسودة بنجاح. لم تُرحّل.');
+  if(headerUpdate.error)return alert('تعذر تحديث بيانات القيد: '+headerUpdate.error.message);
+  const kept=[];
+  for(const row of rows){
+   const baseDebit=Number((row.debit*rate).toFixed(4)),baseCredit=Number((row.credit*rate).toFixed(4));
+   const payload={account_id:row.account_id,line_description:row.line_description||description,currency_code:currency,exchange_rate:rate,debit_original:row.debit,credit_original:row.credit,debit_base:baseDebit,credit_base:baseCredit,project_ref:projectRef};
+   let result;
+   if(row.id)result=await sb.from('finance_journal_lines').update(payload).eq('id',row.id).eq('organization_id',currentOrganizationId).eq('journal_id',id);
+   else result=await sb.from('finance_journal_lines').insert({...payload,organization_id:currentOrganizationId,journal_id:id,created_by:currentUser.id});
+   if(result.error){alert('تعذر حفظ أحد سطور المسودة: '+result.error.message+'؛ لم يتم ترحيل القيد. افتح المسودة وراجع سطورها قبل الاعتماد.');return;}
+   if(row.id)kept.push(row.id);
+  }
+  const removed=(lines||[]).filter(line=>!kept.includes(line.id)).map(line=>line.id);
+  if(removed.length){const del=await sb.from('finance_journal_lines').delete().eq('organization_id',currentOrganizationId).eq('journal_id',id).in('id',removed);if(del.error){alert('تم حفظ بعض التعديلات لكن تعذر حذف السطور المستبعدة: '+del.error.message+'؛ راجع المسودة قبل اعتمادها.');return;}}
+  closeModal();await loadFinanceWorkspace();alert('تم تحديث المسودة متعددة السطور بنجاح. لم تُرحّل.');
  });
- $('saveBtn').style.display=canEdit?'':'none';
+ $('saveBtn').style.display=editable?'':'none';
  $('saveBtn').textContent='حفظ التعديلات';
+ if(editable)financeUpdateJournalTotals();
 }
 function openFinanceJournal(){
  if(!financeCanWrite())return;
  if(!financeSettings?.base_currency)return alert('حدد العملة الأساسية للمؤسسة أولاً.');
  if(financeAccounts.filter(a=>a.is_active).length<2)return alert('لا يوجد حسابان نشطان على الأقل. اطلب من مدير المؤسسة إعداد دليل الحسابات.');
- const options=financeAccounts.filter(a=>a.is_active).map(a=>'<option value="'+a.id+'">'+esc(a.account_code+' — '+a.account_name)+'</option>').join('');
  const currencies=['EGP','SAR','AED','USD','EUR','GBP'];
- openModal('إنشاء قيد يومية — مسودة',input('fjDate','تاريخ القيد',new Date().toISOString().slice(0,10),'date')+input('fjDesc','بيان القيد')+'<div class="field"><label>حساب مدين</label><select id="fjDebit">'+options+'</select></div><div class="field"><label>حساب دائن</label><select id="fjCredit">'+options+'</select></div>'+input('fjAmount','المبلغ بالعملة الأصلية','','number')+'<div class="field"><label>عملة العملية</label><select id="fjCurrency">'+currencies.map(c=>'<option value="'+c+'" '+(c===financeSettings.base_currency?'selected':'')+'>'+c+'</option>').join('')+'</select></div>'+input('fjRate','سعر الصرف مقابل العملة الأساسية','1','number')+input('fjProject','مرجع المشروع (اختياري)'),async()=>{
-  const amount=Number($('fjAmount').value),rate=Number($('fjRate').value),debit=$('fjDebit').value,credit=$('fjCredit').value,desc=$('fjDesc').value.trim();
-  if(!desc||!amount||amount<=0||!rate||rate<=0)return alert('أكمل البيان والمبلغ وسعر الصرف بقيم صحيحة.');
-  if(debit===credit)return alert('اختر حسابين مختلفين للقيد.');
-  const entry='JE-'+Date.now(),date=$('fjDate').value||new Date().toISOString().slice(0,10),projectRef=$('fjProject').value.trim()||null;
-  const payload={organization_id:currentOrganizationId,entry_number:entry,entry_date:date,description:desc,status:'draft',currency_code:$('fjCurrency').value,exchange_rate:rate,rate_date:date,project_ref:projectRef,created_by:currentUser.id};
+ const body=input('fjDate','تاريخ القيد',new Date().toISOString().slice(0,10),'date')+input('fjDesc','بيان القيد')+
+  '<div class="field"><label>عملة العملية</label><select id="fjCurrency">'+currencies.map(c=>'<option value="'+c+'" '+(c===financeSettings.base_currency?'selected':'')+'>'+c+'</option>').join('')+'</select></div>'+
+  input('fjRate','سعر الصرف مقابل العملة الأساسية','1','number')+input('fjProject','مرجع المشروع (اختياري)')+
+  '<div class="head" style="margin-top:12px"><h4>سطور القيد</h4><button type="button" class="btn soft sm" onclick="financeAddJournalLine(\'financeJournalLines\')">＋ إضافة سطر</button></div>'+
+  '<div id="financeJournalLines">'+financeJournalLineHtml({debit_original:0,credit_original:0},true)+financeJournalLineHtml({debit_original:0,credit_original:0},true)+'</div>'+
+  '<div class="note" id="financeJournalTotals"></div><div class="note">أضف سطرين على الأقل. يجب أن يتساوى إجمالي المدين والدائن. سيتم حفظ القيد كمسودة للمراجعة والاعتماد لاحقاً.</div>';
+ openModal('إنشاء قيد يومية متعدد السطور — مسودة',body,async()=>{
+  const amountRate=Number($('fjRate').value),desc=$('fjDesc').value.trim(),date=$('fjDate').value||new Date().toISOString().slice(0,10),currency=$('fjCurrency').value,projectRef=$('fjProject').value.trim()||null,rows=financeCollectJournalLines();
+  if(!desc||!Number.isFinite(amountRate)||amountRate<=0)return alert('أكمل البيان وسعر الصرف بقيم صحيحة.');
+  const validation=financeValidateJournalLines(rows,amountRate);if(validation)return alert(validation);
+  const entry='JE-'+Date.now();
+  const payload={organization_id:currentOrganizationId,entry_number:entry,entry_date:date,description:desc,status:'draft',currency_code:currency,exchange_rate:amountRate,rate_date:date,project_ref:projectRef,created_by:currentUser.id};
   const {data:journal,error}=await sb.from('finance_journals').insert(payload).select('id').single();
   if(error)return alert('تعذر إنشاء مسودة القيد: '+error.message);
-  const base=Number((amount*rate).toFixed(4));
-  const lines=[
-   {organization_id:currentOrganizationId,journal_id:journal.id,account_id:debit,line_description:desc,currency_code:payload.currency_code,exchange_rate:rate,debit_original:amount,credit_original:0,debit_base:base,credit_base:0,project_ref:projectRef,created_by:currentUser.id},
-   {organization_id:currentOrganizationId,journal_id:journal.id,account_id:credit,line_description:desc,currency_code:payload.currency_code,exchange_rate:rate,debit_original:0,credit_original:amount,debit_base:0,credit_base:base,project_ref:projectRef,created_by:currentUser.id}
-  ];
-  const {error:lineError}=await sb.from('finance_journal_lines').insert(lines);
-  if(lineError){alert('تم إنشاء المسودة لكن تعذر حفظ سطورها: '+lineError.message+'؛ لا تعتمد القيد قبل مراجعتها.');closeModal();await loadFinanceWorkspace();return;}
-  closeModal();await loadFinanceWorkspace();alert('تم إنشاء مسودة القيد '+entry+'. لم تُرحّل بعد.');
+  const newLines=rows.map(row=>({organization_id:currentOrganizationId,journal_id:journal.id,account_id:row.account_id,line_description:row.line_description||desc,currency_code:currency,exchange_rate:amountRate,debit_original:row.debit,credit_original:row.credit,debit_base:Number((row.debit*amountRate).toFixed(4)),credit_base:Number((row.credit*amountRate).toFixed(4)),project_ref:projectRef,created_by:currentUser.id}));
+  const {error:lineError}=await sb.from('finance_journal_lines').insert(newLines);
+  if(lineError){alert('تم إنشاء رأس المسودة لكن تعذر حفظ السطور: '+lineError.message+'؛ لا تعتمد هذا القيد.');closeModal();await loadFinanceWorkspace();return;}
+  closeModal();await loadFinanceWorkspace();alert('تم إنشاء مسودة القيد '+entry+' بعدد '+newLines.length+' سطور. لم تُرحّل بعد.');
  });
+ financeUpdateJournalTotals();
 }
 async function postFinanceJournal(id){
  if(!financeCanManage())return;
