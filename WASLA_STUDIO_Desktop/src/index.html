@@ -2091,7 +2091,8 @@ async function loadFinanceWorkspace(showToast=false){
   ];
   if(canSeeAccounts)requests.push(sb.from('finance_accounts').select('id,account_code,account_name,account_type,is_active,is_system,parent_id').eq('organization_id',currentOrganizationId).order('account_code'));
   const results=await Promise.all(requests);for(const r of results)if(r.error)throw r.error;
-  financeSettings=results[0].data||null;financeJournals=results[1].data||[];financeAccounts=canSeeAccounts?(results[2]?.data||[]):[];\n  financeInvoiceFillAccounts();\n  if($('financeInvoiceCurrency')&&financeSettings?.base_currency){$('financeInvoiceCurrency').value=financeSettings.base_currency;$('financeInvoiceRate').value='1';}\n  if($('financeInvoiceDate')&&!$('financeInvoiceDate').value)$('financeInvoiceDate').value=new Date().toISOString().slice(0,10);
+  financeSettings=results[0].data||null;financeJournals=results[1].data||[];financeAccounts=canSeeAccounts?(results[2]?.data||[]):[];
+  financeInvoiceFillAccounts();\n  if($('financeInvoiceCurrency')&&financeSettings?.base_currency){$('financeInvoiceCurrency').value=financeSettings.base_currency;$('financeInvoiceRate').value='1';}\n  if($('financeInvoiceDate')&&!$('financeInvoiceDate').value)$('financeInvoiceDate').value=new Date().toISOString().slice(0,10);
   $('financeBaseCurrency').textContent=financeSettings?.base_currency||'غير محددة';
   if($('financeCurrencyInput'))$('financeCurrencyInput').value=financeSettings?.base_currency||'';
   $('financeAccountCount').textContent=canSeeAccounts?financeAccounts.length:'—';
@@ -2099,7 +2100,8 @@ async function loadFinanceWorkspace(showToast=false){
   $('financePostedCount').textContent=financeJournals.filter(x=>['posted','reversed'].includes(x.status)).length;
   if(canSeeAccounts)$('financeAccountsTable').innerHTML=table(['الكود','اسم الحساب','النوع','الحالة'],financeAccounts.map(a=>'<tr><td>'+esc(a.account_code)+'</td><td>'+esc(a.account_name)+'</td><td>'+esc(({asset:'أصول',liability:'التزامات',equity:'حقوق ملكية',revenue:'إيرادات',expense:'مصروفات'})[a.account_type]||a.account_type)+'</td><td><span class="pill '+(a.is_active?'green':'amber')+'">'+(a.is_active?'نشط':'متوقف')+'</span></td></tr>'));
   $('financeJournalsTable').innerHTML=table(['رقم القيد','التاريخ','البيان','العملة','الحالة','إجراء'],financeJournals.map(j=>'<tr><td><button class="btn soft sm" onclick="openFinanceJournalDetails(\''+j.id+'\')">'+esc(j.entry_number)+'</button></td><td>'+esc(j.entry_date)+'</td><td>'+esc(j.description)+'</td><td>'+esc(j.currency_code)+'</td><td><span class="pill '+(j.status==='posted'?'green':'amber')+'">'+(j.status==='posted'?'مرحّل':j.status==='reversed'?'معكوس':'مسودة')+'</span></td><td><button class="btn soft sm" onclick="openFinanceJournalDetails(\''+j.id+'\')">التفاصيل</button> '+(j.status==='draft'&&financeCanManage()?'<button class="btn lime sm" onclick="postFinanceJournal(\''+j.id+'\')">اعتماد وترحيل</button>':j.status==='posted'&&financeCanWrite()?'<button class="btn soft sm" onclick="createFinanceReversal(\''+j.id+'\')">إنشاء قيد عكسي</button>':j.status==='draft'?'مسودة — بانتظار الاعتماد':j.status==='reversed'?'تم إنشاء القيد العكسي':'<span class="muted tiny">مقفل</span>')+'</td></tr>'));
-  financeSetVisible('financeInvoicesPanel',canSeeAccounts);\n  financeSetVisible('financeReportsPanel',canSeeAccounts);
+  financeSetVisible('financeInvoicesPanel',canSeeAccounts);
+  financeSetVisible('financeReportsPanel',canSeeAccounts);
   if(canSeeAccounts){await loadFinanceReports();await loadFinanceInvoices();}
   financeSetVisible('financeProjectSummaryPanel',financeHasRole('project_manager')||financeHasRole('finance_viewer'));
   if(financeHasRole('project_manager')||financeHasRole('finance_viewer')){
