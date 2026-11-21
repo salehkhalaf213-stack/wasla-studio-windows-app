@@ -2052,43 +2052,28 @@ async function loadFinanceReports(){
   }
   const journalDates=new Map(journals.map(j=>[j.id,j.entry_date]));
   const totals=new Map((financeAccounts||[]).map(a=>[a.id,{account:a,debit:0,credit:0,periodDebit:0,periodCredit:0}]));
-  const monthly=new Map();
+  const periodTotals=new Map((financeAccounts||[]).map(a=>[a.id,{debit:0,credit:0}]));
+  const monthlyTotals=new Map();
   let lineCount=0;
   for(let batch=0;batch<journals.length;batch+=100){
    const ids=journals.slice(batch,batch+100).map(j=>j.id);
    for(let offset=0;;offset+=1000){
-    const {data,error}=await sb.from('finance_journal_lines').select('account_id,debit_base,credit_base').eq('organization_id',currentOrganizationId).in('journal_id',ids).range(offset,offset+999);
+    const {data,error}=await sb.from('finance_journal_lines').select('journal_id,account_id,debit_base,credit_base').eq('organization_id',currentOrganizationId).in('journal_id',ids).range(offset,offset+999);
     if(error)throw error;
     for(const line of data||[]){
      lineCount++;
      const debit=Number(line.debit_base||0),credit=Number(line.credit_base||0);
      const acc=totals.get(line.account_id);
      if(acc){acc.debit+=debit;acc.credit+=credit;}
-     const entryDate=journalDates.get(ids.find(id=>id===line.journal_id));
-     // The journal id is fetched separately below for accurate date aggregation.
-    }
-    if(!data||data.length<1000)break;
-   }
-  }
-  // Re-fetch lines with journal_id included to aggregate the selected period and monthly movement.
-  const periodTotals=new Map((financeAccounts||[]).map(a=>[a.id,{debit:0,credit:0}]));
-  const monthlyTotals=new Map();
-  for(let batch=0;batch<journals.length;batch+=100){
-   const chunk=journals.slice(batch,batch+100),ids=chunk.map(j=>j.id);
-   for(let offset=0;;offset+=1000){
-    const {data,error}=await sb.from('finance_journal_lines').select('journal_id,account_id,debit_base,credit_base').eq('organization_id',currentOrganizationId).in('journal_id',ids).range(offset,offset+999);
-    if(error)throw error;
-    for(const line of data||[]){
      const date=journalDates.get(line.journal_id);
      if(!date||date<fromDate||date>toDate)continue;
-     const debit=Number(line.debit_base||0),credit=Number(line.credit_base||0);
      const p=periodTotals.get(line.account_id);
      if(p){p.debit+=debit;p.credit+=credit;}
      const month=date.slice(0,7);
      if(!monthlyTotals.has(month))monthlyTotals.set(month,{revenue:0,expense:0});
-     const acc=totals.get(line.account_id)?.account;
-     if(acc?.account_type==='revenue')monthlyTotals.get(month).revenue+=credit-debit;
-     if(acc?.account_type==='expense')monthlyTotals.get(month).expense+=debit-credit;
+     const account=acc?.account;
+     if(account?.account_type==='revenue')monthlyTotals.get(month).revenue+=credit-debit;
+     if(account?.account_type==='expense')monthlyTotals.get(month).expense+=debit-credit;
     }
     if(!data||data.length<1000)break;
    }
