@@ -2035,7 +2035,7 @@ async function loadFinanceMembers(){
  if(error){$('financeMemberSelect').innerHTML='<option value="">تعذر تحميل الأعضاء</option>';return;}
  const ids=(members||[]).map(m=>m.user_id);let profiles=[];
  if(ids.length){const result=await sb.from('profiles').select('id,full_name').in('id',ids);if(!result.error)profiles=result.data||[];}
- financeMembers=(members||[]).map(m=>({...m,full_name:profiles.find(p=>p.id===m.user_id)?.full_name||m.user_id}));
+ financeMembers=(members||[]).filter(m=>m.role==='employee'&&m.status==='active').map(m=>({...m,full_name:profiles.find(p=>p.id===m.user_id)?.full_name||m.user_id}));
  $('financeMemberSelect').innerHTML='<option value="">اختر عضواً</option>'+financeMembers.map(m=>'<option value="'+m.user_id+'">'+esc(m.full_name)+' — '+esc(m.role)+'</option>').join('');
  const projects=data.projects||[];
  $('financeProjectSelect').innerHTML='<option value="">اختر المشروع</option>'+projects.map(p=>'<option value="'+String(p.id)+'">'+esc(p.name)+'</option>').join('');
@@ -2050,7 +2050,7 @@ async function loadFinanceMembers(){
 }
 async function grantFinanceRole(){
  if(!financeCanManage())return;
- const userId=$('financeMemberSelect').value,role=$('financeRoleSelect').value;if(!userId)return alert('اختر عضواً أولاً.');
+ const userId=$('financeMemberSelect').value,role=$('financeRoleSelect').value;if(!userId)return alert('اختر موظفاً داخلياً أولاً.');if(!financeMembers.some(m=>m.user_id===userId&&m.role==='employee'&&m.status==='active'))return alert('يمكن منح الصلاحيات المالية للموظفين الداخليين النشطين فقط.');
  const {error}=await sb.from('finance_member_roles').upsert({organization_id:currentOrganizationId,user_id:userId,finance_role:role,granted_by:currentUser.id},{onConflict:'organization_id,user_id,finance_role'});
  if(error){alert('تعذر منح الصلاحية: '+error.message);return;}
  await loadFinanceMembers();alert('تم منح الصلاحية المالية.');
@@ -2064,7 +2064,8 @@ async function revokeFinanceRole(userId,role){
 async function grantFinanceProjectAccess(){
  if(!financeCanManage())return;
  const userId=$('financeMemberSelect').value,projectRef=$('financeProjectSelect').value;
- if(!userId||!projectRef)return alert('اختر العضو والمشروع.');
+ if(!userId||!projectRef)return alert('اختر الموظف والمشروع.');
+ if(!financeMembers.some(m=>m.user_id===userId&&m.role==='employee'&&m.status==='active'))return alert('يمكن ربط المشاريع بالموظفين الداخليين النشطين فقط.');
  if(!financeRoles.some(x=>x.user_id===userId&&['project_manager','finance_viewer'].includes(x.finance_role)))return alert('امنح العضو دور مدير مشاريع أو مشاهد مالي أولاً.');
  const {error}=await sb.from('finance_project_access').upsert({organization_id:currentOrganizationId,user_id:userId,project_ref:projectRef,granted_by:currentUser.id},{onConflict:'organization_id,user_id,project_ref'});
  if(error){alert('تعذر ربط المشروع: '+error.message);return;}
