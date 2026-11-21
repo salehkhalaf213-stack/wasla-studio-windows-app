@@ -2078,16 +2078,18 @@ async function loadFinanceReports(){
     if(!data||data.length<1000)break;
    }
   }
-  let revenue=0,expense=0,assets=0,liabilities=0,equity=0;
+  let revenue=0,expense=0,assets=0,liabilities=0,equity=0,cumulativeRevenue=0,cumulativeExpense=0;
   const pnlRows=[],balanceRows=[];
   for(const [id,item] of totals){
    const period=periodTotals.get(id)||{debit:0,credit:0};
    const a=item.account;
    if(a.account_type==='revenue'){
     const value=period.credit-period.debit;revenue+=value;
+    cumulativeRevenue+=item.credit-item.debit;
     if(Math.abs(value)>0.0001)pnlRows.push({name:a.account_name,code:a.account_code,value});
    }else if(a.account_type==='expense'){
     const value=period.debit-period.credit;expense+=value;
+    cumulativeExpense+=item.debit-item.credit;
     if(Math.abs(value)>0.0001)pnlRows.push({name:a.account_name,code:a.account_code,value:-value});
    }
    let balance=0;
@@ -2096,6 +2098,9 @@ async function loadFinanceReports(){
    if(a.account_type==='equity'){balance=item.credit-item.debit;equity+=balance;}
    if(Math.abs(balance)>0.0001)balanceRows.push({name:a.account_name,code:a.account_code,type:a.account_type,balance});
   }
+  const unclosedProfit=cumulativeRevenue-cumulativeExpense;
+  equity+=unclosedProfit;
+  if(Math.abs(unclosedProfit)>0.0001)balanceRows.push({name:'صافي الأرباح غير المقفلة حتى تاريخ التقرير',code:'—',type:'equity',balance:unclosedProfit});
   const profit=revenue-expense,currency=financeSettings?.base_currency||'';
   const maxMonth=Math.max(1,...[...monthlyTotals.values()].flatMap(x=>[Math.abs(x.revenue),Math.abs(x.expense)]));
   const months=[...monthlyTotals.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
