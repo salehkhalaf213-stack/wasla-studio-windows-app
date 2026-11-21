@@ -84,3 +84,6 @@ create trigger finance_invoice_payments_guard before insert or update or delete 
 create trigger finance_invoices_audit after insert or update or delete on public.finance_invoices for each row execute function private.finance_audit_trigger();
 create trigger finance_invoice_lines_audit after insert or update or delete on public.finance_invoice_lines for each row execute function private.finance_audit_trigger();
 create trigger finance_invoice_payments_audit after insert or update or delete on public.finance_invoice_payments for each row execute function private.finance_audit_trigger();
+
+grant select,insert,update,delete on public.finance_invoices,public.finance_invoice_lines to authenticated;
+grant select,insert on public.finance_invoice_payments to authenticated;
