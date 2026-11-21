@@ -2255,7 +2255,7 @@ async function buildFinanceInvoicePrintDocument(id){
  const currency=invoice.currency_code||'';
  const money=n=>financeReportMoney(Number(n||0),currency);
  const lineRows=(lines||[]).map((l,n)=>'<tr><td>'+(n+1)+'</td><td>'+esc(l.description||'')+'</td><td>'+Number(l.quantity||0).toLocaleString('en-US')+'</td><td>'+money(l.unit_price)+'</td><td>'+money(l.line_total)+'</td></tr>').join('');
- const paymentRows=(payments||[]).map(p=>'<tr><td>'+esc(p.payment_date||'')+'</td><td>'+money(p.amount_original)+'</td><td>'+esc(p.reference||'—')+'</td></tr>').join('');
+ const paymentRows=(payments||[]).map(p=>'<tr><td>'+esc(p.payment_date||'')+'</td><td>'+money(p.amount_original)+'</td><td>'+esc(p.reference||'غير مسجل')+'</td></tr>').join('');
  const status=invoice.status==='draft'?'مسودة':invoice.status==='paid'?'مدفوعة':'صادرة';
  const orgName=esc(org?.name||'المؤسسة');
  const invoiceNumber=esc(invoice.invoice_number||'');
@@ -2310,7 +2310,7 @@ async function openFinanceInvoicePrint(id){
  body.wasla-invoice-print-mode>*:not(#wasla-invoice-print-root){display:none!important}
  body.wasla-invoice-print-mode #wasla-invoice-print-root{display:block!important;position:static!important;width:100%!important;margin:0!important;padding:0!important;color:#202a37!important;background:#fff!important;font:12px Tahoma,"Segoe UI",Arial,sans-serif!important;direction:rtl!important;visibility:visible!important}
  #wasla-invoice-print-root *{visibility:visible!important;box-sizing:border-box!important}
- #wasla-invoice-print-root .invoice-sheet{width:100%;color:#202a37}
+ #wasla-invoice-print-root .invoice-sheet{width:100%;min-height:270mm;display:flex;flex-direction:column;color:#202a37}
  #wasla-invoice-print-root .top-rule{height:7px;background:#c99a45;margin:0 0 22px;border-radius:4px}
  #wasla-invoice-print-root .invoice-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:1px solid #e5e9ef;padding:0 0 20px;margin-bottom:20px}
  #wasla-invoice-print-root .brand-name{font-size:24px;font-weight:800;color:#14243a;margin-bottom:5px}
@@ -2347,7 +2347,7 @@ async function openFinanceInvoicePrint(id){
  #wasla-invoice-print-root .payments th{background:#f0f3f7!important;color:#344257;font-weight:bold}
  #wasla-invoice-print-root .payments td{color:#4d5b6e}
  #wasla-invoice-print-root .invoice-head,#wasla-invoice-print-root .meta,#wasla-invoice-print-root .totals-wrap,#wasla-invoice-print-root .payments-section,#wasla-invoice-print-root tr{break-inside:avoid;page-break-inside:avoid}
- #wasla-invoice-print-root footer{margin-top:38px;padding-top:13px;border-top:1px solid #e5e9ef;text-align:center;color:#8490a0;font-size:9px;line-height:1.9}
+ #wasla-invoice-print-root footer{margin-top:auto;padding-top:13px;border-top:1px solid #e5e9ef;text-align:center;color:#8490a0;font-size:9px;line-height:1.9}
  #wasla-invoice-print-root footer .footer-brand{font-size:12px;font-weight:bold;color:#24344a}
  #wasla-invoice-print-root footer small{font-size:8px}
  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
