@@ -24,6 +24,8 @@ const checks = [
   ['Pending account access gate', html.includes("profile?.approval_status==='pending'")],
   ['Invoice print action', html.includes('onclick="printFinanceInvoice(') && html.includes('function printFinanceInvoice(id)')],
   ['Invoice PDF action', html.includes('onclick="exportFinanceInvoicePdf(') && html.includes('function exportFinanceInvoicePdf(id)')],
+  ['Premium invoice PDF layout', html.includes('invoice-sheet') && html.includes('totals-wrap') && html.includes('payments-section') && html.includes('WASLA STUDIO · FINANCE')],
+  ['Invoice PDF preserves existing financial values', html.includes('invoice.subtotal_original') && html.includes('invoice.vat_original') && html.includes('invoice.total_original') && html.includes('invoice.paid_original')],
   ['In-app invoice print view (no popup dependency)', html.includes('wasla-invoice-print-root') && html.includes('window.print()') && !html.includes("window.open('','_blank')")]
 ];
 const inlineScripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)]
