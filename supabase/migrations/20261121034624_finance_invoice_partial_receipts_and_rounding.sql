@@ -31,3 +31,33 @@ begin
  update public.finance_invoices set status='issued',total_original=v_total,total_base=v_total_base,issued_journal_id=v_journal_id,issued_by=(select auth.uid()),issued_at=now(),updated_at=now() where id=p_invoice_id and organization_id=v_org;
  return v_journal_id;
 end $$;
+
+create or replace function public.record_finance_invoice_payment(p_invoice_id uuid,p_amount numeric,p_cash_account_id uuid,p_payment_date date default current_date,p_reference text default null)
+returns uuid language plpgsql security invoker set search_path='' as $$
+declare v_org uuid:=(select private.current_organization_id()); v_invoice public.finance_invoices%rowtype; v_paid numeric(20,4); v_remaining numeric(20,4); v_journal_id uuid; v_payment_id uuid; v_entry text;
+begin
+ if not private.has_organization_role(array['owner','admin']) then raise exception 'Only organization managers may record invoice payments'; end if;
+ if p_amount is null or p_amount<=0 then raise exception 'Payment amount must be positive'; end if;
+ select * into v_invoice from public.finance_invoices where id=p_invoice_id and organization_id=v_org for update;
+ if not found or v_invoice.status not in ('issued','paid') then raise exception 'Invoice is not available for payment'; end if;
+ select coalesce(sum(amount_original),0) into v_paid from public.finance_invoice_payments where organization_id=v_org and invoice_id=p_invoice_id;
+ v_remaining:=round(v_invoice.total_original-v_paid,4);
+ if p_amount>v_remaining then raise exception 'Payment exceeds outstanding invoice balance'; end if;
+ if not exists(select 1 from public.finance_accounts a where a.organization_id=v_org and a.id=p_cash_account_id and a.account_type='asset' and a.is_active) then raise exception 'Select an active cash or bank asset account'; end if;
+ v_entry:='REC-'||to_char(clock_timestamp(),'YYMMDDHH24MISSMS')||'-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,4));
+ insert into public.finance_journals(organization_id,entry_number,entry_date,description,status,currency_code,exchange_rate,rate_date,created_by)
+ values(v_org,v_entry,p_payment_date,'تحصيل فاتورة عميل '||v_invoice.invoice_number,'draft',v_invoice.currency_code,v_invoice.exchange_rate,p_payment_date,(select auth.uid())) returning id into v_journal_id;
+ insert into public.finance_journal_lines(organization_id,journal_id,account_id,line_description,currency_code,exchange_rate,debit_original,credit_original,debit_base,credit_base,created_by)
+ values(v_org,v_journal_id,p_cash_account_id,'تحصيل من العميل — '||v_invoice.customer_name,v_invoice.currency_code,v_invoice.exchange_rate,p_amount,0,round(p_amount*v_invoice.exchange_rate,4),0,(select auth.uid()));
+ insert into public.finance_journal_lines(organization_id,journal_id,account_id,line_description,currency_code,exchange_rate,debit_original,credit_original,debit_base,credit_base,created_by)
+ values(v_org,v_journal_id,v_invoice.receivable_account_id,'تخفيض ذمم فاتورة '||v_invoice.invoice_number,v_invoice.currency_code,v_invoice.exchange_rate,0,p_amount,0,round(p_amount*v_invoice.exchange_rate,4),(select auth.uid()));
+ update public.finance_journals set status='posted' where id=v_journal_id and organization_id=v_org;
+ insert into public.finance_invoice_payments(organization_id,invoice_id,payment_number,payment_date,amount_original,currency_code,exchange_rate,cash_account_id,journal_id,reference,received_by)
+ values(v_org,p_invoice_id,v_entry,p_payment_date,p_amount,v_invoice.currency_code,v_invoice.exchange_rate,p_cash_account_id,v_journal_id,p_reference,(select auth.uid())) returning id into v_payment_id;
+ update public.finance_invoices set paid_original=round(v_paid+p_amount,4),status=case when round(v_paid+p_amount,4)>=total_original then 'paid' else 'issued' end,updated_at=now() where id=p_invoice_id and organization_id=v_org;
+ return v_payment_id;
+end $$;
+revoke all on function public.issue_finance_invoice(uuid) from public,anon;
+revoke all on function public.record_finance_invoice_payment(uuid,numeric,uuid,date,text) from public,anon;
+grant execute on function public.issue_finance_invoice(uuid) to authenticated;
+grant execute on function public.record_finance_invoice_payment(uuid,numeric,uuid,date,text) to authenticated;
