@@ -1,0 +1,5 @@
+[build]
+  base = ""
+  publish = "web-app"
+
+# Static WASLA STUDIO web application; no build command required.
