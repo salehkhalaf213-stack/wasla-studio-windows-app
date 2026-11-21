@@ -1971,11 +1971,11 @@ async function loadFinanceWorkspace(showToast=false){
   $('financePostedCount').textContent=financeJournals.filter(x=>x.status==='posted').length;
   if(canSeeAccounts)$('financeAccountsTable').innerHTML=table(['الكود','اسم الحساب','النوع','الحالة'],financeAccounts.map(a=>'<tr><td>'+esc(a.account_code)+'</td><td>'+esc(a.account_name)+'</td><td>'+esc(({asset:'أصول',liability:'التزامات',equity:'حقوق ملكية',revenue:'إيرادات',expense:'مصروفات'})[a.account_type]||a.account_type)+'</td><td><span class="pill '+(a.is_active?'green':'amber')+'">'+(a.is_active?'نشط':'متوقف')+'</span></td></tr>'));
   $('financeJournalsTable').innerHTML=table(['رقم القيد','التاريخ','البيان','العملة','الحالة','إجراء'],financeJournals.map(j=>'<tr><td>'+esc(j.entry_number)+'</td><td>'+esc(j.entry_date)+'</td><td>'+esc(j.description)+'</td><td>'+esc(j.currency_code)+'</td><td><span class="pill '+(j.status==='posted'?'green':'amber')+'">'+(j.status==='posted'?'مرحّل':j.status==='reversed'?'معكوس':'مسودة')+'</span></td><td>'+(j.status==='draft'&&financeCanManage()?'<button class="btn lime sm" onclick="postFinanceJournal(\''+j.id+'\')">اعتماد وترحيل</button>':j.status==='draft'?'مسودة — بانتظار الاعتماد':'<span class="muted tiny">مقفل</span>')+'</td></tr>'));
-  financeSetVisible('financeProjectSummaryPanel',financeHasRole('project_manager'));
-  if(financeHasRole('project_manager')){
+  financeSetVisible('financeProjectSummaryPanel',financeHasRole('project_manager')||financeHasRole('finance_viewer'));
+  if(financeHasRole('project_manager')||financeHasRole('finance_viewer')){
    const {data:summary,error}=await sb.rpc('finance_my_project_summaries');if(error)throw error;
    financeProjectSummaries=summary||[];
-   $('financeProjectSummaryTable').innerHTML=table(['المشروع','الإيرادات','المصروفات','الربحية','العملة'],financeProjectSummaries.map(x=>{const p=(data.projects||[]).find(y=>String(y.id)===String(x.project_ref));return '<tr><td>'+esc(p?.name||('مشروع '+x.project_ref))+'</td><td>'+Number(x.revenue_base||0).toLocaleString('en-US',{minimumFractionDigits:2})+'</td><td>'+Number(x.expense_base||0).toLocaleString('en-US',{minimumFractionDigits:2})+'</td><td><b>'+Number(x.profit_base||0).toLocaleString('en-US',{minimumFractionDigits:2})+'</b></td><td>'+esc(x.base_currency||'')+'</td></tr>'}));
+   $('financeProjectSummaryTable').innerHTML=table(['المشروع','الميزانية المسجلة','الإيرادات','المصروفات','الربحية','العملة'],financeProjectSummaries.map(x=>{const p=(data.projects||[]).find(y=>String(y.id)===String(x.project_ref));const budget=x.base_currency==='EGP'?Number(p?.value||0).toLocaleString('en-US',{minimumFractionDigits:2}):'غير متاح — محفوظ بالجنيه المصري';return '<tr><td>'+esc(p?.name||('مشروع '+x.project_ref))+'</td><td>'+budget+'</td><td>'+Number(x.revenue_base||0).toLocaleString('en-US',{minimumFractionDigits:2})+'</td><td>'+Number(x.expense_base||0).toLocaleString('en-US',{minimumFractionDigits:2})+'</td><td><b>'+Number(x.profit_base||0).toLocaleString('en-US',{minimumFractionDigits:2})+'</b></td><td>'+esc(x.base_currency||'')+'</td></tr>'}));
   }else financeProjectSummaries=[];
   if(financeCanManage())await loadFinanceMembers();
   if(showToast)alert('تم تحديث مساحة WASLA FINANCE.');
@@ -2065,7 +2065,7 @@ async function grantFinanceProjectAccess(){
  if(!financeCanManage())return;
  const userId=$('financeMemberSelect').value,projectRef=$('financeProjectSelect').value;
  if(!userId||!projectRef)return alert('اختر العضو والمشروع.');
- if(!financeRoles.some(x=>x.user_id===userId&&x.finance_role==='project_manager'))return alert('امنح العضو دور مدير مشاريع أولاً.');
+ if(!financeRoles.some(x=>x.user_id===userId&&['project_manager','finance_viewer'].includes(x.finance_role)))return alert('امنح العضو دور مدير مشاريع أو مشاهد مالي أولاً.');
  const {error}=await sb.from('finance_project_access').upsert({organization_id:currentOrganizationId,user_id:userId,project_ref:projectRef,granted_by:currentUser.id},{onConflict:'organization_id,user_id,project_ref'});
  if(error){alert('تعذر ربط المشروع: '+error.message);return;}
  await loadFinanceMembers();alert('تم منح مدير المشاريع صلاحية الاطلاع المالي على المشروع المحدد.');
