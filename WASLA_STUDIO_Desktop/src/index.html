@@ -2120,13 +2120,13 @@ async function loadFinanceAgingReport(){
  if(button){button.disabled=true;button.textContent='جارٍ إعداد التقرير…';}
  if(content)content.innerHTML='<div class="empty">جارٍ حساب أعمار الديون…</div>';
  try{
-  const [ir,vr,br,rr]=await Promise.all([
-   sb.from('finance_invoices').select('id,invoice_number,customer_name,invoice_date,due_date,currency_code,total_original,paid_original,status').eq('organization_id',currentOrganizationId).in('status',['issued','paid']).limit(5000),
-   sb.from('finance_vendors').select('id,vendor_name').eq('organization_id',currentOrganizationId).limit(5000),
-   sb.from('finance_vendor_bills').select('id,bill_number,vendor_id,bill_date,due_date,currency_code,total_original,paid_original,status').eq('organization_id',currentOrganizationId).in('status',['issued','paid']).limit(5000),
+  const [invoices,vendorList,bills,rr]=await Promise.all([
+   financeFetchAllRows(sb.from('finance_invoices').select('id,invoice_number,customer_name,invoice_date,due_date,currency_code,total_original,paid_original,status').eq('organization_id',currentOrganizationId).in('status',['issued','paid']).order('invoice_date',{ascending:true})),
+   financeFetchAllRows(sb.from('finance_vendors').select('id,vendor_name').eq('organization_id',currentOrganizationId).order('vendor_name')),
+   financeFetchAllRows(sb.from('finance_vendor_bills').select('id,bill_number,vendor_id,bill_date,due_date,currency_code,total_original,paid_original,status').eq('organization_id',currentOrganizationId).in('status',['issued','paid']).order('bill_date',{ascending:true})),
    sb.from('finance_settings').select('base_currency').eq('organization_id',currentOrganizationId).maybeSingle()
   ]);
-  if(ir.error)throw ir.error;if(vr.error)throw vr.error;if(br.error)throw br.error;if(rr.error)throw rr.error;
+  if(rr.error)throw rr.error;
   const makeRows=(records,partyField,numberField,dateField)=>{
    return (records||[]).filter(r=>['issued','paid'].includes(r.status)).map(r=>{
     const remaining=Math.max(0,Number(r.total_original||0)-Number(r.paid_original||0));
@@ -2134,9 +2134,9 @@ async function loadFinanceAgingReport(){
     return {...r,remaining,daysOverdue:Math.max(0,days),bucket:financeAgingBucket(days)};
    }).filter(r=>r.remaining>0.000001);
   };
-  const customers=makeRows(ir.data,'customer_name','invoice_number','invoice_date');
-  const vendorNames=new Map((vr.data||[]).map(v=>[v.id,v.vendor_name]));
-  const vendors=makeRows(br.data,'vendor_id','bill_number','bill_date').map(r=>({...r,vendor_name:vendorNames.get(r.vendor_id)||'مورد غير معروف'}));
+  const customers=makeRows(invoices,'customer_name','invoice_number','invoice_date');
+  const vendorNames=new Map(vendorList.map(v=>[v.id,v.vendor_name]));
+  const vendors=makeRows(bills,'vendor_id','bill_number','bill_date').map(r=>({...r,vendor_name:vendorNames.get(r.vendor_id)||'مورد غير معروف'}));
   const c=financeRenderAgingSection('أعمار ديون العملاء',customers,'customer_name','invoice_date','invoice_number');
   const v=financeRenderAgingSection('أعمار مستحقات الموردين',vendors,'vendor_name','bill_date','bill_number');
   content.innerHTML='<div class="note" style="margin:10px 0">تاريخ التقرير: <b>'+esc(asOf)+'</b> — العملة الأساسية للمؤسسة: <b>'+esc(rr.data?.base_currency||'غير محددة')+'</b>. لا تُجمع العملات المختلفة في إجمالي واحد.</div>'+c+v;
@@ -2410,7 +2410,7 @@ async function loadFinanceWorkspace(showToast=false){
   $('financePostedCount').textContent=financeJournals.filter(x=>['posted','reversed'].includes(x.status)).length;
   if(canSeeAccounts)$('financeAccountsTable').innerHTML=table(['الكود','اسم الحساب','النوع','الحالة'],financeAccounts.map(a=>'<tr><td>'+esc(a.account_code)+'</td><td>'+esc(a.account_name)+'</td><td>'+esc(({asset:'أصول',liability:'التزامات',equity:'حقوق ملكية',revenue:'إيرادات',expense:'مصروفات'})[a.account_type]||a.account_type)+'</td><td><span class="pill '+(a.is_active?'green':'amber')+'">'+(a.is_active?'نشط':'متوقف')+'</span></td></tr>'));
   $('financeJournalsTable').innerHTML=table(['رقم القيد','التاريخ','البيان','العملة','الحالة','إجراء'],financeJournals.map(j=>'<tr><td><button class="btn soft sm" onclick="openFinanceJournalDetails(\''+j.id+'\')">'+esc(j.entry_number)+'</button></td><td>'+esc(j.entry_date)+'</td><td>'+esc(j.description)+'</td><td>'+esc(j.currency_code)+'</td><td><span class="pill '+(j.status==='posted'?'green':'amber')+'">'+(j.status==='posted'?'مرحّل':j.status==='reversed'?'معكوس':'مسودة')+'</span></td><td><button class="btn soft sm" onclick="openFinanceJournalDetails(\''+j.id+'\')">التفاصيل</button> '+(j.status==='draft'&&financeCanManage()?'<button class="btn lime sm" onclick="postFinanceJournal(\''+j.id+'\')">اعتماد وترحيل</button>':j.status==='posted'&&financeCanWrite()?'<button class="btn soft sm" onclick="createFinanceReversal(\''+j.id+'\')">إنشاء قيد عكسي</button>':j.status==='draft'?'مسودة — بانتظار الاعتماد':j.status==='reversed'?'تم إنشاء القيد العكسي':'<span class="muted tiny">مقفل</span>')+'</td></tr>'));
-  financeSetVisible('financeInvoicesPanel',canSeeAccounts);financeSetVisible('financeVendorBillsPanel',canSeeAccounts);
+  financeSetVisible('financeInvoicesPanel',canSeeAccounts);financeSetVisible('financeVendorBillsPanel',canSeeAccounts);financeSetVisible('financeAgingReportPanel',canSeeAccounts);
   financeSetVisible('financeReportsPanel',canSeeAccounts);
   if(canSeeAccounts){await loadFinanceReports();await loadFinanceInvoices();await loadFinanceVendorsBills();}
   financeSetVisible('financeProjectSummaryPanel',financeHasRole('project_manager')||financeHasRole('finance_viewer'));
