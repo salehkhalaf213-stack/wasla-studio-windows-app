@@ -2259,7 +2259,29 @@ async function buildFinanceInvoicePrintDocument(id){
  const status=invoice.status==='draft'?'مسودة':invoice.status==='paid'?'مدفوعة':'صادرة';
  const orgName=esc(org?.name||'المؤسسة');
  const invoiceNumber=esc(invoice.invoice_number||'');
- const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>فاتورة '+invoiceNumber+'</title></head><body><header class="invoice-head"><div><div class="brand">'+orgName+'</div><div class="muted">'+(vat>0?'فاتورة ضريبية':'فاتورة')+'</div></div><div class="invoice-title"><h1>فاتورة</h1><strong>'+invoiceNumber+'</strong><div class="muted">الحالة: '+status+'</div></div></header><section class="meta"><div><b>العميل</b><br>'+esc(invoice.customer_name||'—')+'<br>'+esc(invoice.customer_email||'')+'</div><div><b>التاريخ</b><br>'+esc(invoice.invoice_date||'—')+'<br><span class="muted">الاستحقاق: '+esc(invoice.due_date||'—')+'</span></div></section><table class="items"><thead><tr><th>#</th><th>الوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>'+(lineRows||'<tr><td colspan="5">لا توجد بنود مسجلة</td></tr>')+'</tbody></table><section class="totals"><div><span>الإجمالي قبل الضريبة</span><b>'+money(subtotal)+'</b></div><div><span>ضريبة القيمة المضافة ('+Number(invoice.vat_rate||0)+'%)</span><b>'+money(vat)+'</b></div><div class="grand"><span>الإجمالي شامل الضريبة</span><b>'+money(total)+'</b></div><div><span>المحصّل</span><b>'+money(paid)+'</b></div><div><span>المتبقي</span><b>'+money(remaining)+'</b></div></section>'+(paymentRows?'<h2>التحصيلات</h2><table><thead><tr><th>التاريخ</th><th>المبلغ</th><th>المرجع</th></tr></thead><tbody>'+paymentRows+'</tbody></table>':'')+'<footer>صدرت هذه الفاتورة من نظام '+orgName+'. يرجى الاحتفاظ بنسخة منها.</footer></body></html>';
+ const html=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>فاتورة ${invoiceNumber}</title></head><body>
+ <main class="invoice-sheet">
+  <div class="top-rule"></div>
+  <header class="invoice-head">
+   <div class="brand-block"><div class="brand-name">${orgName}</div><div class="brand-caption">WASLA STUDIO · FINANCE</div><div class="doc-kind">${vat>0?'فاتورة ضريبية':'فاتورة'}</div></div>
+   <div class="invoice-title"><div class="invoice-kicker">INVOICE</div><h1>فاتورة</h1><strong>${invoiceNumber}</strong><span class="status">${status}</span></div>
+  </header>
+  <section class="meta">
+   <div class="meta-card"><span class="meta-label">بيانات العميل</span><b>${esc(invoice.customer_name||'—')}</b><span>${esc(invoice.customer_email||'')}</span></div>
+   <div class="meta-card"><span class="meta-label">بيانات الفاتورة</span><b>التاريخ: ${esc(invoice.invoice_date||'—')}</b><span>تاريخ الاستحقاق: ${esc(invoice.due_date||'—')}</span></div>
+  </section>
+  <div class="section-heading"><span>تفاصيل الفاتورة</span><i>INVOICE DETAILS</i></div>
+  <table class="items"><thead><tr><th class="number">#</th><th>الوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${lineRows||'<tr><td colspan="5">لا توجد بنود مسجلة</td></tr>'}</tbody></table>
+  <section class="totals-wrap"><div class="totals-title">ملخص الفاتورة</div><div class="totals">
+   <div><span>الإجمالي قبل الضريبة</span><b>${money(subtotal)}</b></div>
+   <div><span>ضريبة القيمة المضافة (${Number(invoice.vat_rate||0)}%)</span><b>${money(vat)}</b></div>
+   <div class="grand"><span>الإجمالي شامل الضريبة</span><b>${money(total)}</b></div>
+   <div><span>إجمالي المبالغ المحصّلة</span><b>${money(paid)}</b></div>
+   <div class="remaining"><span>المتبقي</span><b>${money(remaining)}</b></div>
+  </div></section>
+  ${paymentRows?'<section class="payments-section"><div class="section-heading"><span>سجل التحصيلات</span><i>PAYMENT HISTORY</i></div><table class="payments"><thead><tr><th>تاريخ التحصيل</th><th>المبلغ</th><th>المرجع</th></tr></thead><tbody>'+paymentRows+'</tbody></table></section>':''}
+  <footer><div class="footer-brand">${orgName}</div><div>تم إصدار هذه الفاتورة إلكترونياً من نظام WASLA STUDIO</div><small>يرجى الاحتفاظ بنسخة من الفاتورة للرجوع إليها عند الحاجة</small></footer>
+ </main></body></html>`;
  return html;
 }
 function cleanupFinanceInvoicePrint(){
@@ -2281,7 +2303,55 @@ async function openFinanceInvoicePrint(id){
   root.innerHTML=parsed.body.innerHTML;
   const style=document.createElement('style');
   style.id='wasla-invoice-print-style';
-  style.textContent='@page{size:A4 portrait;margin:12mm}#wasla-invoice-print-root{display:none}@media print{html,body{background:#fff!important;margin:0!important;padding:0!important;min-height:0!important}body.wasla-invoice-print-mode>*:not(#wasla-invoice-print-root){display:none!important}body.wasla-invoice-print-mode #wasla-invoice-print-root{display:block!important;position:static!important;width:100%!important;margin:0!important;padding:0!important;color:#20251d!important;background:#fff!important;font:12px Tahoma,Arial,sans-serif!important;direction:rtl!important;visibility:visible!important}#wasla-invoice-print-root *{visibility:visible!important;box-sizing:border-box!important}.invoice-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #263323;padding-bottom:16px;margin-bottom:20px}.brand{font-size:22px;font-weight:bold}.invoice-title{text-align:left}.invoice-title h1{font-size:23px;margin:0 0 5px}.muted{color:#687263}.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}.meta>div{padding:10px;background:#f4f6f1;border:1px solid #e3e8df;border-radius:5px}.items{width:100%;border-collapse:collapse;margin:15px 0}.items th,.items td, #wasla-invoice-print-root table th,#wasla-invoice-print-root table td{padding:9px;border:1px solid #dfe4da;text-align:right}.items th,#wasla-invoice-print-root table th{background:#f1f4ed!important;font-weight:bold}.items tr,.totals>div{break-inside:avoid;page-break-inside:avoid}.totals{width:360px;max-width:100%;margin:18px 0 18px auto}.totals>div{display:flex;justify-content:space-between;gap:20px;padding:7px;border-bottom:1px solid #e5e8e1}.totals .grand{font-size:16px;font-weight:bold;background:#f1f4ed!important}.foot,#wasla-invoice-print-root footer{margin-top:28px;border-top:1px solid #ddd;padding-top:10px;color:#697365;font-size:10px}#wasla-invoice-print-root h2{font-size:15px;margin:20px 0 8px}#wasla-invoice-print-root table{width:100%;border-collapse:collapse;margin:12px 0}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
+  style.textContent=`@page{size:A4 portrait;margin:12mm}
+#wasla-invoice-print-root{display:none}
+@media print{
+ html,body{background:#fff!important;margin:0!important;padding:0!important;min-height:0!important}
+ body.wasla-invoice-print-mode>*:not(#wasla-invoice-print-root){display:none!important}
+ body.wasla-invoice-print-mode #wasla-invoice-print-root{display:block!important;position:static!important;width:100%!important;margin:0!important;padding:0!important;color:#202a37!important;background:#fff!important;font:12px Tahoma,"Segoe UI",Arial,sans-serif!important;direction:rtl!important;visibility:visible!important}
+ #wasla-invoice-print-root *{visibility:visible!important;box-sizing:border-box!important}
+ #wasla-invoice-print-root .invoice-sheet{width:100%;color:#202a37}
+ #wasla-invoice-print-root .top-rule{height:7px;background:#c99a45;margin:0 0 22px;border-radius:4px}
+ #wasla-invoice-print-root .invoice-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:1px solid #e5e9ef;padding:0 0 20px;margin-bottom:20px}
+ #wasla-invoice-print-root .brand-name{font-size:24px;font-weight:800;color:#14243a;margin-bottom:5px}
+ #wasla-invoice-print-root .brand-caption{font:700 8px Arial,sans-serif;letter-spacing:2px;color:#9a763b;margin-bottom:13px;direction:ltr;text-align:right}
+ #wasla-invoice-print-root .doc-kind{display:inline-block;padding:5px 11px;border-radius:20px;background:#f5f0e6;color:#8a642c;font-size:10px;font-weight:bold}
+ #wasla-invoice-print-root .invoice-title{text-align:left;min-width:155px}
+ #wasla-invoice-print-root .invoice-kicker{font:700 9px Arial,sans-serif;letter-spacing:2px;color:#b1843f;text-align:left;direction:ltr}
+ #wasla-invoice-print-root .invoice-title h1{font-size:25px;color:#14243a;margin:4px 0}
+ #wasla-invoice-print-root .invoice-title strong{display:block;font:700 12px Arial,sans-serif;color:#687589;direction:ltr;text-align:left}
+ #wasla-invoice-print-root .status{display:inline-block;margin-top:9px;padding:5px 10px;border-radius:20px;background:#edf4e9;color:#42652c;font-size:10px;font-weight:bold}
+ #wasla-invoice-print-root .meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0 24px}
+ #wasla-invoice-print-root .meta-card{display:flex;flex-direction:column;gap:7px;padding:14px 15px;background:#f7f8fa;border:1px solid #e7ebf0;border-radius:9px;min-height:82px}
+ #wasla-invoice-print-root .meta-label{font-size:10px;color:#9a763b;font-weight:bold}
+ #wasla-invoice-print-root .meta-card b{font-size:12px;color:#1d2b40}
+ #wasla-invoice-print-root .meta-card span:not(.meta-label){font-size:10px;color:#6d7888}
+ #wasla-invoice-print-root .section-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:18px 0 9px}
+ #wasla-invoice-print-root .section-heading span{font-size:13px;font-weight:bold;color:#17263b}
+ #wasla-invoice-print-root .section-heading i{font:700 8px Arial,sans-serif;letter-spacing:1.4px;color:#a1aab6;direction:ltr}
+ #wasla-invoice-print-root table{width:100%;border-collapse:collapse;margin:0}
+ #wasla-invoice-print-root .items th{background:#17263b!important;color:#fff!important;font-weight:bold;border:1px solid #17263b}
+ #wasla-invoice-print-root .items th,#wasla-invoice-print-root .items td,#wasla-invoice-print-root .payments th,#wasla-invoice-print-root .payments td{padding:10px 9px;border:1px solid #e2e7ed;text-align:right;font-size:10px}
+ #wasla-invoice-print-root .items tbody tr:nth-child(even){background:#f8f9fb}
+ #wasla-invoice-print-root .items td{color:#344257}
+ #wasla-invoice-print-root .items .number{width:34px;text-align:center}
+ #wasla-invoice-print-root .totals-wrap{width:370px;max-width:100%;margin:22px 0 22px auto;padding:14px 16px;background:#f7f8fa;border:1px solid #e7ebf0;border-radius:10px}
+ #wasla-invoice-print-root .totals-title{font-size:11px;font-weight:bold;color:#17263b;margin-bottom:8px}
+ #wasla-invoice-print-root .totals>div{display:flex;justify-content:space-between;gap:18px;padding:7px 2px;border-bottom:1px solid #e6eaf0;font-size:10px;color:#5f6c7e}
+ #wasla-invoice-print-root .totals b{color:#26364b;white-space:nowrap}
+ #wasla-invoice-print-root .totals .grand{margin:5px -5px;padding:10px 7px;background:#17263b!important;border-radius:5px;color:#fff;font-size:12px;font-weight:bold}
+ #wasla-invoice-print-root .totals .grand b{color:#fff}
+ #wasla-invoice-print-root .totals .remaining{border:0;color:#8a642c;font-weight:bold}
+ #wasla-invoice-print-root .totals .remaining b{color:#8a642c}
+ #wasla-invoice-print-root .payments-section{margin-top:22px}
+ #wasla-invoice-print-root .payments th{background:#f0f3f7!important;color:#344257;font-weight:bold}
+ #wasla-invoice-print-root .payments td{color:#4d5b6e}
+ #wasla-invoice-print-root .invoice-head,#wasla-invoice-print-root .meta,#wasla-invoice-print-root .totals-wrap,#wasla-invoice-print-root .payments-section,#wasla-invoice-print-root tr{break-inside:avoid;page-break-inside:avoid}
+ #wasla-invoice-print-root footer{margin-top:38px;padding-top:13px;border-top:1px solid #e5e9ef;text-align:center;color:#8490a0;font-size:9px;line-height:1.9}
+ #wasla-invoice-print-root footer .footer-brand{font-size:12px;font-weight:bold;color:#24344a}
+ #wasla-invoice-print-root footer small{font-size:8px}
+ *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}`;
   document.body.appendChild(root);
   document.head.appendChild(style);
   document.body.classList.add('wasla-invoice-print-mode');
