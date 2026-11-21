@@ -2004,9 +2004,10 @@ function financeSetVisible(id,visible){const el=$(id);if(el)el.style.display=vis
 let financeInvoices=[];
 function financeInvoiceFillAccounts(){
  const assets=financeAccounts.filter(a=>a.is_active&&a.account_type==='asset');
+ const receivables=assets.filter(a=>/(ذمم|عملاء|receivable|accounts receivable)/i.test(a.account_name||''));
  const revenues=financeAccounts.filter(a=>a.is_active&&a.account_type==='revenue');
  const fill=(id,rows,placeholder)=>{const el=$(id);if(!el)return;const old=el.value;el.innerHTML='<option value="">'+placeholder+'</option>'+rows.map(a=>'<option value="'+a.id+'">'+esc(a.account_code)+' — '+esc(a.account_name)+'</option>').join('');if(rows.some(a=>a.id===old))el.value=old;};
- fill('financeInvoiceReceivable',assets,'اختر حساب الذمم المدينة');
+ fill('financeInvoiceReceivable',receivables,'اختر حساب الذمم المدينة');
  fill('financeInvoiceRevenue',revenues,'اختر حساب الإيراد');
 }
 async function loadFinanceInvoices(){
@@ -2055,7 +2056,7 @@ async function recordFinanceInvoicePayment(id){
  const invoice=financeInvoices.find(x=>x.id===id);if(!invoice)return;
  const amount=Number(prompt('أدخل مبلغ التحصيل بعملة الفاتورة ('+invoice.currency_code+'). المتبقي: '+(Number(invoice.total_original)-Number(invoice.paid_original))));
  if(!Number.isFinite(amount)||amount<=0)return;
- const assets=financeAccounts.filter(a=>a.is_active&&a.account_type==='asset');
+ const assets=financeAccounts.filter(a=>a.is_active&&a.account_type==='asset'&&/(صندوق|بنك|cash|bank)/i.test(a.account_name||''));
  if(!assets.length)return alert('لا يوجد حساب صندوق أو بنك نشط.');
  const codes=assets.map(a=>a.account_code+' — '+a.account_name).join('\n');
  const code=prompt('اكتب كود حساب الصندوق أو البنك الذي استلم المبلغ:\n'+codes);
