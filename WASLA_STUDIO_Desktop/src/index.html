@@ -572,6 +572,17 @@ footer{color:#8790a7}
  <div class="actions"><button class="btn lime" id="financeInvoiceCreateBtn" onclick="createFinanceInvoiceDraft()">حفظ الفاتورة كمسودة</button><span class="muted tiny">يلزم إنشاء حساب مستقل باسم الذمم المدينة؛ لا تستخدم حساب الصندوق لهذا الغرض.</span></div>
  <div id="financeInvoicesTable" style="margin-top:14px"><div class="empty">جارٍ تحميل الفواتير…</div></div>
 </div>
+<div class="card" id="financeCustomerStatementPanel" style="padding:16px;margin:14px 0">
+ <div class="head"><div><h3>كشف حساب العميل</h3><div class="muted tiny">حركة الفواتير والتحصيلات والرصيد المتراكم — عرض للقراءة فقط.</div></div><span class="pill green">كشف تفصيلي</span></div>
+ <div class="finance-filter">
+  <label class="tiny">العميل <select id="financeCustomerStatementSelect"><option value="">اختر العميل</option></select></label>
+  <label class="tiny">من تاريخ <input id="financeCustomerStatementStart" type="date"></label>
+  <label class="tiny">إلى تاريخ <input id="financeCustomerStatementEnd" type="date"></label>
+  <button class="btn lime" id="financeCustomerStatementRunBtn" onclick="loadFinanceCustomerStatement()">عرض الكشف</button>
+ </div>
+ <div id="financeCustomerStatementContent"><div class="empty">اختر العميل والفترة ثم اضغط «عرض الكشف».</div></div>
+</div>
+
 <div class="card" id="financeVendorBillsPanel" style="padding:16px;margin:14px 0">
  <div class="head"><div><h3>الموردون والمصروفات</h3><div class="muted tiny">تسجيل الموردين وفواتير الشراء والمصروفات، مع إنشاء قيد المصروف والمستحقات عند الاعتماد والسداد.</div></div><span class="pill green">مرحلة أولى</span></div>
  <div class="grid two">
@@ -2053,6 +2064,7 @@ async function loadFinanceInvoices(){
  const {data,error}=await sb.from('finance_invoices').select('id,invoice_number,customer_name,invoice_date,due_date,currency_code,total_original,paid_original,status,issued_journal_id').eq('organization_id',currentOrganizationId).order('invoice_date',{ascending:false}).limit(200);
  if(error)throw error;
  financeInvoices=data||[];
+ await loadFinanceCustomerStatementOptions();
  const rows=financeInvoices.map(i=>{
   const remaining=Math.max(0,Number(i.total_original||0)-Number(i.paid_original||0));
   const status=i.status==='draft'?'مسودة':i.status==='paid'?'مدفوعة':'صادرة';
@@ -2060,6 +2072,59 @@ async function loadFinanceInvoices(){
   return '<tr><td>'+esc(i.invoice_number)+'</td><td>'+esc(i.customer_name)+'</td><td>'+esc(i.invoice_date)+'</td><td>'+financeReportMoney(i.total_original,i.currency_code)+'</td><td>'+financeReportMoney(i.paid_original,i.currency_code)+'</td><td>'+financeReportMoney(remaining,i.currency_code)+'</td><td><span class="pill '+(i.status==='paid'?'green':i.status==='draft'?'amber':'blue')+'">'+status+'</span></td><td>'+actions+'</td></tr>';
  });
  $('financeInvoicesTable').innerHTML=table(['رقم الفاتورة','العميل','التاريخ','الإجمالي','المحصّل','المتبقي','الحالة','إجراء'],rows);
+}
+async function loadFinanceCustomerStatementOptions(){
+ if(!currentOrganizationId||!(financeCanManage()||financeHasRole('accountant')))return;
+ const {data,error}=await sb.from('finance_invoices').select('id,invoice_number,customer_name,invoice_date,due_date,currency_code,total_original,paid_original,status').eq('organization_id',currentOrganizationId).order('customer_name').limit(1000);
+ if(error)throw error;
+ financeCustomerStatementInvoices=data||[];
+ const customers=[...new Map(financeCustomerStatementInvoices.filter(i=>i.status==='issued'||i.status==='paid').map(i=>[String(i.customer_name||'').trim().toLocaleLowerCase(),String(i.customer_name||'').trim()])).entries()].filter(x=>x[1]).map(x=>({key:x[0],name:x[1]})).sort((a,b)=>a.name.localeCompare(b.name,'ar'));
+ const sel=$('financeCustomerStatementSelect'),old=sel?.value;
+ if(sel){sel.innerHTML='<option value="">اختر العميل</option>'+customers.map(c=>'<option value="'+esc(c.key)+'">'+esc(c.name)+'</option>').join('');if(customers.some(c=>c.key===old))sel.value=old;}
+ const now=new Date(),today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+ if($('financeCustomerStatementStart')&&!$('financeCustomerStatementStart').value)$('financeCustomerStatementStart').value=now.getFullYear()+'-01-01';
+ if($('financeCustomerStatementEnd')&&!$('financeCustomerStatementEnd').value)$('financeCustomerStatementEnd').value=today;
+}
+let financeCustomerStatementInvoices=[];
+async function loadFinanceCustomerStatement(){
+ if(!currentOrganizationId||!(financeCanManage()||financeHasRole('accountant')))return;
+ const customerKey=$('financeCustomerStatementSelect')?.value,startDate=$('financeCustomerStatementStart')?.value,endDate=$('financeCustomerStatementEnd')?.value;
+ const content=$('financeCustomerStatementContent'),button=$('financeCustomerStatementRunBtn');
+ if(!customerKey)return alert('اختر العميل أولاً.');
+ if(!startDate||!endDate||startDate>endDate)return alert('تحقق من تاريخ بداية ونهاية الكشف.');
+ if(button){button.disabled=true;button.textContent='جارٍ إعداد الكشف…';}
+ if(content)content.innerHTML='<div class="empty">جارٍ تحميل حركات العميل…</div>';
+ try{
+  const invoices=await financeFetchAllRows(sb.from('finance_invoices')
+   .select('id,invoice_number,customer_name,invoice_date,due_date,currency_code,total_original,paid_original,status')
+   .eq('organization_id',currentOrganizationId).in('status',['issued','paid']).order('invoice_date',{ascending:true}));
+  const customerInvoices=invoices.filter(i=>String(i.customer_name||'').trim().toLocaleLowerCase()===customerKey);
+  if(!customerInvoices.length)throw new Error('لا توجد فواتير معتمدة لهذا العميل.');
+  const invoiceIds=customerInvoices.map(i=>i.id);
+  const payments=await financeFetchAllRows(sb.from('finance_invoice_payments')
+   .select('id,invoice_id,payment_number,payment_date,amount_original,currency_code,reference')
+   .eq('organization_id',currentOrganizationId).in('invoice_id',invoiceIds).order('payment_date',{ascending:true}));
+  const events=[];
+  customerInvoices.forEach(i=>events.push({date:i.invoice_date,type:'invoice',priority:0,currency:i.currency_code||'—',debit:0,credit:Number(i.total_original||0),reference:i.invoice_number,detail:'فاتورة عميل',due:i.due_date||'—'}));
+  payments.forEach(p=>events.push({date:p.payment_date,type:'payment',priority:1,currency:p.currency_code||'—',debit:Number(p.amount_original||0),credit:0,reference:p.reference||p.payment_number,detail:'تحصيل فاتورة عميل',due:'—'}));
+  events.sort((a,b)=>String(a.date).localeCompare(String(b.date))||a.priority-b.priority||String(a.reference).localeCompare(String(b.reference)));
+  const currencies=[...new Set(events.map(e=>e.currency))];
+  let html='<div class="note" style="margin:10px 0">العميل: <b>'+esc(customerInvoices[0].customer_name)+'</b> — الفترة: '+esc(startDate)+' إلى '+esc(endDate)+'. الفواتير المسودة غير مدرجة، وكل عملة تظهر في كشف مستقل.</div>';
+  for(const currency of currencies){
+   const all=events.filter(e=>e.currency===currency);
+   const opening=all.filter(e=>e.date<startDate).reduce((sum,e)=>sum+e.debit-e.credit,0);
+   const period=all.filter(e=>e.date>=startDate&&e.date<=endDate);
+   let balance=opening,invoiced=0,collected=0;
+   const rows=['<tr><td colspan="4"><b>الرصيد الافتتاحي</b></td><td>—</td><td>—</td><td><b>'+financeReportMoney(balance,currency)+'</b></td></tr>'];
+   period.forEach(e=>{
+    balance+=e.debit-e.credit;invoiced+=e.credit;collected+=e.debit;
+    rows.push('<tr><td>'+esc(e.date)+'</td><td>'+(e.type==='invoice'?'فاتورة صادرة':'دفعة تحصيل')+'</td><td>'+esc(e.reference)+'</td><td>'+esc(e.detail)+'</td><td>'+(e.debit?financeReportMoney(e.debit,currency):'—')+'</td><td>'+(e.credit?financeReportMoney(e.credit,currency):'—')+'</td><td><b>'+financeReportMoney(balance,currency)+'</b></td></tr>');
+   });
+   html+='<div class="card" style="padding:12px;margin:12px 0;box-shadow:none;border:1px solid var(--line)"><div class="head"><h4 style="margin:0">كشف '+esc(currency)+'</h4><span class="pill '+(balance>0?'amber':'green')+'">'+(balance>0?'رصيد مستحق على العميل':'لا يوجد رصيد مستحق')+'</span></div><div class="grid stats"><div><div class="stat-label">الرصيد الافتتاحي</div><div class="stat-value">'+financeReportMoney(opening,currency)+'</div></div><div><div class="stat-label">فواتير الفترة</div><div class="stat-value">'+financeReportMoney(invoiced,currency)+'</div></div><div><div class="stat-label">تحصيلات الفترة</div><div class="stat-value">'+financeReportMoney(collected,currency)+'</div></div><div><div class="stat-label">الرصيد الختامي</div><div class="stat-value">'+financeReportMoney(balance,currency)+'</div></div></div><div class="table-wrap">'+table(['التاريخ','نوع الحركة','رقم المرجع','البيان','مدين — تحصيل','دائن — فاتورة','الرصيد'],rows)+'</div></div>';
+  }
+  content.innerHTML=html;
+ }catch(e){console.error(e);if(content)content.innerHTML='<div class="empty">تعذر إعداد كشف العميل: '+esc(e.message||'خطأ غير معروف')+'</div>';}
+ finally{if(button){button.disabled=false;button.textContent='عرض الكشف';}}
 }
 async function createFinanceInvoiceDraft(){
  if(!financeCanWrite())return alert('لا تملك صلاحية إنشاء فاتورة.');
