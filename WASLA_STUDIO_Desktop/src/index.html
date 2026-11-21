@@ -583,6 +583,15 @@ footer{color:#8790a7}
  <div id="financeCustomerStatementContent"><div class="empty">اختر العميل والفترة ثم اضغط «عرض الكشف».</div></div>
 </div>
 
+<div class="card" id="financeAgingReportPanel" style="padding:16px;margin:14px 0">
+ <div class="head"><div><h3>تقرير أعمار الديون</h3><div class="muted tiny">متابعة مستحقات العملاء والموردين حسب تاريخ الاستحقاق — قراءة فقط.</div></div><span class="pill blue">Aging Report</span></div>
+ <div class="finance-filter">
+  <label class="tiny">تاريخ التقرير حتى <input id="financeAgingAsOf" type="date"></label>
+  <button class="btn lime" id="financeAgingRunBtn" onclick="loadFinanceAgingReport()">تحديث التقرير</button>
+ </div>
+ <div class="note" style="margin:10px 0">التصنيف حسب تاريخ الاستحقاق: غير مستحق، متأخر 1–30، 31–60، 61–90، وأكثر من 90 يوماً. الفواتير المسودة والمدفوعة بالكامل مستبعدة، وكل عملة مستقلة.</div>
+ <div id="financeAgingReportContent"><div class="empty">اضغط «تحديث التقرير» لعرض أعمار الديون.</div></div>
+</div>
 <div class="card" id="financeVendorBillsPanel" style="padding:16px;margin:14px 0">
  <div class="head"><div><h3>الموردون والمصروفات</h3><div class="muted tiny">تسجيل الموردين وفواتير الشراء والمصروفات، مع إنشاء قيد المصروف والمستحقات عند الاعتماد والسداد.</div></div><span class="pill green">مرحلة أولى</span></div>
  <div class="grid two">
@@ -2072,6 +2081,67 @@ async function loadFinanceInvoices(){
   return '<tr><td>'+esc(i.invoice_number)+'</td><td>'+esc(i.customer_name)+'</td><td>'+esc(i.invoice_date)+'</td><td>'+financeReportMoney(i.total_original,i.currency_code)+'</td><td>'+financeReportMoney(i.paid_original,i.currency_code)+'</td><td>'+financeReportMoney(remaining,i.currency_code)+'</td><td><span class="pill '+(i.status==='paid'?'green':i.status==='draft'?'amber':'blue')+'">'+status+'</span></td><td>'+actions+'</td></tr>';
  });
  $('financeInvoicesTable').innerHTML=table(['رقم الفاتورة','العميل','التاريخ','الإجمالي','المحصّل','المتبقي','الحالة','إجراء'],rows);
+}
+function financeAgingDays(dateValue,asOfValue){
+ if(!dateValue)return 0;
+ const a=String(dateValue).slice(0,10).split('-').map(Number),b=String(asOfValue).slice(0,10).split('-').map(Number);
+ if(a.length!==3||b.length!==3||a.some(n=>!Number.isFinite(n))||b.some(n=>!Number.isFinite(n)))return 0;
+ return Math.floor((Date.UTC(b[0],b[1]-1,b[2])-Date.UTC(a[0],a[1]-1,a[2]))/86400000);
+}
+function financeAgingBucket(days){
+ if(days<=0)return 'current';
+ if(days<=30)return 'd1_30';
+ if(days<=60)return 'd31_60';
+ if(days<=90)return 'd61_90';
+ return 'over90';
+}
+function financeAgingBucketLabel(key){
+ return ({current:'غير مستحق',d1_30:'1–30 يوماً',d31_60:'31–60 يوماً',d61_90:'61–90 يوماً',over90:'أكثر من 90 يوماً'})[key]||key;
+}
+function financeRenderAgingSection(title,rows,partyLabel,dateField,numberField){
+ const buckets=['current','d1_30','d31_60','d61_90','over90'],currencies=[...new Set(rows.map(r=>r.currency_code||'—'))];
+ let html='<div class="card" style="padding:12px;margin:14px 0;box-shadow:none;border:1px solid var(--line)"><h3 style="margin:0 0 12px">'+title+'</h3>';
+ if(!rows.length)return html+'<div class="empty">لا توجد أرصدة مستحقة في تاريخ التقرير.</div></div>';
+ for(const currency of currencies){
+  const list=rows.filter(r=>(r.currency_code||'—')===currency);
+  const totals=Object.fromEntries(buckets.map(k=>[k,0]));
+  list.forEach(r=>totals[r.bucket]+=r.remaining);
+  const total=buckets.reduce((sum,k)=>sum+totals[k],0);
+  const summary=buckets.map(k=>'<div><div class="stat-label">'+financeAgingBucketLabel(k)+'</div><div class="stat-value">'+financeReportMoney(totals[k],currency)+'</div></div>').join('');
+  const body=list.sort((a,b)=>b.daysOverdue-a.daysOverdue||String(a[partyLabel]).localeCompare(String(b[partyLabel]),'ar')).map(r=>'<tr><td>'+esc(r[partyLabel]||'—')+'</td><td>'+esc(r[numberField]||'—')+'</td><td>'+esc(r[dateField]||'—')+'</td><td>'+esc(r.due_date||'—')+'</td><td>'+ (r.daysOverdue>0?r.daysOverdue+' يوم':'غير مستحق')+'</td><td>'+financeAgingBucketLabel(r.bucket)+'</td><td><b>'+financeReportMoney(r.remaining,currency)+'</b></td></tr>');
+  html+='<div class="card" style="padding:10px;margin:10px 0;box-shadow:none;border:1px solid var(--line)"><div class="head"><h4 style="margin:0">عملة '+esc(currency)+'</h4><b>'+financeReportMoney(total,currency)+'</b></div><div class="grid stats">'+summary+'</div><div class="table-wrap">'+table([partyLabel==='customer_name'?'العميل':'المورد','رقم الفاتورة','تاريخ الفاتورة','تاريخ الاستحقاق','أيام التأخير','شريحة التأخير','الرصيد المتبقي'],body)+'</div></div>';
+ }
+ return html+'</div>';
+}
+async function loadFinanceAgingReport(){
+ if(!currentOrganizationId||!(financeCanManage()||financeHasRole('accountant')))return;
+ const asOf=$('financeAgingAsOf')?.value,content=$('financeAgingReportContent'),button=$('financeAgingRunBtn');
+ if(!asOf)return alert('حدد تاريخ التقرير.');
+ if(button){button.disabled=true;button.textContent='جارٍ إعداد التقرير…';}
+ if(content)content.innerHTML='<div class="empty">جارٍ حساب أعمار الديون…</div>';
+ try{
+  const [ir,vr,br,rr]=await Promise.all([
+   sb.from('finance_invoices').select('id,invoice_number,customer_name,invoice_date,due_date,currency_code,total_original,paid_original,status').eq('organization_id',currentOrganizationId).in('status',['issued','paid']).limit(5000),
+   sb.from('finance_vendors').select('id,vendor_name').eq('organization_id',currentOrganizationId).limit(5000),
+   sb.from('finance_vendor_bills').select('id,bill_number,vendor_id,bill_date,due_date,currency_code,total_original,paid_original,status').eq('organization_id',currentOrganizationId).in('status',['issued','paid']).limit(5000),
+   sb.from('finance_settings').select('base_currency').eq('organization_id',currentOrganizationId).maybeSingle()
+  ]);
+  if(ir.error)throw ir.error;if(vr.error)throw vr.error;if(br.error)throw br.error;if(rr.error)throw rr.error;
+  const makeRows=(records,partyField,numberField,dateField)=>{
+   return (records||[]).filter(r=>['issued','paid'].includes(r.status)).map(r=>{
+    const remaining=Math.max(0,Number(r.total_original||0)-Number(r.paid_original||0));
+    const days=financeAgingDays(r.due_date||r[dateField],asOf);
+    return {...r,remaining,daysOverdue:Math.max(0,days),bucket:financeAgingBucket(days)};
+   }).filter(r=>r.remaining>0.000001);
+  };
+  const customers=makeRows(ir.data,'customer_name','invoice_number','invoice_date');
+  const vendorNames=new Map((vr.data||[]).map(v=>[v.id,v.vendor_name]));
+  const vendors=makeRows(br.data,'vendor_id','bill_number','bill_date').map(r=>({...r,vendor_name:vendorNames.get(r.vendor_id)||'مورد غير معروف'}));
+  const c=financeRenderAgingSection('أعمار ديون العملاء',customers,'customer_name','invoice_date','invoice_number');
+  const v=financeRenderAgingSection('أعمار مستحقات الموردين',vendors,'vendor_name','bill_date','bill_number');
+  content.innerHTML='<div class="note" style="margin:10px 0">تاريخ التقرير: <b>'+esc(asOf)+'</b> — العملة الأساسية للمؤسسة: <b>'+esc(rr.data?.base_currency||'غير محددة')+'</b>. لا تُجمع العملات المختلفة في إجمالي واحد.</div>'+c+v;
+ }catch(e){console.error(e);if(content)content.innerHTML='<div class="empty">تعذر إعداد تقرير أعمار الديون: '+esc(e.message||'خطأ غير معروف')+'</div>';}
+ finally{if(button){button.disabled=false;button.textContent='تحديث التقرير';}}
 }
 async function loadFinanceCustomerStatementOptions(){
  if(!currentOrganizationId||!(financeCanManage()||financeHasRole('accountant')))return;
