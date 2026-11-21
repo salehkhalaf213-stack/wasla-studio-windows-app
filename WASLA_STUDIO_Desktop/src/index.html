@@ -553,6 +553,25 @@ footer{color:#8790a7}
 <div class="card" id="financeAccountsPanel" style="padding:16px"><div class="head"><h3>دليل الحسابات</h3><button class="btn soft sm" id="financeAddAccountBtn" onclick="openFinanceAccount()">＋ إضافة حساب</button></div><div class="table-wrap" id="financeAccountsTable"></div></div>
 <div class="card" id="financePermissionsPanel" style="padding:16px"><div class="head"><h3>صلاحيات WASLA FINANCE</h3><button class="btn soft sm" onclick="loadFinanceMembers()">تحديث</button></div><div class="muted tiny" style="margin-bottom:10px">امنح الموظف دوراً مالياً إضافياً دون تغيير دور دخوله الأساسي.</div><div class="field"><label for="financeMemberSelect">عضو المؤسسة</label><select id="financeMemberSelect"><option value="">جارٍ تحميل الأعضاء…</option></select></div><div class="field"><label for="financeRoleSelect">الصلاحية المالية</label><select id="financeRoleSelect"><option value="accountant">محاسب — تسجيل العمليات والقيود</option><option value="project_manager">مدير مشاريع — نطاق المشاريع المصرح بها</option><option value="finance_viewer">مشاهد مالي — قراءة محدودة</option></select></div><button class="btn lime" onclick="grantFinanceRole()">منح الصلاحية</button><div id="financeRolesTable" style="margin-top:12px"></div><div class="divider"></div><h4>تحديد مشاريع مدير المشاريع</h4><div class="field"><label for="financeProjectSelect">المشروع</label><select id="financeProjectSelect"><option value="">اختر المشروع</option></select></div><button class="btn soft" onclick="grantFinanceProjectAccess()">ربط العضو بالمشروع المحدد</button><div id="financeProjectAccessTable" style="margin-top:12px"></div></div>
 </div>
+<div class="card" id="financeInvoicesPanel" style="padding:16px;margin:14px 0">
+ <div class="head"><div><h3>فواتير العملاء والتحصيل</h3><div class="muted tiny">الفاتورة المعتمدة تنشئ قيد الإيراد والذمم تلقائياً مرة واحدة. التحصيل ينشئ قيداً مستقلاً.</div></div><span class="pill green">مرحلة أولى</span></div>
+ <div class="grid two">
+  <div class="field"><label for="financeInvoiceCustomer">اسم العميل</label><input id="financeInvoiceCustomer" placeholder="اسم العميل"></div>
+  <div class="field"><label for="financeInvoiceEmail">البريد الإلكتروني (اختياري)</label><input id="financeInvoiceEmail" type="email" placeholder="name@example.com"></div>
+  <div class="field"><label for="financeInvoiceDate">تاريخ الفاتورة</label><input id="financeInvoiceDate" type="date"></div>
+  <div class="field"><label for="financeInvoiceDue">تاريخ الاستحقاق</label><input id="financeInvoiceDue" type="date"></div>
+  <div class="field"><label for="financeInvoiceCurrency">العملة</label><select id="financeInvoiceCurrency"><option value="EGP">EGP</option><option value="SAR">SAR</option><option value="AED">AED</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></div>
+  <div class="field"><label for="financeInvoiceRate">سعر الصرف إلى العملة الأساسية</label><input id="financeInvoiceRate" type="number" min="0.00000001" step="0.00000001" value="1"></div>
+  <div class="field"><label for="financeInvoiceReceivable">حساب الذمم المدينة (أصول)</label><select id="financeInvoiceReceivable"><option value="">اختر حساب الذمم المدينة</option></select></div>
+  <div class="field"><label for="financeInvoiceRevenue">حساب الإيراد</label><select id="financeInvoiceRevenue"><option value="">اختر حساب الإيراد</option></select></div>
+  <div class="field"><label for="financeInvoiceLineDescription">وصف الخدمة / البند</label><input id="financeInvoiceLineDescription" placeholder="مثال: إدارة حملة تسويقية"></div>
+  <div class="field"><label for="financeInvoiceQuantity">الكمية</label><input id="financeInvoiceQuantity" type="number" min="0.0001" step="0.0001" value="1"></div>
+  <div class="field"><label for="financeInvoiceUnitPrice">سعر الوحدة</label><input id="financeInvoiceUnitPrice" type="number" min="0.0001" step="0.0001" placeholder="0.00"></div>
+  <div class="field"><label for="financeInvoiceProject">مرجع المشروع (اختياري)</label><input id="financeInvoiceProject" placeholder="معرّف المشروع إن وجد"></div>
+ </div>
+ <div class="actions"><button class="btn lime" id="financeInvoiceCreateBtn" onclick="createFinanceInvoiceDraft()">حفظ الفاتورة كمسودة</button><span class="muted tiny">يلزم إنشاء حساب مستقل باسم الذمم المدينة؛ لا تستخدم حساب الصندوق لهذا الغرض.</span></div>
+ <div id="financeInvoicesTable" style="margin-top:14px"><div class="empty">جارٍ تحميل الفواتير…</div></div>
+</div>
 <div class="card" id="financeReportsPanel" style="padding:16px;margin-bottom:14px;display:none">
  <div class="head"><div><h3>التقارير المالية</h3><div class="muted tiny">الأرقام بالعملة الأساسية، وتشمل القيود المرحلة والمعكوسة لإظهار صافي الحركة التاريخية.</div></div><span class="pill green">تقارير محاسبية</span></div>
  <div class="finance-filter"><label class="tiny">من تاريخ <input id="financeReportStart" type="date"></label><label class="tiny">إلى تاريخ <input id="financeReportEnd" type="date"></label><button class="btn lime" id="financeReportRunBtn" onclick="loadFinanceReports()">تحديث التقارير</button></div>
@@ -1982,6 +2001,71 @@ function financeCanAccess(){return financeCanManage()||financeHasRole('accountan
 function financeCanWrite(){return financeCanManage()||financeHasRole('accountant')}
 function financeCurrencyLabel(code){return ({EGP:'ج.م',SAR:'ر.س',AED:'د.إ',USD:'$',EUR:'€',GBP:'£'})[code]||code||''}
 function financeSetVisible(id,visible){const el=$(id);if(el)el.style.display=visible?'':'none'}
+let financeInvoices=[];
+function financeInvoiceFillAccounts(){
+ const assets=financeAccounts.filter(a=>a.is_active&&a.account_type==='asset');
+ const revenues=financeAccounts.filter(a=>a.is_active&&a.account_type==='revenue');
+ const fill=(id,rows,placeholder)=>{const el=$(id);if(!el)return;const old=el.value;el.innerHTML='<option value="">'+placeholder+'</option>'+rows.map(a=>'<option value="'+a.id+'">'+esc(a.account_code)+' — '+esc(a.account_name)+'</option>').join('');if(rows.some(a=>a.id===old))el.value=old;};
+ fill('financeInvoiceReceivable',assets,'اختر حساب الذمم المدينة');
+ fill('financeInvoiceRevenue',revenues,'اختر حساب الإيراد');
+}
+async function loadFinanceInvoices(){
+ if(!currentOrganizationId||!(financeCanManage()||financeHasRole('accountant')))return;
+ const {data,error}=await sb.from('finance_invoices').select('id,invoice_number,customer_name,invoice_date,due_date,currency_code,total_original,paid_original,status,issued_journal_id').eq('organization_id',currentOrganizationId).order('invoice_date',{ascending:false}).limit(200);
+ if(error)throw error;
+ financeInvoices=data||[];
+ const rows=financeInvoices.map(i=>{
+  const remaining=Math.max(0,Number(i.total_original||0)-Number(i.paid_original||0));
+  const status=i.status==='draft'?'مسودة':i.status==='paid'?'مدفوعة':'صادرة';
+  const actions=i.status==='draft'?(financeCanManage()?'<button class="btn lime sm" onclick="issueFinanceInvoice(\''+i.id+'\')">اعتماد وإصدار</button>':'بانتظار الإصدار'):i.status==='issued'?(financeCanManage()?'<button class="btn soft sm" onclick="recordFinanceInvoicePayment(\''+i.id+'\')">تسجيل تحصيل</button>':'صادرة'): 'مكتملة';
+  return '<tr><td>'+esc(i.invoice_number)+'</td><td>'+esc(i.customer_name)+'</td><td>'+esc(i.invoice_date)+'</td><td>'+financeReportMoney(i.total_original,i.currency_code)+'</td><td>'+financeReportMoney(i.paid_original,i.currency_code)+'</td><td>'+financeReportMoney(remaining,i.currency_code)+'</td><td><span class="pill '+(i.status==='paid'?'green':i.status==='draft'?'amber':'blue')+'">'+status+'</span></td><td>'+actions+'</td></tr>';
+ });
+ $('financeInvoicesTable').innerHTML=table(['رقم الفاتورة','العميل','التاريخ','الإجمالي','المحصّل','المتبقي','الحالة','إجراء'],rows);
+}
+async function createFinanceInvoiceDraft(){
+ if(!financeCanWrite())return alert('لا تملك صلاحية إنشاء فاتورة.');
+ const customer=$('financeInvoiceCustomer').value.trim(),email=$('financeInvoiceEmail').value.trim();
+ const date=$('financeInvoiceDate').value||new Date().toISOString().slice(0,10),due=$('financeInvoiceDue').value||null;
+ const currency=$('financeInvoiceCurrency').value,rate=Number($('financeInvoiceRate').value||0);
+ const receivable=$('financeInvoiceReceivable').value,revenue=$('financeInvoiceRevenue').value;
+ const description=$('financeInvoiceLineDescription').value.trim(),qty=Number($('financeInvoiceQuantity').value||0),price=Number($('financeInvoiceUnitPrice').value||0),project=$('financeInvoiceProject').value.trim()||null;
+ if(!customer||!receivable||!revenue||!description||qty<=0||price<=0||rate<=0)return alert('أكمل بيانات العميل والحسابات والبند والكمية والسعر وسعر الصرف.');
+ const base=financeSettings?.base_currency;
+ if(!base)return alert('حدد العملة الأساسية للمؤسسة أولاً.');
+ if(currency===base&&rate!==1)return alert('سعر الصرف يجب أن يساوي 1 عند استخدام العملة الأساسية.');
+ const btn=$('financeInvoiceCreateBtn');btn.disabled=true;
+ try{
+  const invoiceNumber='INV-'+Date.now();
+  const {data,error}=await sb.rpc('create_finance_invoice_draft',{p_invoice_number:invoiceNumber,p_customer_name:customer,p_customer_email:email||null,p_invoice_date:date,p_due_date:due,p_currency_code:currency,p_exchange_rate:rate,p_receivable_account_id:receivable,p_line_description:description,p_quantity:qty,p_unit_price:price,p_revenue_account_id:revenue,p_project_ref:project});
+  if(error)throw error;
+  $('financeInvoiceCustomer').value='';$('financeInvoiceEmail').value='';$('financeInvoiceLineDescription').value='';$('financeInvoiceUnitPrice').value='';$('financeInvoiceProject').value='';
+  await loadFinanceInvoices();alert('تم حفظ الفاتورة '+invoiceNumber+' كمسودة. لم يُسجل أي إيراد بعد.');
+ }catch(e){alert('تعذر حفظ الفاتورة: '+(e.message||e));}
+ finally{btn.disabled=false;}
+}
+async function issueFinanceInvoice(id){
+ if(!financeCanManage())return alert('إصدار الفواتير متاح لمدير المؤسسة فقط.');
+ const invoice=financeInvoices.find(x=>x.id===id);if(!invoice)return;
+ if(!confirm('سيتم إصدار الفاتورة '+invoice.invoice_number+' وإنشاء قيد محاسبي تلقائي للذمم والإيراد. لا يمكن تعديلها بعد الإصدار. هل تريد المتابعة؟'))return;
+ try{const {data,error}=await sb.rpc('issue_finance_invoice',{p_invoice_id:id});if(error)throw error;await loadFinanceWorkspace();alert('تم إصدار الفاتورة وإنشاء القيد المحاسبي المرتبط بها.');}
+ catch(e){alert('تعذر إصدار الفاتورة: '+(e.message||e));}
+}
+async function recordFinanceInvoicePayment(id){
+ if(!financeCanManage())return alert('تسجيل التحصيل متاح لمدير المؤسسة فقط.');
+ const invoice=financeInvoices.find(x=>x.id===id);if(!invoice)return;
+ const amount=Number(prompt('أدخل مبلغ التحصيل بعملة الفاتورة ('+invoice.currency_code+'). المتبقي: '+(Number(invoice.total_original)-Number(invoice.paid_original))));
+ if(!Number.isFinite(amount)||amount<=0)return;
+ const assets=financeAccounts.filter(a=>a.is_active&&a.account_type==='asset');
+ if(!assets.length)return alert('لا يوجد حساب صندوق أو بنك نشط.');
+ const codes=assets.map(a=>a.account_code+' — '+a.account_name).join('\n');
+ const code=prompt('اكتب كود حساب الصندوق أو البنك الذي استلم المبلغ:\n'+codes);
+ if(!code)return;
+ const account=assets.find(a=>a.account_code===code.trim());
+ if(!account)return alert('كود الحساب غير صحيح.');
+ if(!confirm('سيتم تسجيل التحصيل وإنشاء قيد محاسبي مستقل. هل تريد المتابعة؟'))return;
+ try{const {error}=await sb.rpc('record_finance_invoice_payment',{p_invoice_id:id,p_amount:amount,p_cash_account_id:account.id,p_payment_date:new Date().toISOString().slice(0,10),p_reference:null});if(error)throw error;await loadFinanceWorkspace();alert('تم تسجيل التحصيل وإنشاء القيد المرتبط به.');}
+ catch(e){alert('تعذر تسجيل التحصيل: '+(e.message||e));}
+}
 async function loadFinanceWorkspace(showToast=false){
  if(!currentOrganizationId)return;
  try{
@@ -2007,7 +2091,7 @@ async function loadFinanceWorkspace(showToast=false){
   ];
   if(canSeeAccounts)requests.push(sb.from('finance_accounts').select('id,account_code,account_name,account_type,is_active,is_system,parent_id').eq('organization_id',currentOrganizationId).order('account_code'));
   const results=await Promise.all(requests);for(const r of results)if(r.error)throw r.error;
-  financeSettings=results[0].data||null;financeJournals=results[1].data||[];financeAccounts=canSeeAccounts?(results[2]?.data||[]):[];
+  financeSettings=results[0].data||null;financeJournals=results[1].data||[];financeAccounts=canSeeAccounts?(results[2]?.data||[]):[];\n  financeInvoiceFillAccounts();
   $('financeBaseCurrency').textContent=financeSettings?.base_currency||'غير محددة';
   if($('financeCurrencyInput'))$('financeCurrencyInput').value=financeSettings?.base_currency||'';
   $('financeAccountCount').textContent=canSeeAccounts?financeAccounts.length:'—';
@@ -2015,8 +2099,8 @@ async function loadFinanceWorkspace(showToast=false){
   $('financePostedCount').textContent=financeJournals.filter(x=>['posted','reversed'].includes(x.status)).length;
   if(canSeeAccounts)$('financeAccountsTable').innerHTML=table(['الكود','اسم الحساب','النوع','الحالة'],financeAccounts.map(a=>'<tr><td>'+esc(a.account_code)+'</td><td>'+esc(a.account_name)+'</td><td>'+esc(({asset:'أصول',liability:'التزامات',equity:'حقوق ملكية',revenue:'إيرادات',expense:'مصروفات'})[a.account_type]||a.account_type)+'</td><td><span class="pill '+(a.is_active?'green':'amber')+'">'+(a.is_active?'نشط':'متوقف')+'</span></td></tr>'));
   $('financeJournalsTable').innerHTML=table(['رقم القيد','التاريخ','البيان','العملة','الحالة','إجراء'],financeJournals.map(j=>'<tr><td><button class="btn soft sm" onclick="openFinanceJournalDetails(\''+j.id+'\')">'+esc(j.entry_number)+'</button></td><td>'+esc(j.entry_date)+'</td><td>'+esc(j.description)+'</td><td>'+esc(j.currency_code)+'</td><td><span class="pill '+(j.status==='posted'?'green':'amber')+'">'+(j.status==='posted'?'مرحّل':j.status==='reversed'?'معكوس':'مسودة')+'</span></td><td><button class="btn soft sm" onclick="openFinanceJournalDetails(\''+j.id+'\')">التفاصيل</button> '+(j.status==='draft'&&financeCanManage()?'<button class="btn lime sm" onclick="postFinanceJournal(\''+j.id+'\')">اعتماد وترحيل</button>':j.status==='posted'&&financeCanWrite()?'<button class="btn soft sm" onclick="createFinanceReversal(\''+j.id+'\')">إنشاء قيد عكسي</button>':j.status==='draft'?'مسودة — بانتظار الاعتماد':j.status==='reversed'?'تم إنشاء القيد العكسي':'<span class="muted tiny">مقفل</span>')+'</td></tr>'));
-  financeSetVisible('financeReportsPanel',canSeeAccounts);
-  if(canSeeAccounts)await loadFinanceReports();
+  financeSetVisible('financeInvoicesPanel',canSeeAccounts);\n  financeSetVisible('financeReportsPanel',canSeeAccounts);
+  if(canSeeAccounts){await loadFinanceReports();await loadFinanceInvoices();}
   financeSetVisible('financeProjectSummaryPanel',financeHasRole('project_manager')||financeHasRole('finance_viewer'));
   if(financeHasRole('project_manager')||financeHasRole('finance_viewer')){
    const {data:summary,error}=await sb.rpc('finance_my_project_summaries');if(error)throw error;
