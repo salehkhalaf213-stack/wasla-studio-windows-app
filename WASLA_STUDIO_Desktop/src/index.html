@@ -523,18 +523,18 @@ footer{color:#8790a7}
 <section class="page" id="projects"><div class="head"><h2>إدارة المشاريع</h2><button class="btn lime" onclick="openProject()">＋ مشروع جديد</button></div><div class="card table-wrap" id="projectsTable"></div></section>
 <section class="page" id="content"><div class="head"><h2>تقويم المحتوى</h2><button class="btn lime" onclick="openContent()">＋ إضافة محتوى</button></div><div class="note">نظم الأفكار والمواعيد وحالة الإنتاج. النشر التلقائي على منصات التواصل غير مفعّل في هذه النسخة.</div><div class="card table-wrap" style="margin-top:14px" id="contentTable"></div></section>
 <section class="page" id="finance">
-<div class="head"><div><h2>WASLA FINANCE</h2><div class="muted tiny">النظام المالي والمحاسبي للمؤسسة</div></div><div class="actions"><button class="btn soft" onclick="loadFinanceWorkspace(true)">تحديث البيانات</button><button class="btn lime" onclick="openFinanceJournal()">＋ قيد يومية جديد</button></div></div>
+<div class="head"><div><h2>WASLA FINANCE</h2><div class="muted tiny">مساحة مالية بصلاحيات منفصلة لكل دور</div></div><div class="actions"><button class="btn soft" onclick="loadFinanceWorkspace(true)">تحديث البيانات</button><button class="btn lime" id="financeNewJournalBtn" onclick="openFinanceJournal()">＋ قيد يومية جديد</button></div></div><div class="note" id="financeNoAccess" style="display:none">ليس لديك صلاحية للاطلاع على البيانات المالية لهذه المؤسسة. اطلب من مالك المؤسسة أو مديرها منحك صلاحية محددة.</div><div id="financeWorkspaceBody">
 <div class="note" style="margin-bottom:14px">السجلات المالية السابقة محفوظة في الأرشيف أدناه، ولا يتم تحويلها تلقائياً إلى قيود محاسبية. القيود الجديدة تُحفظ منفصلة وتخضع للاعتماد قبل الترحيل.</div>
 <div class="grid stats"><div class="card"><div class="stat-label">العملة الأساسية</div><div class="stat-value" id="financeBaseCurrency">غير محددة</div></div><div class="card"><div class="stat-label">دليل الحسابات</div><div class="stat-value" id="financeAccountCount">0</div></div><div class="card"><div class="stat-label">مسودات القيود</div><div class="stat-value" id="financeDraftCount">0</div></div><div class="card"><div class="stat-label">القيود المرحلة</div><div class="stat-value" id="financePostedCount">0</div></div></div>
-<div class="card" style="margin:14px 0;padding:16px"><div class="head"><h3>إعدادات المؤسسة المالية</h3></div><div class="actions" style="align-items:end"><div class="field" style="min-width:180px;margin:0"><label for="financeCurrencyInput">العملة الأساسية</label><select id="financeCurrencyInput"><option value="">اختر العملة</option><option value="EGP">EGP — جنيه مصري</option><option value="SAR">SAR — ريال سعودي</option><option value="AED">AED — درهم إماراتي</option><option value="USD">USD — دولار أمريكي</option><option value="EUR">EUR — يورو</option><option value="GBP">GBP — جنيه إسترليني</option></select></div><button class="btn lime" onclick="saveFinanceSettings()">حفظ الإعدادات</button><span class="muted tiny">يُحدد مالك المؤسسة أو مديرها العملة الأساسية.</span></div></div>
+<div class="card" id="financeSettingsPanel" style="margin:14px 0;padding:16px"><div class="head"><h3>إعدادات المؤسسة المالية</h3></div><div class="actions" style="align-items:end"><div class="field" style="min-width:180px;margin:0"><label for="financeCurrencyInput">العملة الأساسية</label><select id="financeCurrencyInput"><option value="">اختر العملة</option><option value="EGP">EGP — جنيه مصري</option><option value="SAR">SAR — ريال سعودي</option><option value="AED">AED — درهم إماراتي</option><option value="USD">USD — دولار أمريكي</option><option value="EUR">EUR — يورو</option><option value="GBP">GBP — جنيه إسترليني</option></select></div><button class="btn lime" onclick="saveFinanceSettings()">حفظ الإعدادات</button><span class="muted tiny">يُحدد مالك المؤسسة أو مديرها العملة الأساسية.</span></div></div>
 <div class="finance-section-grid">
-<div class="card" style="padding:16px"><div class="head"><h3>دليل الحسابات</h3><button class="btn soft sm" onclick="openFinanceAccount()">＋ إضافة حساب</button></div><div class="table-wrap" id="financeAccountsTable"></div></div>
-<div class="card" style="padding:16px"><div class="head"><h3>صلاحيات WASLA FINANCE</h3><button class="btn soft sm" onclick="loadFinanceMembers()">تحديث</button></div><div class="muted tiny" style="margin-bottom:10px">امنح الموظف دوراً مالياً إضافياً دون تغيير دور دخوله الأساسي.</div><div class="field"><label for="financeMemberSelect">عضو المؤسسة</label><select id="financeMemberSelect"><option value="">جارٍ تحميل الأعضاء…</option></select></div><div class="field"><label for="financeRoleSelect">الصلاحية المالية</label><select id="financeRoleSelect"><option value="accountant">محاسب — تسجيل العمليات والقيود</option><option value="project_manager">مدير مشاريع — نطاق المشاريع المصرح بها</option><option value="finance_viewer">مشاهد مالي — قراءة محدودة</option></select></div><button class="btn lime" onclick="grantFinanceRole()">منح الصلاحية</button><div id="financeRolesTable" style="margin-top:12px"></div></div>
+<div class="card" id="financeAccountsPanel" style="padding:16px"><div class="head"><h3>دليل الحسابات</h3><button class="btn soft sm" onclick="openFinanceAccount()">＋ إضافة حساب</button></div><div class="table-wrap" id="financeAccountsTable"></div></div>
+<div class="card" id="financePermissionsPanel" style="padding:16px"><div class="head"><h3>صلاحيات WASLA FINANCE</h3><button class="btn soft sm" onclick="loadFinanceMembers()">تحديث</button></div><div class="muted tiny" style="margin-bottom:10px">امنح الموظف دوراً مالياً إضافياً دون تغيير دور دخوله الأساسي.</div><div class="field"><label for="financeMemberSelect">عضو المؤسسة</label><select id="financeMemberSelect"><option value="">جارٍ تحميل الأعضاء…</option></select></div><div class="field"><label for="financeRoleSelect">الصلاحية المالية</label><select id="financeRoleSelect"><option value="accountant">محاسب — تسجيل العمليات والقيود</option><option value="project_manager">مدير مشاريع — نطاق المشاريع المصرح بها</option><option value="finance_viewer">مشاهد مالي — قراءة محدودة</option></select></div><button class="btn lime" onclick="grantFinanceRole()">منح الصلاحية</button><div id="financeRolesTable" style="margin-top:12px"></div><div class="divider"></div><h4>تحديد مشاريع مدير المشاريع</h4><div class="field"><label for="financeProjectSelect">المشروع</label><select id="financeProjectSelect"><option value="">اختر المشروع</option></select></div><button class="btn soft" onclick="grantFinanceProjectAccess()">ربط العضو بالمشروع المحدد</button><div id="financeProjectAccessTable" style="margin-top:12px"></div></div>
 </div>
-<div class="card" style="padding:16px;margin-bottom:14px"><div class="head"><h3>القيود اليومية</h3><span class="muted tiny">المسودات قابلة للتعديل — القيود المرحلة غير قابلة للحذف أو التعديل</span></div><div class="table-wrap" id="financeJournalsTable"></div></div>
-<div class="card" style="padding:16px"><div class="head"><h3>السجلات المالية السابقة — أرشيف للقراءة فقط</h3><span class="pill amber">بيانات قديمة</span></div><div class="muted tiny" style="margin-bottom:10px">هذه السجلات محفوظة كما هي داخل بيانات WASLA القديمة، ولا تُعد قيوداً محاسبية معتمدة.</div><div class="table-wrap" id="financeLegacyTable"></div>
+<div class="card" id="financeJournalsPanel" style="padding:16px;margin-bottom:14px"><div class="head"><h3>القيود اليومية</h3><span class="muted tiny">المسودات قابلة للتعديل — القيود المرحلة غير قابلة للحذف أو التعديل</span></div><div class="table-wrap" id="financeJournalsTable"></div></div>
+<div class="card" id="financeLegacyPanel" style="padding:16px"><div class="head"><h3>السجلات المالية السابقة — أرشيف للقراءة فقط</h3><span class="pill amber">بيانات قديمة</span></div><div class="muted tiny" style="margin-bottom:10px">هذه السجلات محفوظة كما هي داخل بيانات WASLA القديمة، ولا تُعد قيوداً محاسبية معتمدة.</div><div class="table-wrap" id="financeLegacyTable"></div>
 <div class="grid stats" style="margin-top:12px"><div class="card"><div class="stat-label">إجمالي الإيرادات السابقة</div><div class="stat-value" id="income">0</div></div><div class="card"><div class="stat-label">إجمالي المصروفات السابقة</div><div class="stat-value" id="expense">0</div></div><div class="card"><div class="stat-label">الصافي السابق</div><div class="stat-value" id="balance">0</div></div><div class="card"><div class="stat-label">عدد السجلات السابقة</div><div class="stat-value" id="transactions">0</div></div></div>
-<div id="financeTable" style="display:none"></div></div></section>
+<div id="financeTable" style="display:none"></div></div><div class="card" id="financeProjectSummaryPanel" style="display:none;padding:16px;margin-top:14px"><div class="head"><h3>ميزانيات وربحية مشاريعي المصرح بها</h3></div><div class="muted tiny" style="margin-bottom:10px">تُعرض النتائج بالعملة الأساسية للمؤسسة ومن القيود المرحلة فقط.</div><div id="financeProjectSummaryTable"></div></div></div></section>
 <section class="page" id="employeePortal">
 <div class="head"><h2>إدارة الموظفين والتكليفات</h2><div class="actions"><button class="btn soft" onclick="openEmployeeInvite()">＋ إضافة موظف</button><button class="btn lime" onclick="openAssignment()">＋ تكليف جديد</button></div></div>
 <div class="grid stats"><div class="card"><div class="stat-label">عدد الموظفين</div><div class="stat-value" id="adminEmployeeCount">0</div></div><div class="card"><div class="stat-label">إجمالي التكليفات</div><div class="stat-value" id="adminAssignmentCount">0</div></div><div class="card"><div class="stat-label">قيد التنفيذ</div><div class="stat-value" id="adminActiveCount">0</div></div><div class="card"><div class="stat-label">تحديثات جديدة</div><div class="stat-value" id="adminUpdatesCount">0</div></div></div>
@@ -1929,39 +1929,56 @@ function renderProjects(){if(!$('projectsTable'))return;$('projectsTable').inner
 function openContent(id){let o=data.contents.find(x=>x.id===id)||{};openModal(id?'تعديل محتوى':'إضافة محتوى',input('n','عنوان الفكرة',o.title)+input('c','العميل',o.client)+input('d','موعد النشر',o.date,'date')+select('t','نوع المحتوى',['Reel','منشور','Story','إعلان'],o.type||'Reel')+select('s','الحالة',['فكرة','قيد التجهيز','جاهز','تم النشر'],o.status||'فكرة'),()=>{if(!$('n').value.trim())return alert('اكتب عنوان الفكرة');let x={id:id||Date.now(),title:$('n').value,client:$('c').value,date:$('d').value,type:$('t').value,status:$('s').value};if(id)data.contents=data.contents.map(v=>v.id===id?x:v);else data.contents.push(x);closeModal();persist()})}
 function renderContent(){if(!$('contentTable'))return;$('contentTable').innerHTML=table(['الفكرة','العميل','التاريخ','النوع','الحالة','إجراءات'],data.contents.map(x=>`<tr><td>${esc(x.title)}</td><td>${esc(x.client)}</td><td>${esc(x.date)}</td><td>${esc(x.type)}</td><td>${esc(x.status)}</td><td><button class="btn soft sm" onclick="openContent(${x.id})">تعديل</button> <button class="btn danger sm" onclick="del('contents',${x.id})">حذف</button></td></tr>`))}
 
-let financeSettings=null,financeAccounts=[],financeJournals=[],financeMembers=[];
-function financeCanManage(){return currentRole==='owner'||currentRole==='admin'}
-function financeCurrencyLabel(code){return ({EGP:'ج.م',SAR:'ر.س',AED:'د.إ',USD:'openModal('تسجيل عملية مالية',select('k','نوع العملية',['إيراد','مصروف'],'إيراد')+input('v','المبلغ بالجنيه','','number')+input('d','التاريخ','','date')+input('m','الوصف'),()=>{let v=Number($('v').value);if(v<=0)return alert('أدخل مبلغاً صحيحاً');data.finance.push({id:Date.now(),kind:$('k').value,amount:v,date:$('d').value,memo:$('m').value});closeModal();persist()})}
-function renderFinance(){if(!$('financeTable'))return;const rows=data.finance.map(x=>`<tr><td>${esc(x.kind)}</td><td>${money(x.amount)}</td><td>${esc(x.date)}</td><td>${esc(x.memo)}</td><td><span class="muted tiny">أرشيف — للقراءة فقط</span></td></tr>`);$('financeLegacyTable').innerHTML=table(['النوع','المبلغ','التاريخ','الوصف','الحالة'],rows);$('financeTable').innerHTML=''}
-function del(group,id){if(!confirm('تأكيد حذف السجل؟'))return;data[group]=data[group].filter(x=>x.id!==id);persist()}
-function downloadBackupSnapshot(snapshot,suffix=''){const envelope={format:'WASLA_STUDIO_BACKUP',version:1,createdAt:new Date().toISOString(),organizationId:currentOrganizationId||null,data:snapshot};const blob=new Blob([JSON.stringify(envelope,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='WASLA-backup-'+new Date().toISOString().slice(0,10)+(suffix?'-'+suffix:'')+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-async function exportData(){if(cloudBusy){alert('توجد عملية مزامنة جارية. انتظر اكتمالها ثم أعد التنزيل.');return}if(currentUser&&currentOrganizationId){clearTimeout(cloudSaveTimer);cloudSaveTimer=null;const saved=await saveCloudData({quiet:true});if(!saved){alert('لم يتم تنزيل النسخة لأن تأكيد الحفظ السحابي لم ينجح. أعد المحاولة بعد فحص الاتصال.');return}}downloadBackupSnapshot(data)}
-function isValidBackupPayload(value){if(!value||typeof value!=='object'||Array.isArray(value))return false;return ['clients','projects','contents','finance'].every(key=>Array.isArray(value[key]))}
-async function importData(e){const file=e.target.files&&e.target.files[0];if(!file)return;try{if(file.size>50*1024*1024)throw new Error('حجم ملف النسخة يتجاوز 50 ميجابايت.');if(cloudBusy)throw new Error('توجد عملية مزامنة جارية. انتظر اكتمالها قبل الاستعادة.');const parsed=JSON.parse(await file.text());const isEnvelope=parsed&&parsed.format==='WASLA_STUDIO_BACKUP';const restored=isEnvelope?parsed.data:parsed;if(!isValidBackupPayload(restored))throw new Error('بنية ملف النسخة غير مكتملة أو غير صالحة.');if(isEnvelope&&parsed.organizationId&&currentOrganizationId&&parsed.organizationId!==currentOrganizationId)throw new Error('هذه النسخة تخص مؤسسة أخرى، ولا يمكن استعادتها داخل هذه المؤسسة.');if(!currentUser||!currentOrganizationId)throw new Error('يجب تسجيل الدخول إلى مساحة المؤسسة قبل استعادة البيانات.');if(!confirm('سيتم أولاً تنزيل نسخة أمان من البيانات الحالية، ثم استبدال بيانات هذه المؤسسة ورفع النسخة المستعادة إلى السحابة. هل تريد المتابعة؟'))return;clearTimeout(cloudSaveTimer);cloudSaveTimer=null;const beforeRestore=JSON.parse(JSON.stringify(data));downloadBackupSnapshot(beforeRestore,'قبل-الاستعادة');data=JSON.parse(JSON.stringify(restored));localStorage.setItem(KEY,JSON.stringify(data));refresh();const saved=await saveCloudData({quiet:true});if(!saved){data=beforeRestore;localStorage.setItem(KEY,JSON.stringify(data));refresh();throw new Error('تعذر تأكيد حفظ النسخة المستعادة في السحابة. أُعيدت بيانات هذا الجهاز إلى حالتها السابقة، واحتُفظ بملف نسخة الأمان الذي تم تنزيله.')}alert('تمت استعادة البيانات وتأكيد حفظها في Supabase بنجاح. احتفظ بملف نسخة الأمان أيضاً.')}catch(err){alert(err.message||'تعذرت استعادة النسخة الاحتياطية.')}finally{e.target.value=''}}
-refresh();
 
-</script></body></html>,EUR:'€',GBP:'£'})[code]||code||''}
+let financeSettings=null,financeAccounts=[],financeJournals=[],financeMembers=[],financeRoles=[],financeProjectSummaries=[];
+function financeCanManage(){return currentRole==='owner'||currentRole==='admin'}
+function financeHasRole(role){return financeRoles.some(x=>x.finance_role===role)}
+function financeCanAccess(){return financeCanManage()||financeHasRole('accountant')||financeHasRole('project_manager')||financeHasRole('finance_viewer')}
+function financeCanWrite(){return financeCanManage()||financeHasRole('accountant')}
+function financeCurrencyLabel(code){return ({EGP:'ج.م',SAR:'ر.س',AED:'د.إ',USD:'$',EUR:'€',GBP:'£'})[code]||code||''}
+function financeSetVisible(id,visible){const el=$(id);if(el)el.style.display=visible?'':'none'}
 async function loadFinanceWorkspace(showToast=false){
- if(!currentOrganizationId||!financeCanManage())return;
- ['financeAccountsTable','financeJournalsTable','financeRolesTable'].forEach(id=>{if($(id))$(id).innerHTML='<div class="empty">جارٍ تحميل البيانات…</div>'});
+ if(!currentOrganizationId)return;
  try{
-  const results=await Promise.all([
-   sb.from('finance_settings').select('*').eq('organization_id',currentOrganizationId).maybeSingle(),
-   sb.from('finance_accounts').select('id,account_code,account_name,account_type,is_active,is_system,parent_id').eq('organization_id',currentOrganizationId).order('account_code'),
+  const roleResult=financeCanManage()?{data:[],error:null}:await sb.from('finance_member_roles').select('finance_role').eq('organization_id',currentOrganizationId).eq('user_id',currentUser.id);
+  if(roleResult.error)throw roleResult.error;
+  financeRoles=roleResult.data||[];
+  if(!financeCanAccess()){
+   financeSetVisible('financeWorkspaceBody',false);
+   $('financeNoAccess').style.display='block';
+   return;
+  }
+  $('financeNoAccess').style.display='none';financeSetVisible('financeWorkspaceBody',true);
+  const canSeeAccounts=financeCanManage()||financeHasRole('accountant');
+  financeSetVisible('financeSettingsPanel',financeCanManage());
+  financeSetVisible('financeAccountsPanel',canSeeAccounts);
+  financeSetVisible('financePermissionsPanel',financeCanManage());
+  financeSetVisible('financeNewJournalBtn',financeCanWrite());
+  financeSetVisible('financeJournalHint',true);
+  ['financeJournalsTable','financeProjectSummaryTable'].forEach(id=>{if($(id))$(id).innerHTML='<div class="empty">جارٍ تحميل البيانات…</div>'});
+  const requests=[
+   sb.from('finance_settings').select('base_currency,fiscal_year_start_month').eq('organization_id',currentOrganizationId).maybeSingle(),
    sb.from('finance_journals').select('id,entry_number,entry_date,description,status,currency_code,exchange_rate,project_ref,created_by,approved_by,posted_at').eq('organization_id',currentOrganizationId).order('entry_date',{ascending:false}).limit(100)
-  ]);
-  for(const r of results)if(r.error)throw r.error;
-  financeSettings=results[0].data||null;financeAccounts=results[1].data||[];financeJournals=results[2].data||[];
+  ];
+  if(canSeeAccounts)requests.push(sb.from('finance_accounts').select('id,account_code,account_name,account_type,is_active,is_system,parent_id').eq('organization_id',currentOrganizationId).order('account_code'));
+  const results=await Promise.all(requests);for(const r of results)if(r.error)throw r.error;
+  financeSettings=results[0].data||null;financeJournals=results[1].data||[];financeAccounts=canSeeAccounts?(results[2]?.data||[]):[];
   $('financeBaseCurrency').textContent=financeSettings?.base_currency||'غير محددة';
-  $('financeCurrencyInput').value=financeSettings?.base_currency||'';
-  $('financeAccountCount').textContent=financeAccounts.length;
+  if($('financeCurrencyInput'))$('financeCurrencyInput').value=financeSettings?.base_currency||'';
+  $('financeAccountCount').textContent=canSeeAccounts?financeAccounts.length:'—';
   $('financeDraftCount').textContent=financeJournals.filter(x=>x.status==='draft').length;
   $('financePostedCount').textContent=financeJournals.filter(x=>x.status==='posted').length;
-  $('financeAccountsTable').innerHTML=table(['الكود','اسم الحساب','النوع','الحالة'],financeAccounts.map(a=>'<tr><td>'+esc(a.account_code)+'</td><td>'+esc(a.account_name)+'</td><td>'+esc(({asset:'أصول',liability:'التزامات',equity:'حقوق ملكية',revenue:'إيرادات',expense:'مصروفات'})[a.account_type]||a.account_type)+'</td><td><span class="pill '+(a.is_active?'green':'amber')+'">'+(a.is_active?'نشط':'متوقف')+'</span></td></tr>'));
-  $('financeJournalsTable').innerHTML=table(['رقم القيد','التاريخ','البيان','العملة','الحالة','إجراء'],financeJournals.map(j=>'<tr><td>'+esc(j.entry_number)+'</td><td>'+esc(j.entry_date)+'</td><td>'+esc(j.description)+'</td><td>'+esc(j.currency_code)+'</td><td><span class="pill '+(j.status==='posted'?'green':'amber')+'">'+(j.status==='posted'?'مرحّل':j.status==='reversed'?'معكوس':'مسودة')+'</span></td><td>'+(j.status==='draft'?'<button class="btn lime sm" onclick="postFinanceJournal(\''+j.id+'\')">اعتماد وترحيل</button>':'<span class="muted tiny">مقفل</span>')+'</td></tr>'));
-  await loadFinanceMembers();
-  if(showToast)alert('تم تحديث بيانات WASLA FINANCE.');
- }catch(e){console.error(e);$('financeAccountsTable').innerHTML='<div class="empty">تعذر تحميل دليل الحسابات: '+esc(e.message||'')+'</div>';if(showToast)alert('تعذر تحديث WASLA FINANCE: '+(e.message||'خطأ غير معروف'));}
+  if(canSeeAccounts)$('financeAccountsTable').innerHTML=table(['الكود','اسم الحساب','النوع','الحالة'],financeAccounts.map(a=>'<tr><td>'+esc(a.account_code)+'</td><td>'+esc(a.account_name)+'</td><td>'+esc(({asset:'أصول',liability:'التزامات',equity:'حقوق ملكية',revenue:'إيرادات',expense:'مصروفات'})[a.account_type]||a.account_type)+'</td><td><span class="pill '+(a.is_active?'green':'amber')+'">'+(a.is_active?'نشط':'متوقف')+'</span></td></tr>'));
+  $('financeJournalsTable').innerHTML=table(['رقم القيد','التاريخ','البيان','العملة','الحالة','إجراء'],financeJournals.map(j=>'<tr><td>'+esc(j.entry_number)+'</td><td>'+esc(j.entry_date)+'</td><td>'+esc(j.description)+'</td><td>'+esc(j.currency_code)+'</td><td><span class="pill '+(j.status==='posted'?'green':'amber')+'">'+(j.status==='posted'?'مرحّل':j.status==='reversed'?'معكوس':'مسودة')+'</span></td><td>'+(j.status==='draft'&&financeCanManage()?'<button class="btn lime sm" onclick="postFinanceJournal(\''+j.id+'\')">اعتماد وترحيل</button>':j.status==='draft'?'مسودة — بانتظار الاعتماد':'<span class="muted tiny">مقفل</span>')+'</td></tr>'));
+  financeSetVisible('financeProjectSummaryPanel',financeHasRole('project_manager'));
+  if(financeHasRole('project_manager')){
+   const {data:summary,error}=await sb.rpc('finance_my_project_summaries');if(error)throw error;
+   financeProjectSummaries=summary||[];
+   $('financeProjectSummaryTable').innerHTML=table(['المشروع','الإيرادات','المصروفات','الربحية','العملة'],financeProjectSummaries.map(x=>{const p=(data.projects||[]).find(y=>String(y.id)===String(x.project_ref));return '<tr><td>'+esc(p?.name||('مشروع '+x.project_ref))+'</td><td>'+Number(x.revenue_base||0).toLocaleString('en-US',{minimumFractionDigits:2})+'</td><td>'+Number(x.expense_base||0).toLocaleString('en-US',{minimumFractionDigits:2})+'</td><td><b>'+Number(x.profit_base||0).toLocaleString('en-US',{minimumFractionDigits:2})+'</b></td><td>'+esc(x.base_currency||'')+'</td></tr>'}));
+  }else financeProjectSummaries=[];
+  if(financeCanManage())await loadFinanceMembers();
+  if(showToast)alert('تم تحديث مساحة WASLA FINANCE.');
+ }catch(e){console.error(e);if($('financeJournalsTable'))$('financeJournalsTable').innerHTML='<div class="empty">تعذر تحميل البيانات المالية: '+esc(e.message||'')+'</div>';if(showToast)alert('تعذر تحديث WASLA FINANCE: '+(e.message||'خطأ غير معروف'));}
 }
 async function saveFinanceSettings(){
  if(!financeCanManage()||!currentOrganizationId)return;
@@ -1981,23 +1998,23 @@ function openFinanceAccount(){
  });
 }
 function openFinanceJournal(){
- if(!financeCanManage())return;
+ if(!financeCanWrite())return;
  if(!financeSettings?.base_currency)return alert('حدد العملة الأساسية للمؤسسة أولاً.');
- if(financeAccounts.filter(a=>a.is_active).length<2)return alert('أضف حسابين نشطين على الأقل إلى دليل الحسابات.');
+ if(financeAccounts.filter(a=>a.is_active).length<2)return alert('لا يوجد حسابان نشطان على الأقل. اطلب من مدير المؤسسة إعداد دليل الحسابات.');
  const options=financeAccounts.filter(a=>a.is_active).map(a=>'<option value="'+a.id+'">'+esc(a.account_code+' — '+a.account_name)+'</option>').join('');
  const currencies=['EGP','SAR','AED','USD','EUR','GBP'];
  openModal('إنشاء قيد يومية — مسودة',input('fjDate','تاريخ القيد',new Date().toISOString().slice(0,10),'date')+input('fjDesc','بيان القيد')+'<div class="field"><label>حساب مدين</label><select id="fjDebit">'+options+'</select></div><div class="field"><label>حساب دائن</label><select id="fjCredit">'+options+'</select></div>'+input('fjAmount','المبلغ بالعملة الأصلية','','number')+'<div class="field"><label>عملة العملية</label><select id="fjCurrency">'+currencies.map(c=>'<option value="'+c+'" '+(c===financeSettings.base_currency?'selected':'')+'>'+c+'</option>').join('')+'</select></div>'+input('fjRate','سعر الصرف مقابل العملة الأساسية','1','number')+input('fjProject','مرجع المشروع (اختياري)'),async()=>{
   const amount=Number($('fjAmount').value),rate=Number($('fjRate').value),debit=$('fjDebit').value,credit=$('fjCredit').value,desc=$('fjDesc').value.trim();
   if(!desc||!amount||amount<=0||!rate||rate<=0)return alert('أكمل البيان والمبلغ وسعر الصرف بقيم صحيحة.');
   if(debit===credit)return alert('اختر حسابين مختلفين للقيد.');
-  const entry='JE-'+Date.now();
-  const payload={organization_id:currentOrganizationId,entry_number:entry,entry_date:$('fjDate').value||new Date().toISOString().slice(0,10),description:desc,status:'draft',currency_code:$('fjCurrency').value,exchange_rate:rate,rate_date:$('fjDate').value||new Date().toISOString().slice(0,10),project_ref:$('fjProject').value.trim()||null,created_by:currentUser.id};
+  const entry='JE-'+Date.now(),date=$('fjDate').value||new Date().toISOString().slice(0,10),projectRef=$('fjProject').value.trim()||null;
+  const payload={organization_id:currentOrganizationId,entry_number:entry,entry_date:date,description:desc,status:'draft',currency_code:$('fjCurrency').value,exchange_rate:rate,rate_date:date,project_ref:projectRef,created_by:currentUser.id};
   const {data:journal,error}=await sb.from('finance_journals').insert(payload).select('id').single();
   if(error)return alert('تعذر إنشاء مسودة القيد: '+error.message);
   const base=Number((amount*rate).toFixed(4));
   const lines=[
-   {organization_id:currentOrganizationId,journal_id:journal.id,account_id:debit,line_description:desc,currency_code:payload.currency_code,exchange_rate:rate,debit_original:amount,credit_original:0,debit_base:base,credit_base:0,project_ref:payload.project_ref,created_by:currentUser.id},
-   {organization_id:currentOrganizationId,journal_id:journal.id,account_id:credit,line_description:desc,currency_code:payload.currency_code,exchange_rate:rate,debit_original:0,credit_original:amount,debit_base:0,credit_base:base,project_ref:payload.project_ref,created_by:currentUser.id}
+   {organization_id:currentOrganizationId,journal_id:journal.id,account_id:debit,line_description:desc,currency_code:payload.currency_code,exchange_rate:rate,debit_original:amount,credit_original:0,debit_base:base,credit_base:0,project_ref:projectRef,created_by:currentUser.id},
+   {organization_id:currentOrganizationId,journal_id:journal.id,account_id:credit,line_description:desc,currency_code:payload.currency_code,exchange_rate:rate,debit_original:0,credit_original:amount,debit_base:0,credit_base:base,project_ref:projectRef,created_by:currentUser.id}
   ];
   const {error:lineError}=await sb.from('finance_journal_lines').insert(lines);
   if(lineError){alert('تم إنشاء المسودة لكن تعذر حفظ سطورها: '+lineError.message+'؛ لا تعتمد القيد قبل مراجعتها.');closeModal();await loadFinanceWorkspace();return;}
@@ -2015,26 +2032,47 @@ async function loadFinanceMembers(){
  if(!currentOrganizationId||!financeCanManage())return;
  const {data:members,error}=await sb.from('organization_members').select('user_id,role,status').eq('organization_id',currentOrganizationId).eq('status','active');
  if(error){$('financeMemberSelect').innerHTML='<option value="">تعذر تحميل الأعضاء</option>';return;}
- const ids=(members||[]).map(m=>m.user_id);
- let profiles=[];
+ const ids=(members||[]).map(m=>m.user_id);let profiles=[];
  if(ids.length){const result=await sb.from('profiles').select('id,full_name').in('id',ids);if(!result.error)profiles=result.data||[];}
  financeMembers=(members||[]).map(m=>({...m,full_name:profiles.find(p=>p.id===m.user_id)?.full_name||m.user_id}));
  $('financeMemberSelect').innerHTML='<option value="">اختر عضواً</option>'+financeMembers.map(m=>'<option value="'+m.user_id+'">'+esc(m.full_name)+' — '+esc(m.role)+'</option>').join('');
+ const projects=data.projects||[];
+ $('financeProjectSelect').innerHTML='<option value="">اختر المشروع</option>'+projects.map(p=>'<option value="'+String(p.id)+'">'+esc(p.name)+'</option>').join('');
  const {data:roles,error:roleError}=await sb.from('finance_member_roles').select('user_id,finance_role,created_at').eq('organization_id',currentOrganizationId).order('created_at');
  if(roleError){$('financeRolesTable').innerHTML='<div class="empty">تعذر تحميل الصلاحيات المالية.</div>';return;}
- $('financeRolesTable').innerHTML=table(['العضو','الصلاحية','إجراء'],(roles||[]).map(r=>{const m=financeMembers.find(x=>x.user_id===r.user_id);return '<tr><td>'+esc(m?.full_name||r.user_id)+'</td><td>'+esc(({accountant:'محاسب',project_manager:'مدير مشاريع',finance_viewer:'مشاهد مالي'})[r.finance_role]||r.finance_role)+'</td><td><button class="btn danger sm" onclick="revokeFinanceRole(\''+r.user_id+'\',\''+r.finance_role+'\')">سحب</button></td></tr>'}));
+ financeRoles=roles||[];
+ const roleNames={accountant:'محاسب',project_manager:'مدير مشاريع',finance_viewer:'مشاهد مالي'};
+ $('financeRolesTable').innerHTML=table(['العضو','الصلاحية','إجراء'],financeRoles.map(r=>{const m=financeMembers.find(x=>x.user_id===r.user_id);return '<tr><td>'+esc(m?.full_name||r.user_id)+'</td><td>'+esc(roleNames[r.finance_role]||r.finance_role)+'</td><td><button class="btn danger sm" onclick="revokeFinanceRole(\''+r.user_id+'\',\''+r.finance_role+'\')">سحب</button></td></tr>'}));
+ const {data:access,error:accessError}=await sb.from('finance_project_access').select('user_id,project_ref,created_at').eq('organization_id',currentOrganizationId).order('created_at');
+ if(accessError){$('financeProjectAccessTable').innerHTML='<div class="empty">تعذر تحميل نطاق المشاريع.</div>';return;}
+ $('financeProjectAccessTable').innerHTML=table(['العضو','المشروع','إجراء'],(access||[]).map(a=>{const m=financeMembers.find(x=>x.user_id===a.user_id),p=projects.find(x=>String(x.id)===String(a.project_ref));return '<tr><td>'+esc(m?.full_name||a.user_id)+'</td><td>'+esc(p?.name||a.project_ref)+'</td><td><button class="btn danger sm" onclick="revokeFinanceProjectAccess(\''+a.user_id+'\',\''+a.project_ref+'\')">إزالة</button></td></tr>'}));
 }
 async function grantFinanceRole(){
+ if(!financeCanManage())return;
  const userId=$('financeMemberSelect').value,role=$('financeRoleSelect').value;if(!userId)return alert('اختر عضواً أولاً.');
  const {error}=await sb.from('finance_member_roles').upsert({organization_id:currentOrganizationId,user_id:userId,finance_role:role,granted_by:currentUser.id},{onConflict:'organization_id,user_id,finance_role'});
  if(error){alert('تعذر منح الصلاحية: '+error.message);return;}
  await loadFinanceMembers();alert('تم منح الصلاحية المالية.');
 }
 async function revokeFinanceRole(userId,role){
- if(!confirm('هل تريد سحب هذه الصلاحية المالية؟'))return;
+ if(!financeCanManage()||!confirm('هل تريد سحب هذه الصلاحية المالية؟'))return;
  const {error}=await sb.from('finance_member_roles').delete().eq('organization_id',currentOrganizationId).eq('user_id',userId).eq('finance_role',role);
  if(error){alert('تعذر سحب الصلاحية: '+error.message);return;}
  await loadFinanceMembers();
+}
+async function grantFinanceProjectAccess(){
+ if(!financeCanManage())return;
+ const userId=$('financeMemberSelect').value,projectRef=$('financeProjectSelect').value;
+ if(!userId||!projectRef)return alert('اختر العضو والمشروع.');
+ if(!financeRoles.some(x=>x.user_id===userId&&x.finance_role==='project_manager'))return alert('امنح العضو دور مدير مشاريع أولاً.');
+ const {error}=await sb.from('finance_project_access').upsert({organization_id:currentOrganizationId,user_id:userId,project_ref:projectRef,granted_by:currentUser.id},{onConflict:'organization_id,user_id,project_ref'});
+ if(error){alert('تعذر ربط المشروع: '+error.message);return;}
+ await loadFinanceMembers();alert('تم منح مدير المشاريع صلاحية الاطلاع المالي على المشروع المحدد.');
+}
+async function revokeFinanceProjectAccess(userId,projectRef){
+ if(!financeCanManage()||!confirm('سيتم إلغاء وصول هذا العضو إلى البيانات المالية للمشروع. هل تريد المتابعة؟'))return;
+ const {error}=await sb.from('finance_project_access').delete().eq('organization_id',currentOrganizationId).eq('user_id',userId).eq('project_ref',projectRef);
+ if(error){alert('تعذر إزالة الوصول: '+error.message);return;}await loadFinanceMembers();
 }
 
 function openFinance(){openModal('تسجيل عملية مالية',select('k','نوع العملية',['إيراد','مصروف'],'إيراد')+input('v','المبلغ بالجنيه','','number')+input('d','التاريخ','','date')+input('m','الوصف'),()=>{let v=Number($('v').value);if(v<=0)return alert('أدخل مبلغاً صحيحاً');data.finance.push({id:Date.now(),kind:$('k').value,amount:v,date:$('d').value,memo:$('m').value});closeModal();persist()})}
