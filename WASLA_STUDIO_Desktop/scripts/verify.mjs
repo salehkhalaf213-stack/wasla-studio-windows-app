@@ -17,13 +17,14 @@ const checks = [
   ['Pending account access gate', html.includes("profile?.approval_status==='pending'")],
   ['Invoice print action', html.includes('onclick="printFinanceInvoice(') && html.includes('function printFinanceInvoice(id)')],
   ['Invoice PDF action', html.includes('onclick="exportFinanceInvoicePdf(') && html.includes('function exportFinanceInvoicePdf(id)')],
-  ['In-app invoice print view (no popup dependency)', html.includes('wasla-invoice-print-root') && html.includes('window.print()') && !html.includes("window.open('','_blank')")]];
-const inlineScripts = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script\\s*>/gi)]
-  .filter(match => !/\\bsrc\\s*=/.test(match[1]) && match[2].trim());
+  ['In-app invoice print view (no popup dependency)', html.includes('wasla-invoice-print-root') && html.includes('window.print()') && !html.includes("window.open('','_blank')")]
+];
+const inlineScripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)]
+  .filter(match => !/\bsrc\s*=/.test(match[1]) && match[2].trim());
 for (let i = 0; i < inlineScripts.length; i++) {
-  try { new vm.Script(inlineScripts[i][2], { filename: `inline-script-${i + 1}.js` }); }
-  catch (error) { console.error(`JavaScript syntax error in inline script ${i + 1}: ${error.message}`); process.exit(1); }
+  try { new vm.Script(inlineScripts[i][2], { filename: 'inline-script-' + (i + 1) + '.js' }); }
+  catch (error) { console.error('JavaScript syntax error in inline script ' + (i + 1) + ': ' + error.message); process.exit(1); }
 }
-console.log(`OK  JavaScript syntax (${inlineScripts.length} inline script)`);
-for (const [label, ok] of checks) console.log(`${ok ? 'OK' : 'MISSING'}  ${label}`);
+console.log('OK  JavaScript syntax (' + inlineScripts.length + ' inline script)');
+for (const [label, ok] of checks) console.log((ok ? 'OK' : 'MISSING') + '  ' + label);
 if (checks.some(([, ok]) => !ok)) process.exit(1);
