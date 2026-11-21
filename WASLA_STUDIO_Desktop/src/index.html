@@ -2014,7 +2014,7 @@ async function loadFinanceWorkspace(showToast=false){
   $('financeDraftCount').textContent=financeJournals.filter(x=>x.status==='draft').length;
   $('financePostedCount').textContent=financeJournals.filter(x=>x.status==='posted').length;
   if(canSeeAccounts)$('financeAccountsTable').innerHTML=table(['الكود','اسم الحساب','النوع','الحالة'],financeAccounts.map(a=>'<tr><td>'+esc(a.account_code)+'</td><td>'+esc(a.account_name)+'</td><td>'+esc(({asset:'أصول',liability:'التزامات',equity:'حقوق ملكية',revenue:'إيرادات',expense:'مصروفات'})[a.account_type]||a.account_type)+'</td><td><span class="pill '+(a.is_active?'green':'amber')+'">'+(a.is_active?'نشط':'متوقف')+'</span></td></tr>'));
-  $('financeJournalsTable').innerHTML=table(['رقم القيد','التاريخ','البيان','العملة','الحالة','إجراء'],financeJournals.map(j=>'<tr><td><button class="btn soft sm" onclick="openFinanceJournalDetails(\''+j.id+'\')">'+esc(j.entry_number)+'</button></td><td>'+esc(j.entry_date)+'</td><td>'+esc(j.description)+'</td><td>'+esc(j.currency_code)+'</td><td><span class="pill '+(j.status==='posted'?'green':'amber')+'">'+(j.status==='posted'?'مرحّل':j.status==='reversed'?'معكوس':'مسودة')+'</span></td><td><button class="btn soft sm" onclick="openFinanceJournalDetails(\''+j.id+'\')">التفاصيل</button> '+(j.status==='draft'&&financeCanManage()?'<button class="btn lime sm" onclick="postFinanceJournal(\''+j.id+'\')">اعتماد وترحيل</button>':j.status==='draft'?'مسودة — بانتظار الاعتماد':'<span class="muted tiny">مقفل</span>')+'</td></tr>'));
+  $('financeJournalsTable').innerHTML=table(['رقم القيد','التاريخ','البيان','العملة','الحالة','إجراء'],financeJournals.map(j=>'<tr><td><button class="btn soft sm" onclick="openFinanceJournalDetails(\''+j.id+'\')">'+esc(j.entry_number)+'</button></td><td>'+esc(j.entry_date)+'</td><td>'+esc(j.description)+'</td><td>'+esc(j.currency_code)+'</td><td><span class="pill '+(j.status==='posted'?'green':'amber')+'">'+(j.status==='posted'?'مرحّل':j.status==='reversed'?'معكوس':'مسودة')+'</span></td><td><button class="btn soft sm" onclick="openFinanceJournalDetails(\''+j.id+'\')">التفاصيل</button> '+(j.status==='draft'&&financeCanManage()?'<button class="btn lime sm" onclick="postFinanceJournal(\''+j.id+'\')">اعتماد وترحيل</button>':j.status==='posted'&&financeCanWrite()?'<button class="btn soft sm" onclick="createFinanceReversal(\''+j.id+'\')">إنشاء قيد عكسي</button>':j.status==='draft'?'مسودة — بانتظار الاعتماد':j.status==='reversed'?'تم إنشاء القيد العكسي':'<span class="muted tiny">مقفل</span>')+'</td></tr>''));
   financeSetVisible('financeReportsPanel',canSeeAccounts);
   if(canSeeAccounts)await loadFinanceReports();
   financeSetVisible('financeProjectSummaryPanel',financeHasRole('project_manager')||financeHasRole('finance_viewer'));
@@ -2263,6 +2263,27 @@ function openFinanceJournal(){
   closeModal();await loadFinanceWorkspace();alert('تم إنشاء مسودة القيد '+entry+' بعدد '+newLines.length+' سطور. لم تُرحّل بعد.');
  });
  financeUpdateJournalTotals();
+}
+async function createFinanceReversal(id){
+ if(!financeCanWrite())return alert('ليست لديك صلاحية إنشاء قيد عكسي.');
+ const original=financeJournals.find(j=>j.id===id);
+ if(!original||original.status!=='posted'||original.reversal_of)return alert('يمكن عكس قيد مرحّل أصلي فقط.');
+ if(financeJournals.some(j=>j.reversal_of===id))return alert('يوجد قيد عكسي مرتبط بهذا القيد بالفعل.');
+ if(!confirm('سيتم إنشاء مسودة جديدة تعكس جميع مبالغ القيد الأصلي، دون تعديل القيد الأصلي. هل تريد المتابعة؟'))return;
+ const {data:lines,error:lineReadError}=await sb.from('finance_journal_lines').select('account_id,line_description,currency_code,exchange_rate,debit_original,credit_original,debit_base,credit_base,project_ref').eq('organization_id',currentOrganizationId).eq('journal_id',id).order('created_at');
+ if(lineReadError)return alert('تعذر قراءة سطور القيد الأصلي: '+lineReadError.message);
+ if(!lines||lines.length<2)return alert('القيد الأصلي لا يحتوي على سطور كافية لإنشاء عكس آمن.');
+ const entry='JE-'+Date.now();
+ const reversalDate=new Date().toISOString().slice(0,10);
+ const description='قيد عكسي للقيد '+original.entry_number+' — '+(original.description||'');
+ const payload={organization_id:currentOrganizationId,entry_number:entry,entry_date:reversalDate,description,status:'draft',currency_code:original.currency_code,exchange_rate:original.exchange_rate,rate_date:reversalDate,project_ref:original.project_ref,created_by:currentUser.id,reversal_of:original.id};
+ const {data:reversal,error}=await sb.from('finance_journals').insert(payload).select('id').single();
+ if(error)return alert('تعذر إنشاء مسودة القيد العكسي: '+error.message);
+ const reversedLines=lines.map(line=>({organization_id:currentOrganizationId,journal_id:reversal.id,account_id:line.account_id,line_description:'عكس: '+(line.line_description||original.description||''),currency_code:line.currency_code,exchange_rate:line.exchange_rate,debit_original:Number(line.credit_original||0),credit_original:Number(line.debit_original||0),debit_base:Number(line.credit_base||0),credit_base:Number(line.debit_base||0),project_ref:line.project_ref,created_by:currentUser.id}));
+ const {error:insertError}=await sb.from('finance_journal_lines').insert(reversedLines);
+ if(insertError){alert('تم إنشاء رأس مسودة القيد العكسي لكن تعذر حفظ السطور: '+insertError.message+'؛ لم يتم ترحيل أي شيء. لا تعتمد هذه المسودة قبل مراجعتها.');await loadFinanceWorkspace();return;}
+ await loadFinanceWorkspace();
+ alert('تم إنشاء مسودة القيد العكسي '+entry+' بعدد '+reversedLines.length+' سطور. القيد الأصلي ما زال مرحّلاً ولم يتغير. راجع المسودة قبل الاعتماد.');
 }
 async function postFinanceJournal(id){
  if(!financeCanManage())return;
