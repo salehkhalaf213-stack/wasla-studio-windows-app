@@ -564,6 +564,8 @@ footer{color:#8790a7}
   <div class="field"><label for="financeInvoiceRate">سعر الصرف إلى العملة الأساسية</label><input id="financeInvoiceRate" type="number" min="0.00000001" step="0.00000001" value="1"></div>
   <div class="field"><label for="financeInvoiceReceivable">حساب الذمم المدينة (أصول)</label><select id="financeInvoiceReceivable"><option value="">اختر حساب الذمم المدينة</option></select></div>
   <div class="field"><label for="financeInvoiceRevenue">حساب الإيراد</label><select id="financeInvoiceRevenue"><option value="">اختر حساب الإيراد</option></select></div>
+  <div class="field"><label for="financeInvoiceVatRate">ضريبة القيمة المضافة (%)</label><input id="financeInvoiceVatRate" type="number" min="0" max="100" step="0.01" value="14"><span class="muted tiny">النسبة الافتراضية 14% ويمكن ضبطها إلى 0 للفواتير المعفاة/غير الخاضعة.</span></div>
+  <div class="field"><label for="financeInvoiceVatAccount">حساب ضريبة القيمة المضافة المستحقة</label><select id="financeInvoiceVatAccount"><option value="">اختر حساب الضريبة</option></select></div>
   <div class="field"><label for="financeInvoiceLineDescription">وصف الخدمة / البند</label><input id="financeInvoiceLineDescription" placeholder="مثال: إدارة حملة تسويقية"></div>
   <div class="field"><label for="financeInvoiceQuantity">الكمية</label><input id="financeInvoiceQuantity" type="number" min="0.0001" step="0.0001" value="1"></div>
   <div class="field"><label for="financeInvoiceUnitPrice">سعر الوحدة</label><input id="financeInvoiceUnitPrice" type="number" min="0.0001" step="0.0001" placeholder="0.00"></div>
@@ -2064,9 +2066,11 @@ function financeInvoiceFillAccounts(){
  const assets=financeAccounts.filter(a=>a.is_active&&a.account_type==='asset');
  const receivables=assets.filter(a=>/(ذمم|عملاء|receivable|accounts receivable)/i.test(a.account_name||''));
  const revenues=financeAccounts.filter(a=>a.is_active&&a.account_type==='revenue');
+ const vatAccounts=financeAccounts.filter(a=>a.is_active&&a.account_type==='liability'&&/(ضريبة القيمة المضافة|vat)/i.test(a.account_name||''));
  const fill=(id,rows,placeholder)=>{const el=$(id);if(!el)return;const old=el.value;el.innerHTML='<option value="">'+placeholder+'</option>'+rows.map(a=>'<option value="'+a.id+'">'+esc(a.account_code)+' — '+esc(a.account_name)+'</option>').join('');if(rows.some(a=>a.id===old))el.value=old;};
  fill('financeInvoiceReceivable',receivables,'اختر حساب الذمم المدينة');
  fill('financeInvoiceRevenue',revenues,'اختر حساب الإيراد');
+ fill('financeInvoiceVatAccount',vatAccounts,'اختر حساب الضريبة');
 }
 async function loadFinanceInvoices(){
  if(!currentOrganizationId||!(financeCanManage()||financeHasRole('accountant')))return;
@@ -2077,7 +2081,8 @@ async function loadFinanceInvoices(){
  const rows=financeInvoices.map(i=>{
   const remaining=Math.max(0,Number(i.total_original||0)-Number(i.paid_original||0));
   const status=i.status==='draft'?'مسودة':i.status==='paid'?'مدفوعة':'صادرة';
-  const actions=i.status==='draft'?(financeCanManage()?'<button class="btn lime sm" onclick="issueFinanceInvoice(\''+i.id+'\')">اعتماد وإصدار</button>':'بانتظار الإصدار'):i.status==='issued'?(financeCanManage()?'<button class="btn soft sm" onclick="recordFinanceInvoicePayment(\''+i.id+'\')">تسجيل تحصيل</button>':'صادرة'): 'مكتملة';
+  const actionButton=i.status==='draft'?(financeCanManage()?'<button class="btn lime sm" onclick="issueFinanceInvoice(\''+i.id+'\')">اعتماد وإصدار</button>':'بانتظار الإصدار'):i.status==='issued'?(financeCanManage()?'<button class="btn soft sm" onclick="recordFinanceInvoicePayment(\''+i.id+'\')">تسجيل تحصيل</button>':'صادرة'): 'مكتملة';
+  const actions=actionButton+' <button class="btn soft sm" onclick="exportFinanceInvoicePdf(\''+i.id+'\')">تصدير PDF</button>';
   return '<tr><td>'+esc(i.invoice_number)+'</td><td>'+esc(i.customer_name)+'</td><td>'+esc(i.invoice_date)+'</td><td>'+financeReportMoney(i.total_original,i.currency_code)+'</td><td>'+financeReportMoney(i.paid_original,i.currency_code)+'</td><td>'+financeReportMoney(remaining,i.currency_code)+'</td><td><span class="pill '+(i.status==='paid'?'green':i.status==='draft'?'amber':'blue')+'">'+status+'</span></td><td>'+actions+'</td></tr>';
  });
  $('financeInvoicesTable').innerHTML=table(['رقم الفاتورة','العميل','التاريخ','الإجمالي','المحصّل','المتبقي','الحالة','إجراء'],rows);
@@ -2205,14 +2210,17 @@ async function createFinanceInvoiceDraft(){
  const currency=$('financeInvoiceCurrency').value,rate=Number($('financeInvoiceRate').value||0);
  const receivable=$('financeInvoiceReceivable').value,revenue=$('financeInvoiceRevenue').value;
  const description=$('financeInvoiceLineDescription').value.trim(),qty=Number($('financeInvoiceQuantity').value||0),price=Number($('financeInvoiceUnitPrice').value||0),project=$('financeInvoiceProject').value.trim()||null;
+ const vatRate=Number($('financeInvoiceVatRate').value||0),vatAccount=$('financeInvoiceVatAccount').value||null;
  if(!customer||!receivable||!revenue||!description||qty<=0||price<=0||rate<=0)return alert('أكمل بيانات العميل والحسابات والبند والكمية والسعر وسعر الصرف.');
+ if(!Number.isFinite(vatRate)||vatRate<0||vatRate>100)return alert('أدخل نسبة ضريبة صحيحة بين 0 و100.');
+ if(vatRate>0&&!vatAccount)return alert('اختر حساب ضريبة القيمة المضافة المستحقة.');
  const base=financeSettings?.base_currency;
  if(!base)return alert('حدد العملة الأساسية للمؤسسة أولاً.');
  if(currency===base&&rate!==1)return alert('سعر الصرف يجب أن يساوي 1 عند استخدام العملة الأساسية.');
  const btn=$('financeInvoiceCreateBtn');btn.disabled=true;
  try{
   const invoiceNumber='INV-'+Date.now();
-  const {data,error}=await sb.rpc('create_finance_invoice_draft',{p_invoice_number:invoiceNumber,p_customer_name:customer,p_customer_email:email||null,p_invoice_date:date,p_due_date:due,p_currency_code:currency,p_exchange_rate:rate,p_receivable_account_id:receivable,p_line_description:description,p_quantity:qty,p_unit_price:price,p_revenue_account_id:revenue,p_project_ref:project});
+  const {data,error}=await sb.rpc('create_finance_invoice_draft',{p_invoice_number:invoiceNumber,p_customer_name:customer,p_customer_email:email||null,p_invoice_date:date,p_due_date:due,p_currency_code:currency,p_exchange_rate:rate,p_receivable_account_id:receivable,p_line_description:description,p_quantity:qty,p_unit_price:price,p_revenue_account_id:revenue,p_project_ref:project,p_vat_rate:vatRate,p_vat_account_id:vatAccount});
   if(error)throw error;
   $('financeInvoiceCustomer').value='';$('financeInvoiceEmail').value='';$('financeInvoiceLineDescription').value='';$('financeInvoiceUnitPrice').value='';$('financeInvoiceProject').value='';
   await loadFinanceInvoices();alert('تم حفظ الفاتورة '+invoiceNumber+' كمسودة. لم يُسجل أي إيراد بعد.');
@@ -2222,10 +2230,36 @@ async function createFinanceInvoiceDraft(){
 async function issueFinanceInvoice(id){
  if(!financeCanManage())return alert('إصدار الفواتير متاح لمدير المؤسسة فقط.');
  const invoice=financeInvoices.find(x=>x.id===id);if(!invoice)return;
- if(!confirm('سيتم إصدار الفاتورة '+invoice.invoice_number+' وإنشاء قيد محاسبي تلقائي للذمم والإيراد. لا يمكن تعديلها بعد الإصدار. هل تريد المتابعة؟'))return;
+ if(!confirm('سيتم إصدار الفاتورة '+invoice.invoice_number+' وإنشاء قيد للذمم والإيراد وضريبة القيمة المضافة (إن وجدت). لا يمكن تعديلها بعد الإصدار. هل تريد المتابعة؟'))return;
  try{const {data,error}=await sb.rpc('issue_finance_invoice',{p_invoice_id:id});if(error)throw error;await loadFinanceWorkspace();alert('تم إصدار الفاتورة وإنشاء القيد المحاسبي المرتبط بها.');}
  catch(e){alert('تعذر إصدار الفاتورة: '+(e.message||e));}
 }
+async function exportFinanceInvoicePdf(id){
+ const printWindow=window.open('','_blank');
+ if(!printWindow)return alert('اسمح بفتح النوافذ المنبثقة لتصدير الفاتورة PDF.');
+ try{
+  const [{data:invoice,error:invoiceError},{data:lines,error:linesError},{data:payments,error:paymentsError},{data:org,error:orgError}]=await Promise.all([
+   sb.from('finance_invoices').select('*').eq('id',id).eq('organization_id',currentOrganizationId).single(),
+   sb.from('finance_invoice_lines').select('description,quantity,unit_price,line_total').eq('invoice_id',id).eq('organization_id',currentOrganizationId).order('created_at'),
+   sb.from('finance_invoice_payments').select('payment_date,amount_original,currency_code,reference').eq('invoice_id',id).eq('organization_id',currentOrganizationId).order('payment_date'),
+   sb.from('organizations').select('name').eq('id',currentOrganizationId).maybeSingle()
+  ]);
+  if(invoiceError)throw invoiceError;if(linesError)throw linesError;if(paymentsError)throw paymentsError;if(orgError)throw orgError;
+  if(!invoice)throw new Error('الفاتورة غير موجودة.');
+  const legacy=!Number(invoice.subtotal_original)&&Number(invoice.total_original)>0;
+  const subtotal=legacy?Number(invoice.total_original):Number(invoice.subtotal_original||0);
+  const vat=legacy?0:Number(invoice.vat_original||0);
+  const total=Number(invoice.total_original||subtotal+vat);
+  const paid=Number(invoice.paid_original||0),remaining=Math.max(0,total-paid),currency=invoice.currency_code||'';
+  const money=n=>financeReportMoney(Number(n||0),currency);
+  const lineRows=(lines||[]).map((l,n)=>'<tr><td>'+(n+1)+'</td><td>'+esc(l.description||'')+'</td><td>'+Number(l.quantity||0).toLocaleString('en-US')+'</td><td>'+money(l.unit_price)+'</td><td>'+money(l.line_total)+'</td></tr>').join('');
+  const paymentRows=(payments||[]).map(p=>'<tr><td>'+esc(p.payment_date||'')+'</td><td>'+money(p.amount_original)+'</td><td>'+esc(p.reference||'—')+'</td></tr>').join('');
+  const status=invoice.status==='draft'?'مسودة':invoice.status==='paid'?'مدفوعة':'صادرة';
+  const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>فاتورة '+esc(invoice.invoice_number)+'</title><style>*{box-sizing:border-box}body{font-family:Tahoma,Arial,sans-serif;color:#20251d;margin:0;padding:35px;font-size:13px}.top{display:flex;justify-content:space-between;border-bottom:3px solid #263323;padding-bottom:18px;margin-bottom:22px}.brand{font-size:23px;font-weight:bold}.muted{color:#687263}.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}.meta div{padding:10px;background:#f4f6f1;border-radius:6px}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{padding:10px;border-bottom:1px solid #dfe4da;text-align:right}th{background:#f1f4ed}.totals{width:360px;max-width:100%;margin-right:auto}.totals div{display:flex;justify-content:space-between;padding:7px;border-bottom:1px solid #e5e8e1}.grand{font-size:17px;font-weight:bold;background:#f1f4ed}.foot{margin-top:35px;border-top:1px solid #ddd;padding-top:12px;color:#697365;font-size:11px}@media print{body{padding:12mm}@page{size:A4;margin:12mm}}}</style></head><body><div class="top"><div><div class="brand">'+esc(org?.name||'المؤسسة')+'</div><div class="muted">فاتورة ضريبية / '+(vat>0?'Tax Invoice':'Invoice')+'</div></div><div><h2 style="margin:0">فاتورة</h2><b>'+esc(invoice.invoice_number)+'</b><div class="muted">الحالة: '+status+'</div></div></div><div class="meta"><div><b>العميل</b><br>'+esc(invoice.customer_name||'—')+'<br>'+esc(invoice.customer_email||'')+'</div><div><b>التاريخ</b><br>'+esc(invoice.invoice_date||'—')+'<br><span class="muted">الاستحقاق: '+esc(invoice.due_date||'—')+'</span></div></div><table><thead><tr><th>#</th><th>الوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>'+lineRows+'</tbody></table><div class="totals"><div><span>الإجمالي قبل الضريبة</span><b>'+money(subtotal)+'</b></div><div><span>ضريبة القيمة المضافة ('+Number(invoice.vat_rate||0)+'%)</span><b>'+money(vat)+'</b></div><div class="grand"><span>الإجمالي شامل الضريبة</span><b>'+money(total)+'</b></div><div><span>المحصّل</span><b>'+money(paid)+'</b></div><div><span>المتبقي</span><b>'+money(remaining)+'</b></div></div>'+(paymentRows?'<h3>التحصيلات</h3><table><thead><tr><th>التاريخ</th><th>المبلغ</th><th>المرجع</th></tr></thead><tbody>'+paymentRows+'</tbody></table>':'')+'<div class="foot">صدرت هذه الفاتورة من نظام '+esc(org?.name||'WASLA STUDIO')+'. يرجى الاحتفاظ بنسخة منها.</div><script>window.onload=function(){window.focus();window.print();};<\/script></body></html>';
+  printWindow.document.open();printWindow.document.write(html);printWindow.document.close();
+ }catch(e){printWindow.close();alert('تعذر تجهيز ملف PDF: '+(e.message||e));}
+}
+
 async function recordFinanceInvoicePayment(id){
  if(!financeCanManage())return alert('تسجيل التحصيل متاح لمدير المؤسسة فقط.');
  const invoice=financeInvoices.find(x=>x.id===id);if(!invoice)return;
