@@ -557,7 +557,7 @@ footer{color:#8790a7}
  <div class="head"><div><h3>التقارير المالية</h3><div class="muted tiny">الأرقام بالعملة الأساسية، وتعتمد على القيود المرحلة فقط.</div></div><span class="pill green">تقارير محاسبية</span></div>
  <div class="finance-filter"><label class="tiny">من تاريخ <input id="financeReportStart" type="date"></label><label class="tiny">إلى تاريخ <input id="financeReportEnd" type="date"></label><button class="btn lime" id="financeReportRunBtn" onclick="loadFinanceReports()">تحديث التقارير</button></div>
  <div id="financeReportsContent"><div class="empty">اختر الفترة ثم حدّث التقارير.</div></div>
- <div class="note">الإيرادات والمصروفات تخص الفترة المختارة. أرصدة الأصول والالتزامات وحقوق الملكية تراكمية حتى تاريخ النهاية. لا تشمل المسودات أو الأرشيف المالي القديم، ولا تخلط العملات الأصلية؛ يتم العرض بالعملة الأساسية بعد التحويل المسجل في القيد.</div>
+ <div class="note">الإيرادات والمصروفات تخص الفترة المختارة. أرصدة الأصول والالتزامات وحقوق الملكية تراكمية حتى تاريخ النهاية. لا تشمل المسودات أو الأرشيف المالي القديم، ولا تخلط العملات الأصلية؛ يتم العرض بالعملة الأساسية بعد التحويل المسجل في القيد. لا يُقفل صافي الربح تلقائياً ضمن حقوق الملكية؛ يحتاج ذلك إلى قيد إقفال معتمد.</div>
 </div>
 <div class="card" id="financeJournalsPanel" style="padding:16px;margin-bottom:14px"><div class="head"><h3>القيود اليومية</h3><span class="muted tiny">المسودات قابلة للتعديل — القيود المرحلة غير قابلة للحذف أو التعديل</span></div><div class="table-wrap" id="financeJournalsTable"></div></div>
 <div class="card" id="financeLegacyPanel" style="padding:16px"><div class="head"><h3>السجلات المالية السابقة — أرشيف للقراءة فقط</h3><span class="pill amber">بيانات قديمة</span></div><div class="muted tiny" style="margin-bottom:10px">هذه السجلات محفوظة كما هي داخل بيانات WASLA القديمة، ولا تُعد قيوداً محاسبية معتمدة.</div><div class="table-wrap" id="financeLegacyTable"></div>
@@ -2034,7 +2034,7 @@ function financeReportMoney(value,currency){
 async function loadFinanceReports(){
  if(!currentOrganizationId||!(financeCanManage()||financeHasRole('accountant')))return;
  const content=$('financeReportsContent'),button=$('financeReportRunBtn');
- const now=new Date(),today=now.toISOString().slice(0,10),yearStart=now.getFullYear()+'-01-01';
+ const now=new Date(),today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-'),yearStart=now.getFullYear()+'-01-01';
  const start=$('financeReportStart'),end=$('financeReportEnd');
  if(!start.value)start.value=yearStart;
  if(!end.value)end.value=today;
