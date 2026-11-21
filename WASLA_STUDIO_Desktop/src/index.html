@@ -408,7 +408,12 @@ footer{color:#8790a7}
 @media(max-width:1000px){.finance-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.finance-section-grid{grid-template-columns:1fr}}
 @media(max-width:480px){.finance-kpi .value{font-size:20px}.finance-month{grid-template-columns:58px minmax(30px,1fr) 82px;font-size:10px}}
 
-\n.finance-section-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:14px;margin:14px 0}\n@media(max-width:900px){.finance-section-grid{grid-template-columns:1fr}}\n</style></head>
+\n.finance-section-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:14px;margin:14px 0}\n@media(max-width:900px){.finance-section-grid{grid-template-columns:1fr}}\n.finance-only-employee #nav button:not([data-page="finance"]){display:none!important}
+.finance-only-employee .page:not(#finance){display:none!important}
+.finance-only-employee .top-tools button{display:none!important}
+.finance-only-employee #financeLegacyPanel{display:none!important}
+.finance-only-employee aside .side-note{display:none!important}
+</style></head>
 <body>
 <section class="auth-screen" id="authScreen">
   <div class="auth-card">
@@ -753,6 +758,8 @@ function resetWorkspaceNavigation(){
  const pageTitle=$('pageTitle');if(pageTitle)pageTitle.textContent='لوحة التحكم';
 }
 function clearTenantState(){
+ const appShell=$('appShell');if(appShell)appShell.classList.remove('finance-only-employee');
+ financeRoles=[];
  currentUser=null;currentRole=null;currentOrganizationId=null;currentOrganizationIsInternal=false;isPlatformAdmin=false;
  syncPlatformAdminVisibility();resetWorkspaceNavigation();
  KEY='wasla_mvp_02';data=JSON.parse(JSON.stringify(blank));
@@ -802,8 +809,22 @@ async function enterWorkspace(session){
     const platformNav=$('platformAdminNav');if(platformNav)platformNav.style.display=isPlatformAdmin?'block':'none';
     await loadCloudData(false);await loadAdminEmployees();await loadManagerSubscription();await pollAdminNotifications();clearInterval(adminNotificationTimer);adminNotificationTimer=setInterval(pollAdminNotifications,20000);await startUnifiedNotifications();
   }else if(currentRole==='employee'){
-    $('appShell').style.display='none';$('clientShell').style.display='none';$('employeeShell').style.display='block';$('employeeWelcome').textContent='مرحباً، '+name;
-    await loadEmployeeAssignments();await startUnifiedNotifications();
+    $('employeeWelcome').textContent='مرحباً، '+name;
+    const {data:employeeFinanceRoles,error:employeeFinanceRoleError}=await sb.from('finance_member_roles').select('finance_role').eq('organization_id',currentOrganizationId).eq('user_id',currentUser.id);
+    if(employeeFinanceRoleError)console.error('Finance role lookup failed:',employeeFinanceRoleError);
+    financeRoles=employeeFinanceRoles||[];
+    if(!employeeFinanceRoleError&&financeRoles.some(r=>r.finance_role==='accountant')){
+      $('employeeShell').style.display='none';$('clientShell').style.display='none';$('appShell').style.display='grid';
+      $('appShell').classList.add('finance-only-employee');
+      document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id==='finance'));
+      document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.page==='finance'));
+      $('pageTitle').textContent='الحسابات المالية';
+      await loadFinanceWorkspace();
+    }else{
+      $('appShell').style.display='none';$('clientShell').style.display='none';$('employeeShell').style.display='block';
+      await loadEmployeeAssignments();
+    }
+    await startUnifiedNotifications();
   }else{
     $('appShell').style.display='none';$('employeeShell').style.display='none';$('clientShell').style.display='block';$('clientWelcome').textContent='مرحباً، '+name;
     await loadClientPortal();await startUnifiedNotifications();
@@ -1601,7 +1622,7 @@ function toggleTheme(){
  applyTheme(saved);
 })();
 
-function go(id,skipClientPortalLoad=false){if(id==='platformAdmin'&&!isPlatformAdmin){syncPlatformAdminVisibility();resetWorkspaceNavigation();return false}const target=$(id);if(!target)return false;if(id==='platformAdmin')syncPlatformAdminVisibility();document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));target.classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('pageTitle').textContent=({dashboard:'لوحة التحكم',clients:'العملاء وفرص البيع',projects:'المشاريع',content:'تقويم المحتوى',finance:'الحسابات',settings:'النسخ الاحتياطي',employeePortal:'الموظفون والتكليفات',clientManagement:'بوابة العملاء',platformAdmin:'إدارة المنصة'})[id];refresh();if(id==='employeePortal')loadAdminEmployees();if(id==='finance')loadFinanceWorkspace();if(id==='clientManagement'&&!skipClientPortalLoad)loadAdminClientPortal();if(id==='platformAdmin')loadPlatformAdmin();if(id==='dashboard'&&(currentRole==='admin'||currentRole==='owner'))loadManagerSubscription();return true}
+function go(id,skipClientPortalLoad=false){if(currentRole==='employee'&&$('appShell')?.classList.contains('finance-only-employee')&&id!=='finance')return false;if(id==='platformAdmin'&&!isPlatformAdmin){syncPlatformAdminVisibility();resetWorkspaceNavigation();return false}const target=$(id);if(!target)return false;if(id==='platformAdmin')syncPlatformAdminVisibility();document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));target.classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('pageTitle').textContent=({dashboard:'لوحة التحكم',clients:'العملاء وفرص البيع',projects:'المشاريع',content:'تقويم المحتوى',finance:'الحسابات',settings:'النسخ الاحتياطي',employeePortal:'الموظفون والتكليفات',clientManagement:'بوابة العملاء',platformAdmin:'إدارة المنصة'})[id];refresh();if(id==='employeePortal')loadAdminEmployees();if(id==='finance')loadFinanceWorkspace();if(id==='clientManagement'&&!skipClientPortalLoad)loadAdminClientPortal();if(id==='platformAdmin')loadPlatformAdmin();if(id==='dashboard'&&(currentRole==='admin'||currentRole==='owner'))loadManagerSubscription();return true}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.page));
 function openEmployeeReports(){go('employeePortal');requestAnimationFrame(()=>{$('adminAssignmentsTable')?.scrollIntoView({behavior:'smooth',block:'start'});});}
 function openClientComments(){go('clientManagement');requestAnimationFrame(()=>{$('adminPortalDetails')?.scrollIntoView({behavior:'smooth',block:'center'});});}
@@ -1952,7 +1973,7 @@ async function loadFinanceWorkspace(showToast=false){
   $('financeNoAccess').style.display='none';financeSetVisible('financeWorkspaceBody',true);
   const canSeeAccounts=financeCanManage()||financeHasRole('accountant');
   financeSetVisible('financeSettingsPanel',financeCanManage());
-  financeSetVisible('financeAccountsPanel',canSeeAccounts);financeSetVisible('financeAddAccountBtn',financeCanManage());financeSetVisible('financeLegacyPanel',financeCanManage()||financeHasRole('accountant'));
+  financeSetVisible('financeAccountsPanel',canSeeAccounts);financeSetVisible('financeAddAccountBtn',financeCanManage());financeSetVisible('financeLegacyPanel',!$('appShell')?.classList.contains('finance-only-employee')&&(financeCanManage()||financeHasRole('accountant')));
   financeSetVisible('financePermissionsPanel',financeCanManage());
   financeSetVisible('financeNewJournalBtn',financeCanWrite());
   financeSetVisible('financeJournalHint',true);
