@@ -589,7 +589,7 @@ footer{color:#8790a7}
   <label class="tiny">تاريخ التقرير حتى <input id="financeAgingAsOf" type="date"></label>
   <button class="btn lime" id="financeAgingRunBtn" onclick="loadFinanceAgingReport()">تحديث التقرير</button>
  </div>
- <div class="note" style="margin:10px 0">التصنيف حسب تاريخ الاستحقاق: غير مستحق، متأخر 1–30، 31–60، 61–90، وأكثر من 90 يوماً. الفواتير المسودة والمدفوعة بالكامل مستبعدة، وكل عملة مستقلة.</div>
+ <div class="note" style="margin:10px 0">التصنيف حسب تاريخ الاستحقاق: غير مستحق، متأخر 1–30، 31–60، 61–90، وأكثر من 90 يوماً. الفواتير المسودة والمدفوعة بالكامل مستبعدة، وكل عملة مستقلة. إذا لم يُحدد تاريخ استحقاق، يُستخدم تاريخ الفاتورة.</div>
  <div id="financeAgingReportContent"><div class="empty">اضغط «تحديث التقرير» لعرض أعمار الديون.</div></div>
 </div>
 <div class="card" id="financeVendorBillsPanel" style="padding:16px;margin:14px 0">
@@ -2115,8 +2115,10 @@ function financeRenderAgingSection(title,rows,partyLabel,dateField,numberField){
 }
 async function loadFinanceAgingReport(){
  if(!currentOrganizationId||!(financeCanManage()||financeHasRole('accountant')))return;
- const asOf=$('financeAgingAsOf')?.value,content=$('financeAgingReportContent'),button=$('financeAgingRunBtn');
- if(!asOf)return alert('حدد تاريخ التقرير.');
+ const asOfInput=$('financeAgingAsOf');
+ if(asOfInput&&!asOfInput.value){const now=new Date();asOfInput.value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');}
+ const asOf=asOfInput?.value,content=$('financeAgingReportContent'),button=$('financeAgingRunBtn');
+ if(!asOf)return alert('تعذر تحديد تاريخ التقرير.');
  if(button){button.disabled=true;button.textContent='جارٍ إعداد التقرير…';}
  if(content)content.innerHTML='<div class="empty">جارٍ حساب أعمار الديون…</div>';
  try{
