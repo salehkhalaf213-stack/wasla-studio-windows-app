@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 const html = fs.readFileSync(new URL('../src/index.html', import.meta.url), 'utf8');
+const vendorMigration = fs.readFileSync(new URL('../../supabase/migrations/20261121043705_finance_vendors_and_expenses.sql', import.meta.url), 'utf8');
 const checks = [
   ['Supabase project URL', html.includes('https://oqkmesadspiibllyjwmj.supabase.co')],
   ['Supabase publishable key', html.includes('sb_publishable_')],
@@ -28,6 +29,16 @@ const checks = [
   ['Invoice PDF clarifies missing payment references', html.includes("p.reference||'غير مسجل'")],
   ['Invoice PDF footer aligned to page bottom', html.includes('min-height:270mm') && html.includes('margin-top:auto;padding-top:13px')],
   ['Invoice PDF preserves existing financial values', html.includes('invoice.subtotal_original') && html.includes('invoice.vat_original') && html.includes('invoice.total_original') && html.includes('invoice.paid_original')],
+  ['Vendor directory and bill workflow UI', html.includes('financeVendorName') && html.includes('financeVendorBillsTable') && html.includes('createFinanceVendorBillDraft()')],
+  ['Vendor bill draft creation RPC', html.includes("sb.rpc('create_finance_vendor_bill_draft'")],
+  ['Vendor bill posting and payable journal RPC', html.includes("sb.rpc('issue_finance_vendor_bill'") && html.includes('ترحيل قيد المصروف والمستحقات')],
+  ['Vendor bill payment and cash journal RPC', html.includes("sb.rpc('record_finance_vendor_bill_payment'")],
+  ['Vendor statement is read-only and date-scoped', html.includes('كشف حساب المورد') && html.includes('.eq(\'vendor_id\',vendorId)') && html.includes('startDate>endDate')],
+  ['Vendor bill tables enforce tenant RLS', vendorMigration.includes('finance_vendor_bills_tenant_scope') && vendorMigration.includes('finance_vendors_tenant_scope') && vendorMigration.includes('finance_vendor_bill_payments_tenant_scope')],
+  ['Posted vendor bills and payments are immutable', vendorMigration.includes('Issued and paid vendor bills are immutable') && vendorMigration.includes('Vendor payment records are immutable')],
+  ['Vendor bill draft validates liability and expense accounts', vendorMigration.includes("account_type='liability'") && vendorMigration.includes("account_type='expense'")],
+  ['Vendor bill posting creates balanced expense and payable journal', vendorMigration.includes('إثبات فاتورة مورد') && vendorMigration.includes('finance_journal_lines') && vendorMigration.includes('status=\'posted\'')],
+  ['Vendor payments validate cash/bank account and outstanding balance', vendorMigration.includes('p_amount>v_remaining') && vendorMigration.includes('Select an active cash or bank account')],
   ['In-app invoice print view (no popup dependency)', html.includes('wasla-invoice-print-root') && html.includes('window.print()') && !html.includes("window.open('','_blank')")]
 ];
 const inlineScripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)]
