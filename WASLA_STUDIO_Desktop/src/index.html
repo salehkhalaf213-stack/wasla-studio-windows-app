@@ -612,13 +612,15 @@ footer{color:#8790a7}
    <div class="field"><label for="financeVendorBillRate">سعر الصرف إلى العملة الأساسية</label><input id="financeVendorBillRate" type="number" min="0.00000001" step="0.00000001" value="1"></div>
    <div class="field"><label for="financeVendorPayable">حساب الموردين / الدائنين (التزامات)</label><select id="financeVendorPayable"><option value="">اختر حساب الالتزامات</option></select></div>
    <div class="field"><label for="financeVendorExpenseAccount">حساب المصروف</label><select id="financeVendorExpenseAccount"><option value="">اختر حساب المصروف</option></select></div>
+   <div class="field"><label for="financeVendorVatRate">ضريبة القيمة المضافة (%)</label><input id="financeVendorVatRate" type="number" min="0" max="100" step="0.01" value="14"><span class="muted tiny">النسبة الافتراضية 14% ويمكن ضبطها إلى 0 للفواتير المعفاة أو غير الخاضعة.</span></div>
+   <div class="field"><label for="financeVendorVatAccount">حساب ضريبة القيمة المضافة المدخلات (أصول)</label><select id="financeVendorVatAccount"><option value="">اختر حساب ضريبة المدخلات</option></select></div>
    <div class="field"><label for="financeVendorBillDescription">وصف المصروف</label><input id="financeVendorBillDescription" placeholder="إيجار، اشتراك، خدمة، مشتريات..."></div>
    <div class="grid two"><div class="field"><label for="financeVendorBillQty">الكمية</label><input id="financeVendorBillQty" type="number" min="0.0001" step="0.0001" value="1"></div><div class="field"><label for="financeVendorBillPrice">سعر الوحدة</label><input id="financeVendorBillPrice" type="number" min="0.0001" step="0.0001" placeholder="0.00"></div></div>
    <div class="field"><label for="financeVendorBillProject">مرجع المشروع (اختياري)</label><input id="financeVendorBillProject" placeholder="معرّف المشروع"></div>
    <button class="btn lime" id="financeVendorBillCreateBtn" onclick="createFinanceVendorBillDraft()">حفظ فاتورة المورد كمسودة</button>
   </div>
  </div>
- <div class="note">يلزم وجود حساب من نوع «مصروفات» وحساب من نوع «التزامات» في دليل الحسابات. لن يتم تسجيل أي مصروف في التقارير قبل اعتماد فاتورة المورد.</div>
+ <div class="note">يلزم وجود حساب من نوع «مصروفات» وحساب من نوع «التزامات». عند تطبيق ضريبة مدخلات قابلة للاسترداد، اختر حساب ضريبة مدخلات من نوع «أصول». لن يتم تسجيل المصروف أو الضريبة في القيود قبل اعتماد الفاتورة.</div>
  <div style="margin-top:14px"><h4>سجل الموردين</h4><div id="financeVendorsTable"><div class="empty">جارٍ تحميل الموردين…</div></div></div>
  <div style="margin-top:14px"><h4>فواتير الموردين والمبالغ المستحقة</h4><div id="financeVendorBillsTable"><div class="empty">جارٍ تحميل الفواتير…</div></div></div>
   <div class="card" id="financeVendorBillDetailsPanel" style="display:none;padding:14px;margin-top:14px;box-shadow:none;border:1px solid var(--line)"><div class="head"><div><h4 style="margin:0">تفاصيل فاتورة المورد</h4><div class="muted tiny" id="financeVendorBillDetailsSubtitle"></div></div><button class="btn soft sm" onclick="closeFinanceVendorBillDetails()">إغلاق التفاصيل</button></div><div id="financeVendorBillDetailsContent"></div></div>
@@ -2391,6 +2393,8 @@ function financeVendorFillAccounts(){
  const fill=(id,rows,label)=>{const el=$(id);if(!el)return;const old=el.value;el.innerHTML='<option value="">'+label+'</option>'+rows.map(a=>'<option value="'+a.id+'">'+esc(a.account_code)+' — '+esc(a.account_name)+'</option>').join('');if(rows.some(a=>a.id===old))el.value=old;};
  fill('financeVendorPayable',liabilities,'اختر حساب الالتزامات');
  fill('financeVendorExpenseAccount',expenses,'اختر حساب المصروف');
+ const inputVatAccounts=financeAccounts.filter(a=>a.is_active&&a.account_type==='asset'&&/(ضريبة.*مدخل|مدخل.*ضريبة|vat.*input|input.*vat)/i.test(a.account_name||''));
+ fill('financeVendorVatAccount',inputVatAccounts,'اختر حساب ضريبة المدخلات');
  const assets=financeAccounts.filter(a=>a.is_active&&a.account_type==='asset'&&/(صندوق|بنك|cash|bank)/i.test(a.account_name||''));
  window.financeVendorCashAccounts=assets;
 }
@@ -2430,7 +2434,7 @@ async function openFinanceVendorBillDetails(id){
  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
  try{
   const [billResult,lineResult,paymentResult]=await Promise.all([
-   sb.from('finance_vendor_bills').select('id,bill_number,vendor_id,vendor_invoice_number,bill_date,due_date,currency_code,exchange_rate,total_original,total_base,paid_original,status,issued_journal_id,payable_account_id,issued_at').eq('organization_id',currentOrganizationId).eq('id',id).single(),
+   sb.from('finance_vendor_bills').select('id,bill_number,vendor_id,vendor_invoice_number,bill_date,due_date,currency_code,exchange_rate,subtotal_original,subtotal_base,vat_rate,vat_original,vat_base,vat_account_id,total_original,total_base,paid_original,status,issued_journal_id,payable_account_id,issued_at').eq('organization_id',currentOrganizationId).eq('id',id).single(),
    sb.from('finance_vendor_bill_lines').select('id,description,quantity,unit_price,line_total,expense_account_id,project_ref').eq('organization_id',currentOrganizationId).eq('bill_id',id),
    sb.from('finance_vendor_bill_payments').select('id,payment_number,payment_date,amount_original,currency_code,exchange_rate,cash_account_id,journal_id,reference').eq('organization_id',currentOrganizationId).eq('bill_id',id).order('payment_date',{ascending:true})
   ]);
@@ -2438,14 +2442,16 @@ async function openFinanceVendorBillDetails(id){
   const b=billResult.data,v=financeVendors.find(x=>x.id===b.vendor_id),lines=lineResult.data||[],payments=paymentResult.data||[];
   const accountName=id=>{const a=financeAccounts.find(x=>x.id===id);return a?a.account_code+' — '+a.account_name:'حساب '+String(id||'').slice(0,8);};
   const money=n=>financeReportMoney(n,b.currency_code);
-  const subtotal=lines.reduce((sum,x)=>sum+Number(x.line_total||0),0),paid=Number(b.paid_original||0),total=Number(b.total_original||0),remaining=Math.max(0,total-paid);
-  const taxDifference=total-subtotal;
+  const lineSubtotal=lines.reduce((sum,x)=>sum+Number(x.line_total||0),0),paid=Number(b.paid_original||0),total=Number(b.total_original||0),vat=Number(b.vat_original||0),vatRate=Number(b.vat_rate||0),remaining=Math.max(0,total-paid);
+  const storedSubtotal=Number(b.subtotal_original||0);
+  const subtotal=storedSubtotal>0?storedSubtotal:(vat===0?total:lineSubtotal);
+  const subtotalDifference=lineSubtotal-subtotal;
   const status=b.status==='paid'?'مدفوعة':b.status==='issued'?'معتمدة':'مسودة';
   let html='<div class="grid two" style="margin:12px 0"><div class="card" style="padding:12px;box-shadow:none"><div class="muted tiny">المورد</div><b>'+esc(v?.vendor_name||'—')+'</b><div class="muted tiny" style="margin-top:8px">رقم فاتورة المورد: '+esc(b.vendor_invoice_number||'غير مسجل')+'</div><div class="muted tiny">التاريخ: '+esc(b.bill_date||'—')+'</div><div class="muted tiny">تاريخ الاستحقاق: '+esc(b.due_date||'—')+'</div></div><div class="card" style="padding:12px;box-shadow:none"><div class="muted tiny">رقم الفاتورة</div><b>'+esc(b.bill_number)+'</b><div class="muted tiny" style="margin-top:8px">الحالة: '+status+'</div><div class="muted tiny">العملة: '+esc(b.currency_code)+' — سعر الصرف: '+esc(b.exchange_rate)+'</div><div class="muted tiny">حساب الالتزامات: '+esc(accountName(b.payable_account_id))+'</div></div></div>';
   html+='<h4>بنود الفاتورة</h4>';
   if(lines.length){html+='<div class="table-wrap">'+table(['الوصف','الكمية','سعر الوحدة','الإجمالي','حساب المصروف','المشروع'],lines.map(x=>'<tr><td>'+esc(x.description)+'</td><td>'+esc(x.quantity)+'</td><td>'+money(x.unit_price)+'</td><td>'+money(x.line_total)+'</td><td>'+esc(accountName(x.expense_account_id))+'</td><td>'+esc(x.project_ref||'—')+'</td></tr>'))+'</div>';}
   else html+='<div class="empty">لا توجد بنود محفوظة لهذه الفاتورة.</div>';
-  html+='<div class="grid two" style="margin:12px 0"><div class="card" style="padding:12px;box-shadow:none"><div class="muted tiny">مجموع البنود</div><b>'+money(subtotal)+'</b><div class="muted tiny" style="margin-top:8px">إجمالي الفاتورة المسجل</div><b>'+money(total)+'</b><div class="muted tiny" style="margin-top:8px">الفرق بين الإجمالي ومجموع البنود</div><b>'+money(taxDifference)+'</b><div class="muted tiny">لا يوجد حقل مستقل لضريبة القيمة المضافة في بنية فاتورة المورد الحالية؛ الفرق لا يُصنّف تلقائياً كضريبة.</div></div><div class="card" style="padding:12px;box-shadow:none"><div class="muted tiny">المدفوع</div><b>'+money(paid)+'</b><div class="muted tiny" style="margin-top:8px">المتبقي</div><b>'+money(remaining)+'</b></div></div>';
+  html+='<div class="grid two" style="margin:12px 0"><div class="card" style="padding:12px;box-shadow:none"><div class="muted tiny">مجموع البنود قبل الضريبة</div><b>'+money(subtotal)+'</b><div class="muted tiny" style="margin-top:8px">ضريبة القيمة المضافة ('+vatRate+'%)</div><b>'+money(vat)+'</b><div class="muted tiny" style="margin-top:8px">حساب ضريبة المدخلات</div><b>'+esc(vat>0?accountName(b.vat_account_id):'غير مطبقة')+'</b><div class="muted tiny" style="margin-top:8px">الإجمالي شامل الضريبة</div><b>'+money(total)+'</b>'+(Math.abs(subtotalDifference)>0.0001?'<div class="muted tiny" style="margin-top:8px">فرق مراجعة البنود عن المجموع المحفوظ: '+money(subtotalDifference)+'</div>':'')+'</div><div class="card" style="padding:12px;box-shadow:none"><div class="muted tiny">المدفوع</div><b>'+money(paid)+'</b><div class="muted tiny" style="margin-top:8px">المتبقي</div><b>'+money(remaining)+'</b></div></div>';
   html+='<h4>الدفعات المسجلة</h4>';
   if(payments.length){html+='<div class="table-wrap">'+table(['رقم الدفعة','التاريخ','المبلغ','الحساب النقدي','المرجع','رقم قيد السداد'],payments.map(p=>'<tr><td>'+esc(p.payment_number)+'</td><td>'+esc(p.payment_date)+'</td><td>'+financeReportMoney(p.amount_original,p.currency_code)+'</td><td>'+esc(accountName(p.cash_account_id))+'</td><td>'+esc(p.reference||'غير مسجل')+'</td><td>'+esc(p.journal_id)+'</td></tr>'))+'</div>';}
   else html+='<div class="empty">لا توجد دفعات مسجلة.</div>';
@@ -2529,14 +2535,17 @@ async function createFinanceVendorBillDraft(){
  const vendor=$('financeVendorSelect').value,number=$('financeVendorBillNumber').value.trim(),currency=$('financeVendorBillCurrency').value,rate=Number($('financeVendorBillRate').value||0);
  const payable=$('financeVendorPayable').value,expense=$('financeVendorExpenseAccount').value,description=$('financeVendorBillDescription').value.trim();
  const qty=Number($('financeVendorBillQty').value||0),price=Number($('financeVendorBillPrice').value||0),project=$('financeVendorBillProject').value.trim()||null;
+ const vatRate=Number($('financeVendorVatRate').value||0),vatAccount=$('financeVendorVatAccount').value||null;
  const date=$('financeVendorBillDate').value||new Date().toISOString().slice(0,10),due=$('financeVendorBillDue').value||null;
  if(!vendor||!number||!payable||!expense||!description||qty<=0||price<=0||rate<=0)return alert('أكمل المورد ورقم الفاتورة والحسابات والوصف والكمية والسعر وسعر الصرف.');
+ if(!Number.isFinite(vatRate)||vatRate<0||vatRate>100)return alert('أدخل نسبة ضريبة صحيحة بين 0 و100.');
+ if(vatRate>0&&!vatAccount)return alert('اختر حساب أصول لضريبة المدخلات القابلة للاسترداد.');
  const base=financeSettings?.base_currency;if(!base)return alert('حدد العملة الأساسية للمؤسسة أولاً.');
  if(currency===base&&rate!==1)return alert('سعر الصرف يجب أن يساوي 1 عند استخدام العملة الأساسية.');
  const btn=$('financeVendorBillCreateBtn');btn.disabled=true;
  try{
   const billNumber='VBILL-'+Date.now();
-  const {error}=await sb.rpc('create_finance_vendor_bill_draft',{p_bill_number:billNumber,p_vendor_id:vendor,p_vendor_invoice_number:number,p_bill_date:date,p_due_date:due,p_currency_code:currency,p_exchange_rate:rate,p_payable_account_id:payable,p_line_description:description,p_quantity:qty,p_unit_price:price,p_expense_account_id:expense,p_project_ref:project});
+  const {error}=await sb.rpc('create_finance_vendor_bill_draft',{p_bill_number:billNumber,p_vendor_id:vendor,p_vendor_invoice_number:number,p_bill_date:date,p_due_date:due,p_currency_code:currency,p_exchange_rate:rate,p_payable_account_id:payable,p_line_description:description,p_quantity:qty,p_unit_price:price,p_expense_account_id:expense,p_project_ref:project,p_vat_rate:vatRate,p_vat_account_id:vatAccount});
   if(error)throw error;
   $('financeVendorBillNumber').value='';$('financeVendorBillDescription').value='';$('financeVendorBillPrice').value='';$('financeVendorBillProject').value='';
   await loadFinanceVendorsBills();alert('تم حفظ فاتورة المورد كمسودة. لم يُسجل المصروف بعد.');
