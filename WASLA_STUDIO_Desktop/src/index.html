@@ -2433,7 +2433,7 @@ async function loadFinanceVendorsBills(){
   const status=b.status==='draft'?'مسودة':b.status==='paid'?'مدفوعة':'معتمدة';
   const action=b.status==='draft'?(financeCanManage()?'<button class="btn lime sm" onclick="issueFinanceVendorBill(\''+b.id+'\')">اعتماد وترحيل</button>':'بانتظار الاعتماد'):b.status==='issued'?(financeCanManage()?'<button class="btn soft sm" onclick="recordFinanceVendorBillPayment(\''+b.id+'\')">تسجيل سداد</button>':'مستحق'): 'مكتملة';
   const details='<button class="btn soft sm" onclick="openFinanceVendorBillDetails(\''+b.id+'\')">التفاصيل</button>';
-  const edit=b.status==='draft'&&financeCanManage()?'<button class="btn soft sm" onclick="openFinanceVendorBillEditModal(\\''+b.id+'\\')">تعديل</button>':'';
+  const edit=b.status==='draft'&&financeCanManage()?'<button class="btn soft sm" onclick="openFinanceVendorBillEditModal(\''+b.id+'\')">تعديل</button>':'';
   return '<tr><td>'+esc(b.bill_number)+'</td><td>'+esc(vendor?.vendor_name||'—')+'</td><td>'+esc(b.bill_date)+'</td><td>'+financeReportMoney(b.total_original,b.currency_code)+'</td><td>'+financeReportMoney(b.paid_original,b.currency_code)+'</td><td>'+financeReportMoney(remaining,b.currency_code)+'</td><td><span class="pill '+(b.status==='paid'?'green':b.status==='draft'?'amber':'blue')+'">'+status+'</span></td><td>'+details+' '+edit+' '+action+'</td></tr>';
  }));
 }
