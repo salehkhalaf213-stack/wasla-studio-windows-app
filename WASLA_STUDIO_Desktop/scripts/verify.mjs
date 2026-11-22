@@ -34,6 +34,7 @@ const checks = [
   ['Invoice PDF preserves existing financial values', html.includes('invoice.subtotal_original') && html.includes('invoice.vat_original') && html.includes('invoice.total_original') && html.includes('invoice.paid_original')],
   ['Vendor directory and bill workflow UI', html.includes('financeVendorName') && html.includes('financeVendorBillsTable') && html.includes('createFinanceVendorBillDraft()')],
   ['Vendor payable defaults to accounts payable rather than output VAT', html.includes("a.account_code==='2000'") && html.includes('preferredPayable')],
+  ['Vendor expense defaults to operating expenses account 5000 while preserving manual selection', html.includes("String(a.account_code||'').trim()==='5000'") && html.includes('preferredExpense') && html.includes('!expenseSelect.value&&preferredExpense')],
   ['Vendor edit form and action available with address and active status', html.includes('openFinanceVendorEditModal') && html.includes('financeVendorEditAddress') && html.includes('financeVendorEditStatus')],
   ['Vendor edit action safely passes the vendor ID and resolves string IDs', html.includes('openFinanceVendorEditModal(&quot;') && html.includes('String(v.id)===String(id)')],
   ['Vendor updates are tenant-scoped and preserve bill/payment history', html.includes(".from('finance_vendors').update(payload).eq('organization_id',currentOrganizationId).eq('id',id)") && html.includes('لم يتم تغيير الفواتير أو الدفعات السابقة')],
