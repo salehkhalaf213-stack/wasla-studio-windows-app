@@ -2388,8 +2388,11 @@ async function recordFinanceInvoicePayment(id){
  catch(e){alert('تعذر تسجيل التحصيل: '+(e.message||e));}
 }
 let financeVendors=[],financeVendorBills=[];
+function financeVendorIsPayableAccount(account){
+ return !!account&&account.is_active&&account.account_type==='liability'&&(String(account.account_code||'').trim()==='2000'||/(الموردون والذمم الدائنة|ذمم دائنة|accounts payable|trade payables|suppliers)/i.test(account.account_name||''));
+}
 function financeVendorFillAccounts(){
- const liabilities=financeAccounts.filter(a=>a.is_active&&a.account_type==='liability');
+ const liabilities=financeAccounts.filter(financeVendorIsPayableAccount);
  const expenses=financeAccounts.filter(a=>a.is_active&&a.account_type==='expense');
  const fill=(id,rows,label)=>{const el=$(id);if(!el)return;const old=el.value;el.innerHTML='<option value="">'+label+'</option>'+rows.map(a=>'<option value="'+a.id+'">'+esc(a.account_code)+' — '+esc(a.account_name)+'</option>').join('');if(rows.some(a=>a.id===old))el.value=old;};
  fill('financeVendorPayable',liabilities,'اختر حساب الالتزامات');
@@ -2412,7 +2415,7 @@ async function loadFinanceVendorsBills(){
  if(!currentOrganizationId||!(financeCanManage()||financeHasRole('accountant')))return;
  const [vr,br]=await Promise.all([
   sb.from('finance_vendors').select('id,vendor_name,email,phone,tax_number,address,is_active').eq('organization_id',currentOrganizationId).order('vendor_name'),
-  sb.from('finance_vendor_bills').select('id,bill_number,vendor_id,vendor_invoice_number,bill_date,due_date,currency_code,total_original,paid_original,status').eq('organization_id',currentOrganizationId).order('bill_date',{ascending:false}).limit(200)
+  sb.from('finance_vendor_bills').select('id,bill_number,vendor_id,vendor_invoice_number,bill_date,due_date,currency_code,total_original,paid_original,status,payable_account_id').eq('organization_id',currentOrganizationId).order('bill_date',{ascending:false}).limit(200)
  ]);
  if(vr.error)throw vr.error;if(br.error)throw br.error;
  financeVendors=vr.data||[];financeVendorBills=br.data||[];
@@ -2588,6 +2591,8 @@ async function createFinanceVendorBillDraft(){
  const vatRate=Number($('financeVendorVatRate').value||0),vatAccount=$('financeVendorVatAccount').value||null;
  const date=$('financeVendorBillDate').value||new Date().toISOString().slice(0,10),due=$('financeVendorBillDue').value||null;
  if(!vendor||!number||!payable||!expense||!description||qty<=0||price<=0||rate<=0)return alert('أكمل المورد ورقم الفاتورة والحسابات والوصف والكمية والسعر وسعر الصرف.');
+ const selectedPayable=financeAccounts.find(a=>String(a.id)===String(payable));
+ if(!financeVendorIsPayableAccount(selectedPayable))return alert('حساب الالتزامات غير صالح لفاتورة مورد. اختر 2000 — الموردون والذمم الدائنة أو حساباً معتمداً للذمم الدائنة.');
  if(!Number.isFinite(vatRate)||vatRate<0||vatRate>100)return alert('أدخل نسبة ضريبة صحيحة بين 0 و100.');
  if(vatRate>0&&!vatAccount)return alert('اختر حساب أصول لضريبة المدخلات القابلة للاسترداد.');
  const base=financeSettings?.base_currency;if(!base)return alert('حدد العملة الأساسية للمؤسسة أولاً.');
@@ -2604,6 +2609,8 @@ async function createFinanceVendorBillDraft(){
 async function issueFinanceVendorBill(id){
  if(!financeCanManage())return alert('اعتماد فواتير الموردين متاح لمدير المؤسسة فقط.');
  const bill=financeVendorBills.find(x=>x.id===id);if(!bill)return;
+ const payableAccount=financeAccounts.find(a=>String(a.id)===String(bill.payable_account_id));
+ if(!financeVendorIsPayableAccount(payableAccount))return alert('تم إيقاف اعتماد هذه المسودة: حساب الالتزامات ليس حساب الموردين المعتمد. صحح الحساب إلى 2000 — الموردون والذمم الدائنة أولاً.');
  if(!confirm('سيتم اعتماد فاتورة المورد '+bill.bill_number+' وإنشاء قيد مصروف ومستحقات. لا يمكن تعديلها بعد الاعتماد. هل تريد المتابعة؟'))return;
  try{const {error}=await sb.rpc('issue_finance_vendor_bill',{p_bill_id:id});if(error)throw error;await loadFinanceWorkspace();alert('تم اعتماد فاتورة المورد وترحيل قيد المصروف والمستحقات.');}
  catch(e){alert('تعذر اعتماد الفاتورة: '+(e.message||e));}
