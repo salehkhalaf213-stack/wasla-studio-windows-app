@@ -2416,7 +2416,7 @@ async function loadFinanceVendorsBills(){
  const now=new Date(),today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
  if($('financeVendorStatementStart')&&!$('financeVendorStatementStart').value)$('financeVendorStatementStart').value=now.getFullYear()+'-01-01';
  if($('financeVendorStatementEnd')&&!$('financeVendorStatementEnd').value)$('financeVendorStatementEnd').value=today;
- $('financeVendorsTable').innerHTML=table(['المورد','البريد','الهاتف','الحالة','إجراء'],financeVendors.map(v=>'<tr><td>'+esc(v.vendor_name)+'</td><td>'+esc(v.email||'—')+'</td><td>'+esc(v.phone||'—')+'</td><td><span class="pill '+(v.is_active?'green':'amber')+'">'+(v.is_active?'نشط':'متوقف')+'</span></td><td>'+(financeCanWrite()?'<button class="btn soft sm" onclick="openFinanceVendorEditModal(\''+v.id+'\')">تعديل</button>':'—')+'</td></tr>'));
+ $('financeVendorsTable').innerHTML=table(['المورد','البريد','الهاتف','الحالة','إجراء'],financeVendors.map(v=>'<tr><td>'+esc(v.vendor_name)+'</td><td>'+esc(v.email||'—')+'</td><td>'+esc(v.phone||'—')+'</td><td><span class="pill '+(v.is_active?'green':'amber')+'">'+(v.is_active?'نشط':'متوقف')+'</span></td><td>'+(financeCanWrite()?'<button class="btn soft sm" onclick="openFinanceVendorEditModal(&quot;'+String(v.id)+'&quot;)">تعديل</button>':'—')+'</td></tr>'));
  $('financeVendorBillsTable').innerHTML=table(['رقم الفاتورة','المورد','التاريخ','الإجمالي','المسدّد','المتبقي','الحالة','إجراء'],financeVendorBills.map(b=>{
   const vendor=financeVendors.find(v=>v.id===b.vendor_id);
   const remaining=Math.max(0,Number(b.total_original||0)-Number(b.paid_original||0));
@@ -2525,7 +2525,7 @@ async function loadFinanceVendorStatement(){
 }
 function openFinanceVendorEditModal(id){
  if(!financeCanWrite())return alert('لا تملك صلاحية تعديل بيانات المورد.');
- const vendor=financeVendors.find(v=>v.id===id);
+ const vendor=financeVendors.find(v=>String(v.id)===String(id));
  if(!vendor)return alert('تعذر العثور على المورد.');
  $('financeVendorEditId').value=vendor.id;
  $('financeVendorEditName').value=vendor.vendor_name||'';
