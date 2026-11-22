@@ -30,7 +30,7 @@ const checks = [
   ['Invoice PDF footer aligned to page bottom', html.includes('min-height:270mm') && html.includes('margin-top:auto;padding-top:13px')],
   ['Invoice PDF preserves existing financial values', html.includes('invoice.subtotal_original') && html.includes('invoice.vat_original') && html.includes('invoice.total_original') && html.includes('invoice.paid_original')],
   ['Vendor directory and bill workflow UI', html.includes('financeVendorName') && html.includes('financeVendorBillsTable') && html.includes('createFinanceVendorBillDraft()')],
-  ['Read-only vendor bill details action available for every bill status', html.includes("openFinanceVendorBillDetails('") && html.includes('التفاصيل') && html.includes('closeFinanceVendorBillDetails()')],
+  ['Read-only vendor bill details action available for every bill status', html.includes("openFinanceVendorBillDetails(\\'") && html.includes('التفاصيل') && html.includes('closeFinanceVendorBillDetails()')],
   ['Vendor bill details load tenant-scoped bill lines and payments', html.includes(".from('finance_vendor_bill_lines').select(") && html.includes(".from('finance_vendor_bill_payments').select(") && html.includes(".eq('organization_id',currentOrganizationId).eq('bill_id',id)")],
   ['Vendor bill details show linked expense/payable and payment journals', html.includes(".from('finance_journals').select(") && html.includes(".from('finance_journal_lines').select(") && html.includes('issued_journal_id')],
   ['Vendor bill details do not infer VAT from total difference', html.includes('الفرق لا يُصنّف تلقائياً كضريبة') && html.includes('لا يوجد حقل مستقل لضريبة القيمة المضافة')],
