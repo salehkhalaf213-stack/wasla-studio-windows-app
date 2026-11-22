@@ -252,6 +252,9 @@ revoke all on function public.create_finance_invoice_draft(text,text,text,date,d
 grant execute on function public.create_finance_invoice_draft(text,text,text,date,date,text,numeric,uuid,text,numeric,numeric,uuid,text,numeric,uuid) to authenticated;
 revoke all on function public.issue_finance_invoice(uuid) from public,anon;
 grant execute on function public.issue_finance_invoice(uuid) to authenticated;
+-- Keep the legacy no-VAT overload available to signed-in users only; it was previously executable by anon.
+revoke all on function public.create_finance_vendor_bill_draft(text,uuid,text,date,date,text,numeric,uuid,text,numeric,numeric,uuid,text) from public,anon;
+grant execute on function public.create_finance_vendor_bill_draft(text,uuid,text,date,date,text,numeric,uuid,text,numeric,numeric,uuid,text) to authenticated;
 revoke all on function public.create_finance_vendor_bill_draft(text,uuid,text,date,date,text,numeric,uuid,text,numeric,numeric,uuid,text,numeric,uuid) from public,anon;
 grant execute on function public.create_finance_vendor_bill_draft(text,uuid,text,date,date,text,numeric,uuid,text,numeric,numeric,uuid,text,numeric,uuid) to authenticated;
 revoke all on function public.issue_finance_vendor_bill(uuid) from public,anon;
