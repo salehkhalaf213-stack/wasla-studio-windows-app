@@ -2397,6 +2397,9 @@ function financeVendorFillAccounts(){
  const preferredPayable=liabilities.find(a=>a.account_code==='2000'||/(الموردون والذمم الدائنة|ذمم دائنة|accounts payable|trade payables|suppliers)/i.test(a.account_name||''));
  if(payableSelect&&!payableSelect.value&&preferredPayable)payableSelect.value=preferredPayable.id;
  fill('financeVendorExpenseAccount',expenses,'اختر حساب المصروف');
+ const expenseSelect=$('financeVendorExpenseAccount');
+ const preferredExpense=expenses.find(a=>String(a.account_code||'').trim()==='5000')||expenses.find(a=>/(المصروفات التشغيلية|مصروفات تشغيلية|operating expenses|operational expenses)/i.test(a.account_name||''));
+ if(expenseSelect&&!expenseSelect.value&&preferredExpense)expenseSelect.value=preferredExpense.id;
  const inputVatAccounts=financeAccounts.filter(a=>a.is_active&&a.account_type==='asset'&&/(ضريبة.*مدخل|مدخل.*ضريبة|vat.*input|input.*vat)/i.test(a.account_name||''));
  fill('financeVendorVatAccount',inputVatAccounts,'اختر حساب ضريبة المدخلات');
  const assets=financeAccounts.filter(a=>a.is_active&&a.account_type==='asset'&&/(صندوق|بنك|cash|bank)/i.test(a.account_name||''));
