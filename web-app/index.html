@@ -833,7 +833,7 @@ function renderAuthCaptcha(view){
  loadTurnstileApi().then(turnstile=>{
   const container=$(containerId);if(!container||container.offsetParent===null)return;
   if(authCaptchaWidgets[widgetKey]!==null){turnstile.reset(authCaptchaWidgets[widgetKey]);return;}
-  authCaptchaWidgets[widgetKey]=turnstile.render(container,{sitekey:TURNSTILE_SITE_KEY,theme:'auto',callback:()=>{},'expired-callback':()=>{},'error-callback':()=>{ $('authMessage').textContent='تعذر إكمال التحقق الأمني. أعد المحاولة.';return true;}});
+  authCaptchaWidgets[widgetKey]=turnstile.render(container,{sitekey:TURNSTILE_SITE_KEY,theme:'auto',callback:()=>{},'expired-callback':()=>{},'error-callback':(errorCode)=>{console.warn('[WASLA Turnstile] error-code:',errorCode||'unknown');$('authMessage').textContent='تعذر إكمال التحقق الأمني. أعد المحاولة.';return true;}});
  }).catch(error=>{$('authMessage').textContent=error.message||'تعذر تحميل التحقق الأمني.';});
 }
 function getAuthCaptchaToken(view){
