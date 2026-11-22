@@ -72,6 +72,45 @@ const checks = [
   ['Vendor payments validate cash/bank account and outstanding balance', vendorMigration.includes('p_amount>v_remaining') && vendorMigration.includes('Select an active cash or bank account')],
   ['In-app invoice print view (no popup dependency)', html.includes('wasla-invoice-print-root') && html.includes('window.print()') && !html.includes("window.open('','_blank')")]
 ];
+
+// Local, side-effect-free regression model for the database trigger's payable rules.
+// These scenarios never connect to Supabase or create/update financial records.
+const payableAccounts = [
+  { id: 'ap-2000', organization_id: 'org-a', account_code: '2000', account_name: 'الموردون والذمم الدائنة', account_type: 'liability', is_active: true },
+  { id: 'vat-2200', organization_id: 'org-a', account_code: '2200', account_name: 'ضريبة القيمة المضافة المستحقة', account_type: 'liability', is_active: true },
+  { id: 'inactive-2000', organization_id: 'org-a', account_code: '2000', account_name: 'الموردون والذمم الدائنة', account_type: 'liability', is_active: false },
+  { id: 'expense-2000', organization_id: 'org-a', account_code: '2000', account_name: 'الموردون والذمم الدائنة', account_type: 'expense', is_active: true },
+  { id: 'foreign-2000', organization_id: 'org-b', account_code: '2000', account_name: 'الموردون والذمم الدائنة', account_type: 'liability', is_active: true }
+];
+function modelApprovedPayable(account, organizationId) {
+  return !!account && account.organization_id === organizationId && account.is_active === true &&
+    account.account_type === 'liability' &&
+    (String(account.account_code || '') === '2000' ||
+      /(الموردون والذمم الدائنة|ذمم دائنة|accounts payable|trade payables|suppliers)/i.test(account.account_name || ''));
+}
+function modelGuardAllowsBillWrite({ operation, status, nextStatus, accountId, organizationId }) {
+  if (operation === 'INSERT' || status === 'draft') {
+    if (operation === 'INSERT' && nextStatus !== 'draft') return false;
+    if (operation !== 'INSERT' && !['draft', 'issued'].includes(nextStatus)) return false;
+    const account = payableAccounts.find(item => item.id === accountId);
+    return modelApprovedPayable(account, organizationId);
+  }
+  return false;
+}
+const payableRegressionScenarios = [
+  ['accepts active approved 2000 account on draft creation', modelGuardAllowsBillWrite({ operation: 'INSERT', nextStatus: 'draft', accountId: 'ap-2000', organizationId: 'org-a' })],
+  ['rejects output VAT liability 2200 on draft creation', !modelGuardAllowsBillWrite({ operation: 'INSERT', nextStatus: 'draft', accountId: 'vat-2200', organizationId: 'org-a' })],
+  ['rejects inactive 2000 account on draft creation', !modelGuardAllowsBillWrite({ operation: 'INSERT', nextStatus: 'draft', accountId: 'inactive-2000', organizationId: 'org-a' })],
+  ['rejects non-liability account even when code is 2000', !modelGuardAllowsBillWrite({ operation: 'INSERT', nextStatus: 'draft', accountId: 'expense-2000', organizationId: 'org-a' })],
+  ['rejects payable account belonging to another organization', !modelGuardAllowsBillWrite({ operation: 'INSERT', nextStatus: 'draft', accountId: 'foreign-2000', organizationId: 'org-a' })],
+  ['rejects invalid 2200 account when updating a draft', !modelGuardAllowsBillWrite({ operation: 'UPDATE', status: 'draft', nextStatus: 'draft', accountId: 'vat-2200', organizationId: 'org-a' })],
+  ['rejects invalid 2200 account when issuing a draft', !modelGuardAllowsBillWrite({ operation: 'UPDATE', status: 'draft', nextStatus: 'issued', accountId: 'vat-2200', organizationId: 'org-a' })],
+  ['accepts valid 2000 account when issuing a draft', modelGuardAllowsBillWrite({ operation: 'UPDATE', status: 'draft', nextStatus: 'issued', accountId: 'ap-2000', organizationId: 'org-a' })],
+  ['rejects direct changes to an issued bill', !modelGuardAllowsBillWrite({ operation: 'UPDATE', status: 'issued', nextStatus: 'issued', accountId: 'ap-2000', organizationId: 'org-a' })]
+];
+for (const [label, ok] of payableRegressionScenarios) console.log((ok ? 'OK' : 'FAIL') + '  Local payable guard scenario: ' + label);
+if (payableRegressionScenarios.some(([, ok]) => !ok)) process.exit(1);
+
 const inlineScripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)]
   .filter(match => !/\bsrc\s*=/.test(match[1]) && match[2].trim());
 for (let i = 0; i < inlineScripts.length; i++) {
