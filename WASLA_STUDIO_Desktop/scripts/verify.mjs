@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 const html = fs.readFileSync(new URL('../src/index.html', import.meta.url), 'utf8');
 const vendorMigration = fs.readFileSync(new URL('../../supabase/migrations/20261121043705_finance_vendors_and_expenses.sql', import.meta.url), 'utf8');
+const vatMigration = fs.readFileSync(new URL('../../supabase/migrations/20261122010000_finance_customer_and_vendor_vat.sql', import.meta.url), 'utf8');
 const checks = [
   ['Supabase project URL', html.includes('https://oqkmesadspiibllyjwmj.supabase.co')],
   ['Supabase publishable key', html.includes('sb_publishable_')],
@@ -34,6 +35,13 @@ const checks = [
   ['Vendor bill details load tenant-scoped bill lines and payments', html.includes(".from('finance_vendor_bill_lines').select(") && html.includes(".from('finance_vendor_bill_payments').select(") && html.includes(".eq('organization_id',currentOrganizationId).eq('bill_id',id)")],
   ['Vendor bill details show linked expense/payable and payment journals', html.includes(".from('finance_journals').select(") && html.includes(".from('finance_journal_lines').select(") && html.includes('issued_journal_id')],
   ['Vendor bill details do not infer VAT from total difference', html.includes('الفرق لا يُصنّف تلقائياً كضريبة') && html.includes('لا يوجد حقل مستقل لضريبة القيمة المضافة')],
+  ['Vendor bill VAT rate and recoverable input VAT account fields', html.includes('id="financeVendorVatRate"') && html.includes('id="financeVendorVatAccount"')],
+  ['Vendor bill draft RPC sends VAT rate and input VAT account', html.includes('p_vat_rate:vatRate') && html.includes('p_vat_account_id:vatAccount')],
+  ['Vendor bill details show stored subtotal, VAT and VAT account', html.includes('subtotal_original,subtotal_base,vat_rate,vat_original,vat_base,vat_account_id') && html.includes('حساب ضريبة المدخلات') && html.includes('الإجمالي شامل الضريبة')],
+  ['VAT migration adds supplier input VAT fields without rewriting old bill values', vatMigration.includes('add column if not exists subtotal_original') && vatMigration.includes('add column if not exists vat_account_id') && !/update\s+public\.finance_vendor_bills\s+set/i.test(vatMigration)],
+  ['Supplier input VAT requires an active asset account', vatMigration.includes("account_type='asset'") && vatMigration.includes('recoverable input VAT asset account')],
+  ['Supplier posting debits recoverable input VAT and credits payable including VAT', vatMigration.includes('ضريبة قيمة مضافة مدخلات قابلة للاسترداد') && vatMigration.includes('v_vat,v_total') && vatMigration.includes('v_bill.payable_account_id')],
+  ['Customer output VAT draft and posting functions remain available', vatMigration.includes('p_vat_rate numeric,p_vat_account_id uuid') && vatMigration.includes('ضريبة قيمة مضافة مستحقة')],
   ['Vendor bill draft creation RPC', html.includes("sb.rpc('create_finance_vendor_bill_draft'")],
   ['Vendor bill posting and payable journal RPC', html.includes("sb.rpc('issue_finance_vendor_bill'") && html.includes('ترحيل قيد المصروف والمستحقات')],
   ['Vendor bill payment and cash journal RPC', html.includes("sb.rpc('record_finance_vendor_bill_payment'")],
