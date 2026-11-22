@@ -622,6 +622,7 @@ footer{color:#8790a7}
  </div>
  <div class="note">يلزم وجود حساب من نوع «مصروفات» وحساب من نوع «التزامات». عند تطبيق ضريبة مدخلات قابلة للاسترداد، اختر حساب ضريبة مدخلات من نوع «أصول». لن يتم تسجيل المصروف أو الضريبة في القيود قبل اعتماد الفاتورة.</div>
  <div style="margin-top:14px"><h4>سجل الموردين</h4><div id="financeVendorsTable"><div class="empty">جارٍ تحميل الموردين…</div></div></div>
+ <div class="modal" id="financeVendorEditModal"><div class="dialog"><div class="head"><h2>تعديل بيانات المورد</h2><button class="btn soft sm" onclick="closeFinanceVendorEditModal()">إغلاق</button></div><input id="financeVendorEditId" type="hidden"><div class="field"><label for="financeVendorEditName">اسم المورد</label><input id="financeVendorEditName" maxlength="180" required></div><div class="grid two"><div class="field"><label for="financeVendorEditEmail">البريد الإلكتروني</label><input id="financeVendorEditEmail" type="email"></div><div class="field"><label for="financeVendorEditPhone">الهاتف</label><input id="financeVendorEditPhone"></div></div><div class="field"><label for="financeVendorEditTax">الرقم الضريبي</label><input id="financeVendorEditTax"></div><div class="field"><label for="financeVendorEditAddress">العنوان</label><textarea id="financeVendorEditAddress" rows="2"></textarea></div><div class="field"><label for="financeVendorEditStatus">حالة المورد</label><select id="financeVendorEditStatus"><option value="true">نشط</option><option value="false">متوقف</option></select></div><div class="dialog-actions"><button class="btn lime" id="financeVendorEditSaveBtn" onclick="saveFinanceVendorEdit()">حفظ التعديلات</button><button class="btn soft" onclick="closeFinanceVendorEditModal()">إلغاء</button></div><div class="note">تعديل بيانات المورد لا يغيّر فواتيره أو دفعاته أو القيود المالية السابقة.</div></div></div>
  <div style="margin-top:14px"><h4>فواتير الموردين والمبالغ المستحقة</h4><div id="financeVendorBillsTable"><div class="empty">جارٍ تحميل الفواتير…</div></div></div>
   <div class="card" id="financeVendorBillDetailsPanel" style="display:none;padding:14px;margin-top:14px;box-shadow:none;border:1px solid var(--line)"><div class="head"><div><h4 style="margin:0">تفاصيل فاتورة المورد</h4><div class="muted tiny" id="financeVendorBillDetailsSubtitle"></div></div><button class="btn soft sm" onclick="closeFinanceVendorBillDetails()">إغلاق التفاصيل</button></div><div id="financeVendorBillDetailsContent"></div></div>
  <div class="card" id="financeVendorStatementPanel" style="padding:14px;margin-top:16px;box-shadow:none;border:1px solid var(--line)">
@@ -2392,6 +2393,9 @@ function financeVendorFillAccounts(){
  const expenses=financeAccounts.filter(a=>a.is_active&&a.account_type==='expense');
  const fill=(id,rows,label)=>{const el=$(id);if(!el)return;const old=el.value;el.innerHTML='<option value="">'+label+'</option>'+rows.map(a=>'<option value="'+a.id+'">'+esc(a.account_code)+' — '+esc(a.account_name)+'</option>').join('');if(rows.some(a=>a.id===old))el.value=old;};
  fill('financeVendorPayable',liabilities,'اختر حساب الالتزامات');
+ const payableSelect=$('financeVendorPayable');
+ const preferredPayable=liabilities.find(a=>a.account_code==='2000'||/(الموردون والذمم الدائنة|ذمم دائنة|accounts payable|trade payables|suppliers)/i.test(a.account_name||''));
+ if(payableSelect&&!payableSelect.value&&preferredPayable)payableSelect.value=preferredPayable.id;
  fill('financeVendorExpenseAccount',expenses,'اختر حساب المصروف');
  const inputVatAccounts=financeAccounts.filter(a=>a.is_active&&a.account_type==='asset'&&/(ضريبة.*مدخل|مدخل.*ضريبة|vat.*input|input.*vat)/i.test(a.account_name||''));
  fill('financeVendorVatAccount',inputVatAccounts,'اختر حساب ضريبة المدخلات');
@@ -2401,7 +2405,7 @@ function financeVendorFillAccounts(){
 async function loadFinanceVendorsBills(){
  if(!currentOrganizationId||!(financeCanManage()||financeHasRole('accountant')))return;
  const [vr,br]=await Promise.all([
-  sb.from('finance_vendors').select('id,vendor_name,email,phone,tax_number,is_active').eq('organization_id',currentOrganizationId).order('vendor_name'),
+  sb.from('finance_vendors').select('id,vendor_name,email,phone,tax_number,address,is_active').eq('organization_id',currentOrganizationId).order('vendor_name'),
   sb.from('finance_vendor_bills').select('id,bill_number,vendor_id,vendor_invoice_number,bill_date,due_date,currency_code,total_original,paid_original,status').eq('organization_id',currentOrganizationId).order('bill_date',{ascending:false}).limit(200)
  ]);
  if(vr.error)throw vr.error;if(br.error)throw br.error;
@@ -2412,7 +2416,7 @@ async function loadFinanceVendorsBills(){
  const now=new Date(),today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
  if($('financeVendorStatementStart')&&!$('financeVendorStatementStart').value)$('financeVendorStatementStart').value=now.getFullYear()+'-01-01';
  if($('financeVendorStatementEnd')&&!$('financeVendorStatementEnd').value)$('financeVendorStatementEnd').value=today;
- $('financeVendorsTable').innerHTML=table(['المورد','البريد','الهاتف','الحالة'],financeVendors.map(v=>'<tr><td>'+esc(v.vendor_name)+'</td><td>'+esc(v.email||'—')+'</td><td>'+esc(v.phone||'—')+'</td><td><span class="pill '+(v.is_active?'green':'amber')+'">'+(v.is_active?'نشط':'متوقف')+'</span></td></tr>'));
+ $('financeVendorsTable').innerHTML=table(['المورد','البريد','الهاتف','الحالة','إجراء'],financeVendors.map(v=>'<tr><td>'+esc(v.vendor_name)+'</td><td>'+esc(v.email||'—')+'</td><td>'+esc(v.phone||'—')+'</td><td><span class="pill '+(v.is_active?'green':'amber')+'">'+(v.is_active?'نشط':'متوقف')+'</span></td><td>'+(financeCanWrite()?'<button class="btn soft sm" onclick="openFinanceVendorEditModal(\\''+v.id+'\\')">تعديل</button>':'—')+'</td></tr>'));
  $('financeVendorBillsTable').innerHTML=table(['رقم الفاتورة','المورد','التاريخ','الإجمالي','المسدّد','المتبقي','الحالة','إجراء'],financeVendorBills.map(b=>{
   const vendor=financeVendors.find(v=>v.id===b.vendor_id);
   const remaining=Math.max(0,Number(b.total_original||0)-Number(b.paid_original||0));
@@ -2518,6 +2522,46 @@ async function loadFinanceVendorStatement(){
   content.innerHTML=html;
  }catch(e){console.error(e);if(content)content.innerHTML='<div class="empty">تعذر إعداد كشف المورد: '+esc(e.message||'خطأ غير معروف')+'</div>';}
  finally{if(button){button.disabled=false;button.textContent='عرض الكشف';}}
+}
+function openFinanceVendorEditModal(id){
+ if(!financeCanWrite())return alert('لا تملك صلاحية تعديل بيانات المورد.');
+ const vendor=financeVendors.find(v=>v.id===id);
+ if(!vendor)return alert('تعذر العثور على المورد.');
+ $('financeVendorEditId').value=vendor.id;
+ $('financeVendorEditName').value=vendor.vendor_name||'';
+ $('financeVendorEditEmail').value=vendor.email||'';
+ $('financeVendorEditPhone').value=vendor.phone||'';
+ $('financeVendorEditTax').value=vendor.tax_number||'';
+ $('financeVendorEditAddress').value=vendor.address||'';
+ $('financeVendorEditStatus').value=String(vendor.is_active!==false);
+ $('financeVendorEditModal').classList.add('show');
+}
+function closeFinanceVendorEditModal(){
+ const modal=$('financeVendorEditModal');
+ if(modal)modal.classList.remove('show');
+}
+async function saveFinanceVendorEdit(){
+ if(!financeCanWrite())return alert('لا تملك صلاحية تعديل بيانات المورد.');
+ const id=$('financeVendorEditId').value,name=$('financeVendorEditName').value.trim();
+ if(!id||!name)return alert('اسم المورد مطلوب.');
+ const btn=$('financeVendorEditSaveBtn');btn.disabled=true;
+ try{
+  const payload={
+   vendor_name:name,
+   email:$('financeVendorEditEmail').value.trim()||null,
+   phone:$('financeVendorEditPhone').value.trim()||null,
+   tax_number:$('financeVendorEditTax').value.trim()||null,
+   address:$('financeVendorEditAddress').value.trim()||null,
+   is_active:$('financeVendorEditStatus').value==='true',
+   updated_at:new Date().toISOString()
+  };
+  const {error}=await sb.from('finance_vendors').update(payload).eq('organization_id',currentOrganizationId).eq('id',id);
+  if(error)throw error;
+  closeFinanceVendorEditModal();
+  await loadFinanceVendorsBills();
+  alert('تم تحديث بيانات المورد بنجاح. لم يتم تغيير الفواتير أو الدفعات السابقة.');
+ }catch(e){alert('تعذر تحديث بيانات المورد: '+(e.message||e));}
+ finally{btn.disabled=false;}
 }
 async function createFinanceVendor(){
  if(!financeCanWrite())return alert('لا تملك صلاحية إضافة مورد.');
