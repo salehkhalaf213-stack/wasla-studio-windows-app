@@ -74,7 +74,7 @@ const checks = [
   ['Journal privilege migration revokes all anonymous table access', journalPrivilegesMigration.includes('REVOKE ALL PRIVILEGES ON TABLE public.finance_journals, public.finance_journal_lines FROM PUBLIC') && journalPrivilegesMigration.includes('FROM anon')],
   ['Journal privilege migration blocks TRUNCATE, TRIGGER and REFERENCES for authenticated users', journalPrivilegesMigration.includes('REVOKE TRUNCATE, TRIGGER, REFERENCES') && journalPrivilegesMigration.includes('FROM authenticated')],
   ['Journal privilege migration preserves authenticated CRUD under RLS', journalPrivilegesMigration.includes('GRANT SELECT, INSERT, UPDATE, DELETE') && journalPrivilegesMigration.includes('TO authenticated')],
-  ['Journal privilege migration does not modify or delete existing journal rows', !/\\b(delete\\s+from|update\\s+public\\.finance_journals|truncate)\\b/i.test(journalPrivilegesMigration)]
+  ['Journal privilege migration does not modify or delete existing journal rows', !/\b(delete\s+from|update\s+public\.finance_journals|truncate)\b/i.test(journalPrivilegesMigration)],
   ['In-app invoice print view (no popup dependency)', html.includes('wasla-invoice-print-root') && html.includes('window.print()') && !html.includes("window.open('','_blank')")]
 ];
 
