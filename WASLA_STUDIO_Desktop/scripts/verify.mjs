@@ -35,6 +35,7 @@ const checks = [
   ['Vendor directory and bill workflow UI', html.includes('financeVendorName') && html.includes('financeVendorBillsTable') && html.includes('createFinanceVendorBillDraft()')],
   ['Vendor payable defaults to accounts payable rather than output VAT', html.includes("a.account_code==='2000'") && html.includes('preferredPayable')],
   ['Vendor edit form and action available with address and active status', html.includes('openFinanceVendorEditModal') && html.includes('financeVendorEditAddress') && html.includes('financeVendorEditStatus')],
+  ['Vendor edit action safely passes the vendor ID and resolves string IDs', html.includes('openFinanceVendorEditModal(&quot;') && html.includes('String(v.id)===String(id)')],
   ['Vendor updates are tenant-scoped and preserve bill/payment history', html.includes(".from('finance_vendors').update(payload).eq('organization_id',currentOrganizationId).eq('id',id)") && html.includes('لم يتم تغيير الفواتير أو الدفعات السابقة')],
   ['Read-only vendor bill details action available for every bill status', html.includes("openFinanceVendorBillDetails(\\'") && html.includes('التفاصيل') && html.includes('closeFinanceVendorBillDetails()')],
   ['Vendor bill details load tenant-scoped bill lines and payments', html.includes(".from('finance_vendor_bill_lines').select(") && html.includes(".from('finance_vendor_bill_payments').select(") && html.includes(".eq('organization_id',currentOrganizationId).eq('bill_id',id)")],
