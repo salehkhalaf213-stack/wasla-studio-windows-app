@@ -621,6 +621,7 @@ footer{color:#8790a7}
  <div class="note">يلزم وجود حساب من نوع «مصروفات» وحساب من نوع «التزامات» في دليل الحسابات. لن يتم تسجيل أي مصروف في التقارير قبل اعتماد فاتورة المورد.</div>
  <div style="margin-top:14px"><h4>سجل الموردين</h4><div id="financeVendorsTable"><div class="empty">جارٍ تحميل الموردين…</div></div></div>
  <div style="margin-top:14px"><h4>فواتير الموردين والمبالغ المستحقة</h4><div id="financeVendorBillsTable"><div class="empty">جارٍ تحميل الفواتير…</div></div></div>
+  <div class="card" id="financeVendorBillDetailsPanel" style="display:none;padding:14px;margin-top:14px;box-shadow:none;border:1px solid var(--line)"><div class="head"><div><h4 style="margin:0">تفاصيل فاتورة المورد</h4><div class="muted tiny" id="financeVendorBillDetailsSubtitle"></div></div><button class="btn soft sm" onclick="closeFinanceVendorBillDetails()">إغلاق التفاصيل</button></div><div id="financeVendorBillDetailsContent"></div></div>
  <div class="card" id="financeVendorStatementPanel" style="padding:14px;margin-top:16px;box-shadow:none;border:1px solid var(--line)">
   <div class="head"><div><h4 style="margin:0">كشف حساب المورد</h4><div class="muted tiny">حركة الفواتير والدفعات والرصيد المتراكم — عرض للقراءة فقط.</div></div><span class="pill green">كشف تفصيلي</span></div>
   <div class="finance-filter">
@@ -2413,8 +2414,52 @@ async function loadFinanceVendorsBills(){
   const remaining=Math.max(0,Number(b.total_original||0)-Number(b.paid_original||0));
   const status=b.status==='draft'?'مسودة':b.status==='paid'?'مدفوعة':'معتمدة';
   const action=b.status==='draft'?(financeCanManage()?'<button class="btn lime sm" onclick="issueFinanceVendorBill(\''+b.id+'\')">اعتماد وترحيل</button>':'بانتظار الاعتماد'):b.status==='issued'?(financeCanManage()?'<button class="btn soft sm" onclick="recordFinanceVendorBillPayment(\''+b.id+'\')">تسجيل سداد</button>':'مستحق'): 'مكتملة';
-  return '<tr><td>'+esc(b.bill_number)+'</td><td>'+esc(vendor?.vendor_name||'—')+'</td><td>'+esc(b.bill_date)+'</td><td>'+financeReportMoney(b.total_original,b.currency_code)+'</td><td>'+financeReportMoney(b.paid_original,b.currency_code)+'</td><td>'+financeReportMoney(remaining,b.currency_code)+'</td><td><span class="pill '+(b.status==='paid'?'green':b.status==='draft'?'amber':'blue')+'">'+status+'</span></td><td>'+action+'</td></tr>';
+  const details='<button class="btn soft sm" onclick="openFinanceVendorBillDetails(\''+b.id+'\')">التفاصيل</button>';
+  return '<tr><td>'+esc(b.bill_number)+'</td><td>'+esc(vendor?.vendor_name||'—')+'</td><td>'+esc(b.bill_date)+'</td><td>'+financeReportMoney(b.total_original,b.currency_code)+'</td><td>'+financeReportMoney(b.paid_original,b.currency_code)+'</td><td>'+financeReportMoney(remaining,b.currency_code)+'</td><td><span class="pill '+(b.status==='paid'?'green':b.status==='draft'?'amber':'blue')+'">'+status+'</span></td><td>'+details+' '+action+'</td></tr>';
  }));
+}
+function closeFinanceVendorBillDetails(){
+ const panel=$('financeVendorBillDetailsPanel');
+ if(panel)panel.style.display='none';
+}
+async function openFinanceVendorBillDetails(id){
+ if(!currentOrganizationId||!(financeCanManage()||financeHasRole('accountant')))return alert('لا تملك صلاحية عرض تفاصيل فواتير الموردين.');
+ const panel=$('financeVendorBillDetailsPanel'),content=$('financeVendorBillDetailsContent'),subtitle=$('financeVendorBillDetailsSubtitle');
+ if(!panel||!content)return;
+ panel.style.display='block';content.innerHTML='<div class="empty">جارٍ تحميل تفاصيل الفاتورة…</div>';
+ panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+ try{
+  const [billResult,lineResult,paymentResult]=await Promise.all([
+   sb.from('finance_vendor_bills').select('id,bill_number,vendor_id,vendor_invoice_number,bill_date,due_date,currency_code,exchange_rate,total_original,total_base,paid_original,status,issued_journal_id,payable_account_id,issued_at').eq('organization_id',currentOrganizationId).eq('id',id).single(),
+   sb.from('finance_vendor_bill_lines').select('id,description,quantity,unit_price,line_total,expense_account_id,project_ref').eq('organization_id',currentOrganizationId).eq('bill_id',id),
+   sb.from('finance_vendor_bill_payments').select('id,payment_number,payment_date,amount_original,currency_code,exchange_rate,cash_account_id,journal_id,reference').eq('organization_id',currentOrganizationId).eq('bill_id',id).order('payment_date',{ascending:true})
+  ]);
+  if(billResult.error)throw billResult.error;if(lineResult.error)throw lineResult.error;if(paymentResult.error)throw paymentResult.error;
+  const b=billResult.data,v=financeVendors.find(x=>x.id===b.vendor_id),lines=lineResult.data||[],payments=paymentResult.data||[];
+  const accountName=id=>{const a=financeAccounts.find(x=>x.id===id);return a?a.account_code+' — '+a.account_name:'حساب '+String(id||'').slice(0,8);};
+  const money=n=>financeReportMoney(n,b.currency_code);
+  const subtotal=lines.reduce((sum,x)=>sum+Number(x.line_total||0),0),paid=Number(b.paid_original||0),total=Number(b.total_original||0),remaining=Math.max(0,total-paid);
+  const taxDifference=total-subtotal;
+  const status=b.status==='paid'?'مدفوعة':b.status==='issued'?'معتمدة':'مسودة';
+  let html='<div class="grid two" style="margin:12px 0"><div class="card" style="padding:12px;box-shadow:none"><div class="muted tiny">المورد</div><b>'+esc(v?.vendor_name||'—')+'</b><div class="muted tiny" style="margin-top:8px">رقم فاتورة المورد: '+esc(b.vendor_invoice_number||'غير مسجل')+'</div><div class="muted tiny">التاريخ: '+esc(b.bill_date||'—')+'</div><div class="muted tiny">تاريخ الاستحقاق: '+esc(b.due_date||'—')+'</div></div><div class="card" style="padding:12px;box-shadow:none"><div class="muted tiny">رقم الفاتورة</div><b>'+esc(b.bill_number)+'</b><div class="muted tiny" style="margin-top:8px">الحالة: '+status+'</div><div class="muted tiny">العملة: '+esc(b.currency_code)+' — سعر الصرف: '+esc(b.exchange_rate)+'</div><div class="muted tiny">حساب الالتزامات: '+esc(accountName(b.payable_account_id))+'</div></div></div>';
+  html+='<h4>بنود الفاتورة</h4>';
+  if(lines.length){html+='<div class="table-wrap">'+table(['الوصف','الكمية','سعر الوحدة','الإجمالي','حساب المصروف','المشروع'],lines.map(x=>'<tr><td>'+esc(x.description)+'</td><td>'+esc(x.quantity)+'</td><td>'+money(x.unit_price)+'</td><td>'+money(x.line_total)+'</td><td>'+esc(accountName(x.expense_account_id))+'</td><td>'+esc(x.project_ref||'—')+'</td></tr>'))+'</div>';}
+  else html+='<div class="empty">لا توجد بنود محفوظة لهذه الفاتورة.</div>';
+  html+='<div class="grid two" style="margin:12px 0"><div class="card" style="padding:12px;box-shadow:none"><div class="muted tiny">مجموع البنود</div><b>'+money(subtotal)+'</b><div class="muted tiny" style="margin-top:8px">إجمالي الفاتورة المسجل</div><b>'+money(total)+'</b><div class="muted tiny" style="margin-top:8px">الفرق بين الإجمالي ومجموع البنود</div><b>'+money(taxDifference)+'</b><div class="muted tiny">لا يوجد حقل مستقل لضريبة القيمة المضافة في بنية فاتورة المورد الحالية؛ الفرق لا يُصنّف تلقائياً كضريبة.</div></div><div class="card" style="padding:12px;box-shadow:none"><div class="muted tiny">المدفوع</div><b>'+money(paid)+'</b><div class="muted tiny" style="margin-top:8px">المتبقي</div><b>'+money(remaining)+'</b></div></div>';
+  html+='<h4>الدفعات المسجلة</h4>';
+  if(payments.length){html+='<div class="table-wrap">'+table(['رقم الدفعة','التاريخ','المبلغ','الحساب النقدي','المرجع','رقم قيد السداد'],payments.map(p=>'<tr><td>'+esc(p.payment_number)+'</td><td>'+esc(p.payment_date)+'</td><td>'+financeReportMoney(p.amount_original,p.currency_code)+'</td><td>'+esc(accountName(p.cash_account_id))+'</td><td>'+esc(p.reference||'غير مسجل')+'</td><td>'+esc(p.journal_id)+'</td></tr>'))+'</div>';}
+  else html+='<div class="empty">لا توجد دفعات مسجلة.</div>';
+  if(b.issued_journal_id){
+   const jr=await sb.from('finance_journals').select('id,entry_number,entry_date,description,status,currency_code').eq('organization_id',currentOrganizationId).eq('id',b.issued_journal_id).maybeSingle();
+   if(jr.error)throw jr.error;
+   if(jr.data){
+    const jl=await sb.from('finance_journal_lines').select('account_id,line_description,debit_original,credit_original,currency_code').eq('organization_id',currentOrganizationId).eq('journal_id',b.issued_journal_id);
+    if(jl.error)throw jl.error;
+    html+='<h4>قيد المصروف والمستحقات</h4><div class="note">القيد: '+esc(jr.data.entry_number)+' — '+esc(jr.data.entry_date)+' — '+esc(jr.data.status==='posted'?'مرحّل':jr.data.status)+'</div><div class="table-wrap">'+table(['الحساب','البيان','مدين','دائن'],(jl.data||[]).map(x=>'<tr><td>'+esc(accountName(x.account_id))+'</td><td>'+esc(x.line_description||'—')+'</td><td>'+financeReportMoney(x.debit_original,x.currency_code||b.currency_code)+'</td><td>'+financeReportMoney(x.credit_original,x.currency_code||b.currency_code)+'</td></tr>'))+'</div>';
+   }else html+='<div class="note">رقم قيد المصروف محفوظ، لكن لم يمكن العثور على تفاصيله.</div>';
+  }else html+='<div class="note">لا يوجد قيد اعتماد مرتبط بهذه الفاتورة (قد تكون مسودة).</div>';
+  content.innerHTML=html;if(subtitle)subtitle.textContent=b.bill_number;
+ }catch(e){console.error(e);content.innerHTML='<div class="empty">تعذر تحميل التفاصيل: '+esc(e.message||'خطأ غير معروف')+'</div>';}
 }
 async function financeFetchAllRows(query){
  const rows=[];let offset=0,batchSize=1000;
