@@ -3,8 +3,8 @@ import vm from 'node:vm';
 const html = fs.readFileSync(new URL('../src/index.html', import.meta.url), 'utf8');
 const vendorMigration = fs.readFileSync(new URL('../../supabase/migrations/20261121043705_finance_vendors_and_expenses.sql', import.meta.url), 'utf8');
 const vatMigration = fs.readFileSync(new URL('../../supabase/migrations/20261122010000_finance_customer_and_vendor_vat.sql', import.meta.url), 'utf8');
-const vendorBillUpdates = [...vatMigration.matchAll(/update\\s+public\\.finance_vendor_bills\\s+set[\\s\\S]*?;/gi)].map(match => match[0]);
-const vendorBillUpdatesAreScoped = vendorBillUpdates.length === 1 && vendorBillUpdates.every(statement => /where organization_id=v_org and id=p_bill_id/i.test(statement));
+const vendorBillUpdates = vatMigration.split('update public.finance_vendor_bills set').slice(1);
+const vendorBillUpdatesAreScoped = vendorBillUpdates.length === 1 && vendorBillUpdates[0].includes('where organization_id=v_org and id=p_bill_id;');
 const checks = [
   ['Supabase project URL', html.includes('https://oqkmesadspiibllyjwmj.supabase.co')],
   ['Supabase publishable key', html.includes('sb_publishable_')],
