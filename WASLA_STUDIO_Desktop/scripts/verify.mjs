@@ -3,6 +3,8 @@ import vm from 'node:vm';
 const html = fs.readFileSync(new URL('../src/index.html', import.meta.url), 'utf8');
 const vendorMigration = fs.readFileSync(new URL('../../supabase/migrations/20261121043705_finance_vendors_and_expenses.sql', import.meta.url), 'utf8');
 const vatMigration = fs.readFileSync(new URL('../../supabase/migrations/20261122010000_finance_customer_and_vendor_vat.sql', import.meta.url), 'utf8');
+const vendorBillUpdates = [...vatMigration.matchAll(/update\\s+public\\.finance_vendor_bills\\s+set[\\s\\S]*?;/gi)].map(match => match[0]);
+const vendorBillUpdatesAreScoped = vendorBillUpdates.length === 1 && vendorBillUpdates.every(statement => /where organization_id=v_org and id=p_bill_id/i.test(statement));
 const checks = [
   ['Supabase project URL', html.includes('https://oqkmesadspiibllyjwmj.supabase.co')],
   ['Supabase publishable key', html.includes('sb_publishable_')],
@@ -38,7 +40,7 @@ const checks = [
   ['Vendor bill VAT rate and recoverable input VAT account fields', html.includes('id="financeVendorVatRate"') && html.includes('id="financeVendorVatAccount"')],
   ['Vendor bill draft RPC sends VAT rate and input VAT account', html.includes('p_vat_rate:vatRate') && html.includes('p_vat_account_id:vatAccount')],
   ['Vendor bill details show stored subtotal, VAT and VAT account', html.includes('subtotal_original,subtotal_base,vat_rate,vat_original,vat_base,vat_account_id') && html.includes('حساب ضريبة المدخلات') && html.includes('الإجمالي شامل الضريبة')],
-  ['VAT migration adds supplier input VAT fields without rewriting old bill values', vatMigration.includes('add column if not exists subtotal_original') && vatMigration.includes('add column if not exists vat_account_id') && !/update\s+public\.finance_vendor_bills\s+set/i.test(vatMigration)],
+  ['VAT migration adds supplier input VAT fields without bulk-rewriting old bill values', vatMigration.includes('add column if not exists subtotal_original') && vatMigration.includes('add column if not exists vat_account_id') && vendorBillUpdatesAreScoped],
   ['Supplier input VAT requires an active asset account', vatMigration.includes("account_type='asset'") && vatMigration.includes('recoverable input VAT asset account')],
   ['Supplier posting debits recoverable input VAT and credits payable including VAT', vatMigration.includes('ضريبة قيمة مضافة مدخلات قابلة للاسترداد') && vatMigration.includes('v_vat,v_total') && vatMigration.includes('v_bill.payable_account_id')],
   ['Customer output VAT draft and posting functions remain available', vatMigration.includes('p_vat_rate numeric,p_vat_account_id uuid') && vatMigration.includes('ضريبة قيمة مضافة مستحقة')],
