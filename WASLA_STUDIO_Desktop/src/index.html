@@ -624,6 +624,7 @@ footer{color:#8790a7}
  <div style="margin-top:14px"><h4>سجل الموردين</h4><div id="financeVendorsTable"><div class="empty">جارٍ تحميل الموردين…</div></div></div>
  <div class="modal" id="financeVendorEditModal"><div class="dialog"><div class="head"><h2>تعديل بيانات المورد</h2><button class="btn soft sm" onclick="closeFinanceVendorEditModal()">إغلاق</button></div><input id="financeVendorEditId" type="hidden"><div class="field"><label for="financeVendorEditName">اسم المورد</label><input id="financeVendorEditName" maxlength="180" required></div><div class="grid two"><div class="field"><label for="financeVendorEditEmail">البريد الإلكتروني</label><input id="financeVendorEditEmail" type="email"></div><div class="field"><label for="financeVendorEditPhone">الهاتف</label><input id="financeVendorEditPhone"></div></div><div class="field"><label for="financeVendorEditTax">الرقم الضريبي</label><input id="financeVendorEditTax"></div><div class="field"><label for="financeVendorEditAddress">العنوان</label><textarea id="financeVendorEditAddress" rows="2"></textarea></div><div class="field"><label for="financeVendorEditStatus">حالة المورد</label><select id="financeVendorEditStatus"><option value="true">نشط</option><option value="false">متوقف</option></select></div><div class="dialog-actions"><button class="btn lime" id="financeVendorEditSaveBtn" onclick="saveFinanceVendorEdit()">حفظ التعديلات</button><button class="btn soft" onclick="closeFinanceVendorEditModal()">إلغاء</button></div><div class="note">تعديل بيانات المورد لا يغيّر فواتيره أو دفعاته أو القيود المالية السابقة.</div></div></div>
  <div style="margin-top:14px"><h4>فواتير الموردين والمبالغ المستحقة</h4><div id="financeVendorBillsTable"><div class="empty">جارٍ تحميل الفواتير…</div></div></div>
+  <div class="modal" id="financeVendorBillEditModal"><div class="dialog"><div class="head"><h2>تعديل مسودة فاتورة المورد</h2><button class="btn soft sm" onclick="closeFinanceVendorBillEditModal()">إغلاق</button></div><input id="financeVendorBillEditId" type="hidden"><div class="field"><label for="financeVendorBillEditPayable">حساب الموردين / الدائنين</label><select id="financeVendorBillEditPayable"></select></div><div class="note">يسمح هذا التعديل بتغيير حساب الالتزامات للمسودة فقط. لا يغيّر قيمة الفاتورة أو الضريبة أو البنود أو الدفعات، ولا ينشئ قيداً ولا يرحّل الفاتورة.</div><div class="dialog-actions"><button class="btn lime" id="financeVendorBillEditSaveBtn" onclick="saveFinanceVendorBillEdit()">حفظ التعديل</button><button class="btn soft" onclick="closeFinanceVendorBillEditModal()">إلغاء</button></div></div></div>
   <div class="card" id="financeVendorBillDetailsPanel" style="display:none;padding:14px;margin-top:14px;box-shadow:none;border:1px solid var(--line)"><div class="head"><div><h4 style="margin:0">تفاصيل فاتورة المورد</h4><div class="muted tiny" id="financeVendorBillDetailsSubtitle"></div></div><button class="btn soft sm" onclick="closeFinanceVendorBillDetails()">إغلاق التفاصيل</button></div><div id="financeVendorBillDetailsContent"></div></div>
  <div class="card" id="financeVendorStatementPanel" style="padding:14px;margin-top:16px;box-shadow:none;border:1px solid var(--line)">
   <div class="head"><div><h4 style="margin:0">كشف حساب المورد</h4><div class="muted tiny">حركة الفواتير والدفعات والرصيد المتراكم — عرض للقراءة فقط.</div></div><span class="pill green">كشف تفصيلي</span></div>
@@ -2432,8 +2433,43 @@ async function loadFinanceVendorsBills(){
   const status=b.status==='draft'?'مسودة':b.status==='paid'?'مدفوعة':'معتمدة';
   const action=b.status==='draft'?(financeCanManage()?'<button class="btn lime sm" onclick="issueFinanceVendorBill(\''+b.id+'\')">اعتماد وترحيل</button>':'بانتظار الاعتماد'):b.status==='issued'?(financeCanManage()?'<button class="btn soft sm" onclick="recordFinanceVendorBillPayment(\''+b.id+'\')">تسجيل سداد</button>':'مستحق'): 'مكتملة';
   const details='<button class="btn soft sm" onclick="openFinanceVendorBillDetails(\''+b.id+'\')">التفاصيل</button>';
-  return '<tr><td>'+esc(b.bill_number)+'</td><td>'+esc(vendor?.vendor_name||'—')+'</td><td>'+esc(b.bill_date)+'</td><td>'+financeReportMoney(b.total_original,b.currency_code)+'</td><td>'+financeReportMoney(b.paid_original,b.currency_code)+'</td><td>'+financeReportMoney(remaining,b.currency_code)+'</td><td><span class="pill '+(b.status==='paid'?'green':b.status==='draft'?'amber':'blue')+'">'+status+'</span></td><td>'+details+' '+action+'</td></tr>';
+  const edit=b.status==='draft'&&financeCanManage()?'<button class="btn soft sm" onclick="openFinanceVendorBillEditModal(\\''+b.id+'\\')">تعديل</button>':'';
+  return '<tr><td>'+esc(b.bill_number)+'</td><td>'+esc(vendor?.vendor_name||'—')+'</td><td>'+esc(b.bill_date)+'</td><td>'+financeReportMoney(b.total_original,b.currency_code)+'</td><td>'+financeReportMoney(b.paid_original,b.currency_code)+'</td><td>'+financeReportMoney(remaining,b.currency_code)+'</td><td><span class="pill '+(b.status==='paid'?'green':b.status==='draft'?'amber':'blue')+'">'+status+'</span></td><td>'+details+' '+edit+' '+action+'</td></tr>';
  }));
+}
+function closeFinanceVendorBillEditModal(){const modal=$('financeVendorBillEditModal');if(modal)modal.classList.remove('show');}
+function openFinanceVendorBillEditModal(id){
+ if(!financeCanManage())return alert('تعديل مسودات فواتير الموردين متاح لمدير المؤسسة فقط.');
+ const bill=financeVendorBills.find(x=>String(x.id)===String(id));
+ if(!bill||bill.status!=='draft')return alert('يمكن تعديل المسودات فقط. الفواتير المعتمدة أو المدفوعة غير قابلة للتعديل.');
+ const selectEl=$('financeVendorBillEditPayable');
+ if(!selectEl)return;
+ const accounts=financeAccounts.filter(financeVendorIsPayableAccount);
+ if(!accounts.length)return alert('لا يوجد حساب موردين ودائنين نشط ومعتمد.');
+ selectEl.innerHTML=accounts.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.account_code+' — '+a.account_name)+'</option>').join('');
+ selectEl.value=String(bill.payable_account_id||'');
+ $('financeVendorBillEditId').value=bill.id;
+ $('financeVendorBillEditModal').classList.add('show');
+}
+async function saveFinanceVendorBillEdit(){
+ if(!financeCanManage())return alert('لا تملك صلاحية تعديل مسودات فواتير الموردين.');
+ const id=$('financeVendorBillEditId').value,accountId=$('financeVendorBillEditPayable').value;
+ const bill=financeVendorBills.find(x=>String(x.id)===String(id));
+ if(!bill||bill.status!=='draft')return alert('لم تعد الفاتورة مسودة؛ أُوقف التعديل لحماية السجل.');
+ const account=financeAccounts.find(a=>String(a.id)===String(accountId));
+ if(!financeVendorIsPayableAccount(account))return alert('اختر حساب 2000 — الموردون والذمم الدائنة أو حساباً معتمداً للذمم الدائنة.');
+ if(String(bill.payable_account_id)===String(accountId)){closeFinanceVendorBillEditModal();return alert('حساب الالتزامات محدد بالفعل؛ لم يتم إجراء أي تغيير.');}
+ const btn=$('financeVendorBillEditSaveBtn');btn.disabled=true;
+ try{
+  const {data:updated,error}=await sb.from('finance_vendor_bills').update({payable_account_id:accountId}).eq('organization_id',currentOrganizationId).eq('id',id).eq('status','draft').select('id,payable_account_id,status,total_original,vat_original,paid_original').maybeSingle();
+  if(error)throw error;
+  if(!updated)throw new Error('لم يتم تحديث الفاتورة؛ تأكد أنها ما زالت مسودة وأن لديك صلاحية التعديل.');
+  if(updated.status!=='draft'||String(updated.payable_account_id)!==String(accountId))throw new Error('لم يتطابق الحساب المحفوظ مع الاختيار. أعد تحميل البيانات للتحقق.');
+  closeFinanceVendorBillEditModal();
+  await loadFinanceVendorsBills();
+  alert('تم تحديث حساب الالتزامات في المسودة فقط. لم تتغير قيمة الفاتورة أو الضريبة أو الدفعات، ولم يُنشأ قيد ولم يتم ترحيلها.');
+ }catch(e){alert('تعذر تعديل مسودة الفاتورة: '+(e.message||e));}
+ finally{btn.disabled=false;}
 }
 function closeFinanceVendorBillDetails(){
  const panel=$('financeVendorBillDetailsPanel');
