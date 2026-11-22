@@ -3,6 +3,7 @@ import vm from 'node:vm';
 const html = fs.readFileSync(new URL('../src/index.html', import.meta.url), 'utf8');
 const vendorMigration = fs.readFileSync(new URL('../../supabase/migrations/20261121043705_finance_vendors_and_expenses.sql', import.meta.url), 'utf8');
 const vatMigration = fs.readFileSync(new URL('../../supabase/migrations/20261122010000_finance_customer_and_vendor_vat.sql', import.meta.url), 'utf8');
+const vendorPayableGuardMigration = fs.readFileSync(new URL('../../supabase/migrations/20261122050000_enforce_vendor_payable_account.sql', import.meta.url), 'utf8');
 const vendorBillUpdates = vatMigration.split('update public.finance_vendor_bills set').slice(1);
 const vendorBillUpdatesAreScoped = vendorBillUpdates.length === 1 && vendorBillUpdates[0].includes('where organization_id=v_org and id=p_bill_id;');
 const checks = [
@@ -55,6 +56,11 @@ const checks = [
   ['Supplier input VAT requires an active asset account', vatMigration.includes("account_type='asset'") && vatMigration.includes('recoverable input VAT asset account')],
   ['Supplier posting debits recoverable input VAT and credits payable including VAT', vatMigration.includes("v_bill.vat_account_id,'ضريبة قيمة مضافة مدخلات قابلة للاسترداد") && vatMigration.includes('v_vat,0,v_vat_base,0') && vatMigration.includes('v_bill.payable_account_id') && vatMigration.includes('0,v_total,0,v_total_base')],
   ['Customer output VAT draft and posting functions remain available', vatMigration.includes('p_vat_rate numeric,p_vat_account_id uuid') && vatMigration.includes('ضريبة قيمة مضافة مستحقة')],
+  ['Database guard requires approved active payable account on every vendor bill insert', vendorPayableGuardMigration.includes("tg_op='INSERT'") && vendorPayableGuardMigration.includes('private.can_write_finance()') && vendorPayableGuardMigration.includes("a.account_type = 'liability'") && vendorPayableGuardMigration.includes("coalesce(a.account_code, '') = '2000'")],
+  ['Database guard revalidates payable account before every draft update or issue', vendorPayableGuardMigration.includes("if old.status='draft'") && vendorPayableGuardMigration.includes("new.status not in ('draft','issued')") && vendorPayableGuardMigration.includes('new.payable_account_id') && vendorPayableGuardMigration.includes('Vendor bill must use an active approved accounts-payable account')],
+  ['Database guard preserves issued and paid bill immutability', vendorPayableGuardMigration.includes("old.status='issued'") && vendorPayableGuardMigration.includes("new.status in ('issued','paid')") && vendorPayableGuardMigration.includes("raise exception 'Issued and paid vendor bills are immutable'")],
+  ['Payable guard migration does not rewrite existing vendor bills', !/update\\s+public\\.finance_vendor_bills\\s+set/i.test(vendorPayableGuardMigration)],
+  ['Vendor bill row-level security remains tenant-scoped for reads and writes', vendorMigration.includes('finance_vendor_bills_tenant_scope') && vendorMigration.includes('using(organization_id=(select private.current_organization_id()))') && vendorMigration.includes('with check(organization_id=(select private.current_organization_id()))')],
   ['Vendor bill draft creation RPC', html.includes("sb.rpc('create_finance_vendor_bill_draft'")],
   ['Vendor bill posting and payable journal RPC', html.includes("sb.rpc('issue_finance_vendor_bill'") && html.includes('ترحيل قيد المصروف والمستحقات')],
   ['Vendor bill payment and cash journal RPC', html.includes("sb.rpc('record_finance_vendor_bill_payment'")],
