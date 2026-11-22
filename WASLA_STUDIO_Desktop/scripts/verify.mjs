@@ -4,6 +4,7 @@ const html = fs.readFileSync(new URL('../src/index.html', import.meta.url), 'utf
 const vendorMigration = fs.readFileSync(new URL('../../supabase/migrations/20261121043705_finance_vendors_and_expenses.sql', import.meta.url), 'utf8');
 const vatMigration = fs.readFileSync(new URL('../../supabase/migrations/20261122010000_finance_customer_and_vendor_vat.sql', import.meta.url), 'utf8');
 const vendorPayableGuardMigration = fs.readFileSync(new URL('../../supabase/migrations/20261122050000_enforce_vendor_payable_account.sql', import.meta.url), 'utf8');
+const journalPrivilegesMigration = fs.readFileSync(new URL('../../supabase/migrations/20261122080000_restrict_journal_table_privileges.sql', import.meta.url), 'utf8');
 const vendorBillUpdates = vatMigration.split('update public.finance_vendor_bills set').slice(1);
 const vendorBillUpdatesAreScoped = vendorBillUpdates.length === 1 && vendorBillUpdates[0].includes('where organization_id=v_org and id=p_bill_id;');
 const checks = [
@@ -70,6 +71,10 @@ const checks = [
   ['Vendor bill draft validates liability and expense accounts', vendorMigration.includes("account_type='liability'") && vendorMigration.includes("account_type='expense'")],
   ['Vendor bill posting creates balanced expense and payable journal', vendorMigration.includes('إثبات فاتورة مورد') && vendorMigration.includes('finance_journal_lines') && vendorMigration.includes('status=\'posted\'')],
   ['Vendor payments validate cash/bank account and outstanding balance', vendorMigration.includes('p_amount>v_remaining') && vendorMigration.includes('Select an active cash or bank account')],
+  ['Journal privilege migration revokes all anonymous table access', journalPrivilegesMigration.includes('REVOKE ALL PRIVILEGES ON TABLE public.finance_journals, public.finance_journal_lines FROM PUBLIC') && journalPrivilegesMigration.includes('FROM anon')],
+  ['Journal privilege migration blocks TRUNCATE, TRIGGER and REFERENCES for authenticated users', journalPrivilegesMigration.includes('REVOKE TRUNCATE, TRIGGER, REFERENCES') && journalPrivilegesMigration.includes('FROM authenticated')],
+  ['Journal privilege migration preserves authenticated CRUD under RLS', journalPrivilegesMigration.includes('GRANT SELECT, INSERT, UPDATE, DELETE') && journalPrivilegesMigration.includes('TO authenticated')],
+  ['Journal privilege migration does not modify or delete existing journal rows', !/\\b(delete\\s+from|update\\s+public\\.finance_journals|truncate)\\b/i.test(journalPrivilegesMigration)]
   ['In-app invoice print view (no popup dependency)', html.includes('wasla-invoice-print-root') && html.includes('window.print()') && !html.includes("window.open('','_blank')")]
 ];
 
