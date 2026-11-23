@@ -3109,6 +3109,8 @@ refresh();
    if(pageTitles[page])title.textContent=pageTitles[page][next];
   }
   try{localStorage.setItem(storageKey,next);}catch(e){}
+  // Re-render language-dependent dynamic sections immediately after a language switch.
+  if(typeof renderClients==='function'&&document.getElementById('clientsTable'))renderClients();
  };
  document.querySelectorAll('[data-q-language]').forEach(button=>button.addEventListener('click',()=>apply(button.dataset.qLanguage)));
  apply(language);
