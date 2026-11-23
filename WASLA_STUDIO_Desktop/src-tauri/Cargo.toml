@@ -1,12 +1,11 @@
 [package]
-name = "wasla-studio"
+name = "qentrivo-desktop"
 version = "1.0.0"
-description = "WASLA STUDIO Cloud Workspace"
-authors = ["WASLA STUDIO"]
+description = "QENTRIVO Cloud Workspace"
 edition = "2021"
 
 [lib]
-name = "wasla_studio_lib"
+name = "qentrivo_desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
