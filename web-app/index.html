@@ -3196,8 +3196,18 @@ refresh();
    if(decoded===result)break;
    result=decoded;
   }
-  for(const [from,to] of (language==='en'?arToEn:enToAr)){
-   if(result.includes(from))result=result.split(from).join(to);
+  const mappings=language==='en'?arToEn:enToAr;
+  const trimmed=result.trim();
+  const exact=mappings.find(([from])=>from===trimmed);
+  if(exact){
+   const leading=result.match(/^\\s*/)?.[0]||'';
+   const trailing=result.match(/\\s*$/)?.[0]||'';
+   return leading+exact[1]+trailing;
+  }
+  // Translate complete labels and meaningful phrases only. Avoid replacing short
+  // Arabic fragments inside organization-owned account, vendor, client, or entry names.
+  for(const [from,to] of mappings){
+   if(from.length>=9&&result.includes(from))result=result.split(from).join(to);
   }
   return result;
  };
