@@ -3159,7 +3159,16 @@ refresh();
  const arToEn=pairs.slice().sort((a,b)=>b[0].length-a[0].length);
  const enToAr=pairs.map(([a,b])=>[b,a]).sort((a,b)=>b[0].length-a[0].length);
  const translate=(value,language)=>{
-  let result=value;
+  let result=String(value??'');
+  for(let pass=0;pass<3;pass++){
+   const decoded=result.replace(/&(?:amp;)?#x([0-9a-f]{1,6});/gi,(_,hex)=>{
+    const point=parseInt(hex,16);return point>=0&&point<=0x10ffff?String.fromCodePoint(point):'';
+   }).replace(/&(?:amp;)?#([0-9]{1,7});/g,(_,decimal)=>{
+    const point=parseInt(decimal,10);return point>=0&&point<=0x10ffff?String.fromCodePoint(point):'';
+   });
+   if(decoded===result)break;
+   result=decoded;
+  }
   for(const [from,to] of (language==='en'?arToEn:enToAr)){
    if(result.includes(from))result=result.split(from).join(to);
   }
