@@ -37,6 +37,9 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Generate QENTRIVO application icons
+        run: npm run tauri -- icon src-tauri/icons/qentrivo-source.svg
+
       - name: Build Windows EXE
         run: npm run tauri -- build --bundles nsis
 
