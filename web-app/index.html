@@ -2054,7 +2054,7 @@ function renderDashboardExtras(){
   }
  }
  const recent=$('recentProjects');
- if(recent){const list=[...data.projects].slice(-5).reverse();recent.innerHTML=list.length?list.map(p=>`<div class="recent-project"><div><strong>${esc(p.name)}</strong><small>${esc(p.client||'بدون عميل')} · التسليم: ${esc(p.due||'غير محدد')}</small></div><span class="pill ${p.status==='مكتمل'?'green':p.status==='قيد التنفيذ'?'amber':''}">${esc(p.status||'مخطط')}</span></div>`).join(''):'<div class="empty">لم تتم إضافة مشاريع بعد.</div>';}
+ if(recent){const list=[...data.projects].slice(-5).reverse();recent.innerHTML=list.length?list.map(p=>`<div class="recent-project"><div><strong data-user-content>${esc(p.name)}</strong><small data-user-content>${esc(p.client||'بدون عميل')} · التسليم: ${esc(p.due||'غير محدد')}</small></div><span class="pill ${p.status==='مكتمل'?'green':p.status==='قيد التنفيذ'?'amber':''}">${esc(p.status||'مخطط')}</span></div>`).join(''):'<div class="empty">لم تتم إضافة مشاريع بعد.</div>';}
 }
 function renderDashboardOperations(){
  const today=localDateKey();
@@ -2063,13 +2063,13 @@ function renderDashboardOperations(){
  const followups=data.clients.filter(x=>['عميل محتمل','تم التواصل'].includes(x.status));
  const overdueCount=$('dashboardOverdueProjectCount'),overdueBox=$('dashboardOverdueProjects');
  if(overdueCount)overdueCount.textContent=overdueProjects.length;
- if(overdueBox)overdueBox.innerHTML=overdueProjects.length?overdueProjects.slice(0,5).map(p=>'<div class="dashboard-ops-item"><div><strong>'+esc(p.name)+'</strong><small>'+esc(p.client||'بدون عميل')+' · التسليم '+esc(p.due)+'</small></div><span class="pill task-overdue">'+esc(p.status||'مخطط')+'</span></div>').join(''):'<div class="empty">لا توجد مشاريع متأخرة.</div>';
+ if(overdueBox)overdueBox.innerHTML=overdueProjects.length?overdueProjects.slice(0,5).map(p=>'<div class="dashboard-ops-item"><div><strong data-user-content>'+esc(p.name)+'</strong><small data-user-content>'+esc(p.client||'بدون عميل')+' · التسليم '+esc(p.due)+'</small></div><span class="pill task-overdue">'+esc(p.status||'مخطط')+'</span></div>').join(''):'<div class="empty">لا توجد مشاريع متأخرة.</div>';
  const todayCount=$('dashboardTodayTaskCount'),todayBox=$('dashboardTodayTasks');
  if(todayCount)todayCount.textContent=todayTasks.length;
- if(todayBox)todayBox.innerHTML=todayTasks.length?todayTasks.slice(0,5).map(a=>'<div class="dashboard-ops-item"><div><strong>'+esc(a.project_name)+'</strong><small>'+esc(a.client_label||'بدون عميل')+' · '+esc(a.assigned_to?adminEmployees.find(e=>e.id===a.assigned_to)?.full_name||'موظف':'غير مسند')+'</small></div><span class="pill '+(a.employee_status==='مكتمل'?'green':'amber')+'">'+esc(a.employee_status||'لم يبدأ')+'</span></div>').join(''):'<div class="empty">لا توجد تكليفات موعدها اليوم.</div>';
+ if(todayBox)todayBox.innerHTML=todayTasks.length?todayTasks.slice(0,5).map(a=>'<div class="dashboard-ops-item"><div><strong data-user-content>'+esc(a.project_name)+'</strong><small data-user-content>'+esc(a.client_label||'بدون عميل')+' · '+esc(a.assigned_to?adminEmployees.find(e=>e.id===a.assigned_to)?.full_name||'موظف':'غير مسند')+'</small></div><span class="pill '+(a.employee_status==='مكتمل'?'green':'amber')+'">'+esc(a.employee_status||'لم يبدأ')+'</span></div>').join(''):'<div class="empty">لا توجد تكليفات موعدها اليوم.</div>';
  const followCount=$('dashboardFollowupCount'),followBox=$('dashboardClientFollowups');
  if(followCount)followCount.textContent=followups.length;
- if(followBox)followBox.innerHTML=followups.length?followups.slice(-5).reverse().map(x=>'<div class="dashboard-ops-item"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.type||'')+'</small></div><span class="pill amber">'+esc(x.status)+'</span></div>').join(''):'<div class="empty">لا توجد عملاء بحاجة إلى متابعة.</div>';
+ if(followBox)followBox.innerHTML=followups.length?followups.slice(-5).reverse().map(x=>'<div class="dashboard-ops-item"><div><strong data-user-content>'+esc(x.name)+'</strong><small data-user-content>'+esc(x.type||'')+'</small></div><span class="pill amber">'+esc(x.status)+'</span></div>').join(''):'<div class="empty">لا توجد عملاء بحاجة إلى متابعة.</div>';
  const financeBox=$('dashboardFinanceSummary');
  const financeCard=$('dashboardFinanceCard');const showLegacyFinanceSummary=financeCanManage()||financeHasRole('accountant');if(financeCard)financeCard.style.display=showLegacyFinanceSummary?'':'none';
  if(financeBox&&showLegacyFinanceSummary){
@@ -2078,7 +2078,7 @@ function renderDashboardOperations(){
   financeBox.innerHTML='<div class="dashboard-finance-line"><span>الإيرادات</span><b>'+money(income)+'</b></div><div class="dashboard-finance-line"><span>المصروفات</span><b>'+money(expense)+'</b></div><div class="dashboard-finance-line"><span>صافي الربح / الخسارة</span><b>'+money(income-expense)+'</b></div>';
  }
 }
-function refresh(){let income=data.finance.filter(x=>x.kind==='إيراد').reduce((a,x)=>a+Number(x.amount),0),expense=data.finance.filter(x=>x.kind==='مصروف').reduce((a,x)=>a+Number(x.amount),0);$('sClients').textContent=data.clients.length;$('sLeads').textContent=data.clients.filter(x=>['عميل محتمل','تم التواصل'].includes(x.status)).length;$('sProjects').textContent=data.projects.filter(x=>x.status==='قيد التنفيذ').length;$('sBalance').textContent=money(income-expense);$('recentClients').innerHTML=table(['العميل','الحالة'],data.clients.slice(-5).reverse().map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.status)}</td></tr>`));$('income').textContent=money(income);$('expense').textContent=money(expense);$('balance').textContent=money(income-expense);$('transactions').textContent=data.finance.length;renderDashboardExtras();renderDashboardOperations();renderManagerSubscription();renderClients();renderProjects();renderContent();renderFinance()}
+function refresh(){let income=data.finance.filter(x=>x.kind==='إيراد').reduce((a,x)=>a+Number(x.amount),0),expense=data.finance.filter(x=>x.kind==='مصروف').reduce((a,x)=>a+Number(x.amount),0);$('sClients').textContent=data.clients.length;$('sLeads').textContent=data.clients.filter(x=>['عميل محتمل','تم التواصل'].includes(x.status)).length;$('sProjects').textContent=data.projects.filter(x=>x.status==='قيد التنفيذ').length;$('sBalance').textContent=money(income-expense);$('recentClients').innerHTML=table(['العميل','الحالة'],data.clients.slice(-5).reverse().map(x=>`<tr><td data-user-content>${esc(x.name)}</td><td>${esc(x.status)}</td></tr>`));$('income').textContent=money(income);$('expense').textContent=money(expense);$('balance').textContent=money(income-expense);$('transactions').textContent=data.finance.length;renderDashboardExtras();renderDashboardOperations();renderManagerSubscription();renderClients();renderProjects();renderContent();renderFinance()}
 function openModal(title,body,fn){$('modalTitle').textContent=title;$('modalBody').innerHTML=body;$('saveBtn').onclick=fn;$('modal').classList.add('show')}
 function closeModal(){$('modal').classList.remove('show');$('saveBtn').style.display='';$('saveBtn').textContent='حفظ'}
 function input(id,label,value='',type='text'){return `<div class="field"><label>${label}</label><input id="${id}" type="${type}" value="${esc(value)}"></div>`}
@@ -3119,14 +3119,14 @@ refresh();
 /* QENTRIVO dashboard translations: presentation only; never translate user-entered records. */
 (function initQentrivoDashboardTranslations(){
  const pairs=[
- ['مرحباً بك في','Welcome to'],['مساحة المؤسسة','your workspace'],
+ ['لوحة التحكم','Dashboard'],['مرحباً بك في','Welcome to'],['مساحة المؤسسة','your workspace'],
  ['نظرة شاملة على أعمالك ومشاريعك وعلاقات العملاء — كل شيء في مساحة واحدة.','A complete view of your work, projects, and client relationships — all in one place.'],
  ['مساحة عملك الرقمية','Your digital workspace'],['إصدار تجريبي قابل للاستخدام المحلي','Local-use beta version'],
  ['البيانات محدثة من السحابة','Cloud data is up to date'],['متصل بالسحابة','Connected to cloud'],
  ['الباقة والاستخدام','Plan & Usage'],['ملخص اشتراك مؤسستك وحدود الاستخدام الحالية','Your organization subscription and current usage limits'],
  ['جارٍ التحميل','Loading'],['الباقة الحالية','Current Plan'],['تاريخ انتهاء الفترة','Period End Date'],
  ['الموظفون','Team Members'],['العملاء','Clients'],['المشاريع','Projects'],
- ['يتم تحميل بيانات الباقة والاستخدام.','Loading plan and usage details.'],
+ ['يتم تحميل بيانات الباقة والاستخدام.','Loading plan and usage details.'],['يتم احتساب الاستخدام لهذه المؤسسة فقط. الحدود غير المحددة في الباقة تظهر كغير محدودة.','Usage is calculated for this organization only. Unspecified plan limits are unlimited.'],
  ['تجديد أو ترقية الاشتراك','Renew or Upgrade Subscription'],['الدفع اليدوي الآمن عبر InstaPay','Secure manual payment via InstaPay'],
  ['طلبات الدفع لا تفعّل الاشتراك تلقائياً. يراجع مالك المنصة التحويل ثم يعتمد الطلب.','Payment requests do not activate subscriptions automatically. The platform owner reviews and approves each transfer.'],
  ['لا توجد طلبات دفع حتى الآن.','There are no payment requests yet.'],['نشط','Active'],['اشتراك شهري','Monthly subscription'],
@@ -3137,7 +3137,7 @@ refresh();
  ['ملخص مالي','Financial Summary'],['صافي الحسابات','Net Balance'],['حسب العمليات المسجلة','Based on recorded transactions'],
  ['حالة المشاريع','Project Status'],['توزيع المشاريع حسب مرحلة التنفيذ','Projects by execution stage'],['كل المشاريع ←','All Projects →'],
  ['مخطط','Planned'],['قيد التنفيذ','In Progress'],['مكتمل','Completed'],['متوقف','On Hold'],
- ['لا توجد بيانات كافية لعرض الرسم.','Not enough data to display the chart.'],
+ ['لا توجد بيانات كافية لعرض الرسم.','Not enough data to display the chart.'],['أضف مشاريع لعرض توزيع حالاتها هنا.','Add projects to see their status breakdown here.'],
  ['آخر المشاريع','Recent Projects'],['أحدث المشاريع المسجلة في مساحة العمل','The latest projects added to your workspace'],['عرض الكل','View All'],
  ['المشاريع المتأخرة','Overdue Projects'],['موعد التسليم مضى والحالة لم تصبح مكتملة','The due date has passed and the project is not completed'],
  ['لا توجد مشاريع متأخرة.','No overdue projects.'],['مراجعة المشاريع','Review Projects'],
@@ -3175,7 +3175,11 @@ refresh();
   });
   let node;
   while((node=walker.nextNode())){
-   const next=translate(node.nodeValue,language);
+   let next=translate(node.nodeValue,language);
+   if(language==='en'&&!parent.closest('[data-user-content]')){
+    next=next.replace(/[٠-٩۰-۹]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)>=0?'٠١٢٣٤٥٦٧٨٩'.indexOf(d):'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
+   }
+   next=next.replace(/&#x([0-9a-f]{1,6});/gi,(_,hex)=>String.fromCodePoint(parseInt(hex,16)));
    if(next!==node.nodeValue)node.nodeValue=next;
   }
   document.querySelectorAll('[title],[aria-label]').forEach(el=>{
