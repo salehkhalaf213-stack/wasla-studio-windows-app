@@ -1868,7 +1868,7 @@ function renderManagerPaymentPanel(){
  const el=$('managerPaymentPlans');if(!el)return;
  const plans=managerSubscriptionPlans.filter(p=>p.is_active);
  el.innerHTML=plans.length?plans.map(p=>{
-  const interval=p.billing_interval==='lifetime'?'دفعة واحدة مدى الحياة':p.billing_interval==='yearly'?'سنوي':'شهري';
+  const interval=p.billing_interval==='lifetime'?(document.documentElement.lang==='en'?'One-time lifetime payment':'دفعة واحدة مدى الحياة'):p.billing_interval==='yearly'?(document.documentElement.lang==='en'?'Yearly':'سنوي'):(document.documentElement.lang==='en'?'Monthly':'شهري');
   return '<div class="card" style="padding:14px"><div class="eyebrow">QENTRIVO PLAN</div><b>'+esc(p.name)+'</b><div class="stat-value" style="font-size:22px;margin:7px 0">'+waslaPlanAmount(p)+'</div><div class="muted tiny">'+interval+'</div><button class="btn lime sm" style="width:100%;margin-top:12px" onclick="openSubscriptionPayment(\''+esc(p.id)+'\')">اشترك الآن</button></div>';
  }).join(''):'<div class="empty">لا توجد باقات متاحة حالياً.</div>';
 }
@@ -2045,7 +2045,7 @@ async function reviewSubscriptionPayment(id,status){
 function renderDashboardExtras(){
  const chart=$('projectChart');
  if(chart){
-  const labels=['مخطط','قيد التنفيذ','مكتمل','متوقف'],colors=['#9aa8ba','#c99a45','#31956a','#d97768'];
+  const labels=document.documentElement.lang==='en'?['Planned','In Progress','Completed','On Hold']:['مخطط','قيد التنفيذ','مكتمل','متوقف'],colors=['#9aa8ba','#c99a45','#31956a','#d97768'];
   const counts=labels.map(label=>data.projects.filter(p=>p.status===label).length),total=counts.reduce((a,b)=>a+b,0);
   if(!total){chart.innerHTML='<div class="empty">أضف مشاريع لعرض توزيع حالاتها هنا.</div>';}
   else{
@@ -2054,7 +2054,7 @@ function renderDashboardExtras(){
   }
  }
  const recent=$('recentProjects');
- if(recent){const list=[...data.projects].slice(-5).reverse();recent.innerHTML=list.length?list.map(p=>`<div class="recent-project"><div><strong data-user-content>${esc(p.name)}</strong><small data-user-content>${esc(p.client||'بدون عميل')} · التسليم: ${esc(p.due||'غير محدد')}</small></div><span class="pill ${p.status==='مكتمل'?'green':p.status==='قيد التنفيذ'?'amber':''}">${esc(p.status||'مخطط')}</span></div>`).join(''):'<div class="empty">لم تتم إضافة مشاريع بعد.</div>';}
+ if(recent){const list=[...data.projects].slice(-5).reverse();recent.innerHTML=list.length?list.map(p=>`<div class="recent-project"><div><strong data-user-content>${esc(p.name)}</strong><small><span data-user-content>${esc(p.client||'بدون عميل')}</span> · <span>${document.documentElement.lang==='en'?'Due:':'التسليم:'} ${esc(p.due||'غير محدد')}</span></small></div><span class="pill ${p.status==='مكتمل'?'green':p.status==='قيد التنفيذ'?'amber':''}">${esc(p.status||'مخطط')}</span></div>`).join(''):'<div class="empty">لم تتم إضافة مشاريع بعد.</div>';}
 }
 function renderDashboardOperations(){
  const today=localDateKey();
@@ -2063,7 +2063,7 @@ function renderDashboardOperations(){
  const followups=data.clients.filter(x=>['عميل محتمل','تم التواصل'].includes(x.status));
  const overdueCount=$('dashboardOverdueProjectCount'),overdueBox=$('dashboardOverdueProjects');
  if(overdueCount)overdueCount.textContent=overdueProjects.length;
- if(overdueBox)overdueBox.innerHTML=overdueProjects.length?overdueProjects.slice(0,5).map(p=>'<div class="dashboard-ops-item"><div><strong data-user-content>'+esc(p.name)+'</strong><small data-user-content>'+esc(p.client||'بدون عميل')+' · التسليم '+esc(p.due)+'</small></div><span class="pill task-overdue">'+esc(p.status||'مخطط')+'</span></div>').join(''):'<div class="empty">لا توجد مشاريع متأخرة.</div>';
+ if(overdueBox)overdueBox.innerHTML=overdueProjects.length?overdueProjects.slice(0,5).map(p=>'<div class="dashboard-ops-item"><div><strong data-user-content>'+esc(p.name)+'</strong><small><span data-user-content>'+esc(p.client||'بدون عميل')+'</span> · <span>'+(document.documentElement.lang==='en'?'Due ':'التسليم ')+esc(p.due)+'</span></small></div><span class="pill task-overdue">'+esc(p.status||'مخطط')+'</span></div>').join(''):'<div class="empty">لا توجد مشاريع متأخرة.</div>';
  const todayCount=$('dashboardTodayTaskCount'),todayBox=$('dashboardTodayTasks');
  if(todayCount)todayCount.textContent=todayTasks.length;
  if(todayBox)todayBox.innerHTML=todayTasks.length?todayTasks.slice(0,5).map(a=>'<div class="dashboard-ops-item"><div><strong data-user-content>'+esc(a.project_name)+'</strong><small data-user-content>'+esc(a.client_label||'بدون عميل')+' · '+esc(a.assigned_to?adminEmployees.find(e=>e.id===a.assigned_to)?.full_name||'موظف':'غير مسند')+'</small></div><span class="pill '+(a.employee_status==='مكتمل'?'green':'amber')+'">'+esc(a.employee_status||'لم يبدأ')+'</span></div>').join(''):'<div class="empty">لا توجد تكليفات موعدها اليوم.</div>';
@@ -3119,7 +3119,8 @@ refresh();
 /* QENTRIVO dashboard translations: presentation only; never translate user-entered records. */
 (function initQentrivoDashboardTranslations(){
  const pairs=[
- ['لوحة التحكم','Dashboard'],['مرحباً بك في','Welcome to'],['مساحة المؤسسة','your workspace'],
+ ['لوحة التحكم','Dashboard'],
+ ['مدى الحياة','Lifetime'],['اشتراك مدى الحياة','Lifetime subscription'],['توزيع حالات المشاريع','Project Status Breakdown'],['توزيع حالات Projects','Project Status Breakdown'],['التسليم:','Due:'],['التسليم ','Due '],['موعد التسليم','Due Date'],['اركان','Arkan'],['مرحباً بك في','Welcome to'],['مساحة المؤسسة','your workspace'],
  ['نظرة شاملة على أعمالك ومشاريعك وعلاقات العملاء — كل شيء في مساحة واحدة.','A complete view of your work, projects, and client relationships — all in one place.'],
  ['مساحة عملك الرقمية','Your digital workspace'],['إصدار تجريبي قابل للاستخدام المحلي','Local-use beta version'],
  ['البيانات محدثة من السحابة','Cloud data is up to date'],['متصل بالسحابة','Connected to cloud'],
