@@ -3175,12 +3175,20 @@ refresh();
   });
   let node;
   while((node=walker.nextNode())){
-   let next=translate(node.nodeValue,language);
-   if(language==='en'&&!parent.closest('[data-user-content]')){
-    next=next.replace(/[٠-٩۰-۹]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)>=0?'٠١٢٣٤٥٦٧٨٩'.indexOf(d):'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
+   const original=node.nodeValue;
+   const parent=node.parentElement;
+   let next=original.replace(/&#x([0-9a-f]{1,6});/gi,(_,hex)=>{
+    const codePoint=parseInt(hex,16);
+    return codePoint>=0&&codePoint<=0x10ffff?String.fromCodePoint(codePoint):'';
+   });
+   next=translate(next,language);
+   if(language==='en'&&!parent?.closest('[data-user-content]')){
+    next=next.replace(/[٠-٩۰-۹]/g,d=>{
+     const code='٠١٢٣٤٥٦٧٨٩'.indexOf(d);
+     return String(code>=0?code:'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+    });
    }
-   next=next.replace(/&#x([0-9a-f]{1,6});/gi,(_,hex)=>String.fromCodePoint(parseInt(hex,16)));
-   if(next!==node.nodeValue)node.nodeValue=next;
+   if(next!==original)node.nodeValue=next;
   }
   document.querySelectorAll('[title],[aria-label]').forEach(el=>{
    for(const attr of ['title','aria-label']){
