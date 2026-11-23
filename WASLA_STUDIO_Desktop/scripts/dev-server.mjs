@@ -14,4 +14,4 @@ http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
     res.end(data);
   });
-}).listen(1420, '127.0.0.1', () => console.log('WASLA STUDIO dev server: http://127.0.0.1:1420'));
+}).listen(1420, '127.0.0.1', () => console.log('QENTRIVO dev server: http://127.0.0.1:1420'));
