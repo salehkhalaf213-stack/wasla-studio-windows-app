@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    wasla_studio_lib::run();
+    qentrivo_desktop_lib::run();
 }
