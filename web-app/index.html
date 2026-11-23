@@ -448,6 +448,23 @@ footer{color:#8790a7}
 @media(max-width:480px){.finance-report-month{grid-template-columns:48px minmax(55px,1fr) 88px;font-size:10px}.finance-report-kpi .value{font-size:19px}}
 </style></head>
 <body>
+<style>
+#qentrivoLanguageControl{position:fixed;top:14px;left:14px;z-index:10000;display:flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid #d9e1eb;border-radius:12px;background:#fff;box-shadow:0 5px 18px #10203318;color:#172235;font:600 12px "Segoe UI",Tahoma,Arial,sans-serif}
+#qentrivoLanguageControl button{border:0;border-radius:7px;background:transparent;padding:6px 9px;color:inherit;cursor:pointer}
+#qentrivoLanguageControl button[aria-pressed="true"]{background:#17283e;color:#f1d29b}
+html[dir="ltr"] body{text-align:left}
+html[dir="ltr"] nav button{text-align:left}
+html[dir="ltr"] aside{border-left:0;border-right:1px solid rgba(255,255,255,.08)}
+html[dir="ltr"] th,html[dir="ltr"] td{text-align:left}
+html[dir="ltr"] .client-project-cover .cover-mark{right:auto;left:13px}
+@media(max-width:850px){#qentrivoLanguageControl{top:8px;right:8px;left:auto}html[dir="rtl"] #qentrivoLanguageControl{right:auto;left:8px}}
+</style>
+<div id="qentrivoLanguageControl" role="group" aria-label="Language / اللغة">
+<span aria-hidden="true">🌐</span>
+<button type="button" data-q-language="ar" aria-pressed="true" title="العربية">العربية</button>
+<button type="button" data-q-language="en" aria-pressed="false" title="English">English</button>
+</div>
+
 <section class="auth-screen" id="authScreen">
   <div class="auth-card">
     <div class="auth-brand"><span class="auth-brand-mark"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M24 5.5a18.5 18.5 0 1 0 13.1 31.6L44 44" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M18 28 33 13" stroke="#d7b46a" stroke-width="5" stroke-linecap="round"/></svg></span><span class="auth-brand-name">QENTRIVO</span></div><div class="auth-theme-row"><button class="btn soft sm theme-toggle" type="button" onclick="toggleTheme()" aria-label="تبديل المظهر" aria-pressed="false"><span class="theme-icon">☾</span><span class="theme-label">الوضع الداكن</span></button></div>
@@ -3050,5 +3067,52 @@ async function exportData(){if(cloudBusy){alert('توجد عملية مزامن�
 function isValidBackupPayload(value){if(!value||typeof value!=='object'||Array.isArray(value))return false;return ['clients','projects','contents','finance'].every(key=>Array.isArray(value[key]))}
 async function importData(e){const file=e.target.files&&e.target.files[0];if(!file)return;try{if(file.size>50*1024*1024)throw new Error('حجم ملف النسخة يتجاوز 50 ميجابايت.');if(cloudBusy)throw new Error('توجد عملية مزامنة جارية. انتظر اكتمالها قبل الاستعادة.');const parsed=JSON.parse(await file.text());const isEnvelope=parsed&&parsed.format==='WASLA_STUDIO_BACKUP';const restored=isEnvelope?parsed.data:parsed;if(!isValidBackupPayload(restored))throw new Error('بنية ملف النسخة غير مكتملة أو غير صالحة.');if(isEnvelope&&parsed.organizationId&&currentOrganizationId&&parsed.organizationId!==currentOrganizationId)throw new Error('هذه النسخة تخص مؤسسة أخرى، ولا يمكن استعادتها داخل هذه المؤسسة.');if(!currentUser||!currentOrganizationId)throw new Error('يجب تسجيل الدخول إلى مساحة المؤسسة قبل استعادة البيانات.');if(!confirm('سيتم أولاً تنزيل نسخة أمان من البيانات الحالية، ثم استبدال بيانات هذه المؤسسة ورفع النسخة المستعادة إلى السحابة. هل تريد المتابعة؟'))return;clearTimeout(cloudSaveTimer);cloudSaveTimer=null;const beforeRestore=JSON.parse(JSON.stringify(data));downloadBackupSnapshot(beforeRestore,'قبل-الاستعادة');data=JSON.parse(JSON.stringify(restored));localStorage.setItem(KEY,JSON.stringify(data));refresh();const saved=await saveCloudData({quiet:true});if(!saved){data=beforeRestore;localStorage.setItem(KEY,JSON.stringify(data));refresh();throw new Error('تعذر تأكيد حفظ النسخة المستعادة في السحابة. أُعيدت بيانات هذا الجهاز إلى حالتها السابقة، واحتُفظ بملف نسخة الأمان الذي تم تنزيله.')}alert('تمت استعادة البيانات وتأكيد حفظها في Supabase بنجاح. احتفظ بملف نسخة الأمان أيضاً.')}catch(err){alert(err.message||'تعذرت استعادة النسخة الاحتياطية.')}finally{e.target.value=''}}
 refresh();
+
+
+/* QENTRIVO language preference foundation */
+(function initQentrivoLanguage(){
+ const storageKey='qentrivo_language_preference_v1';
+ const supported=['ar','en'];
+ let language='ar';
+ try{const saved=localStorage.getItem(storageKey);if(supported.includes(saved))language=saved;}catch(e){}
+ const labels={
+  dashboard:{ar:'⌂　لوحة التحكم',en:'⌂　Dashboard'},
+  clients:{ar:'♙　العملاء',en:'♙　Clients'},
+  projects:{ar:'▣　المشاريع',en:'▣　Projects'},
+  content:{ar:'▤　المحتوى',en:'▤　Content'},
+  finance:{ar:'＄　الحسابات',en:'＄　Finance'},
+  employeePortal:{ar:'♟　الموظفون والتكليفات',en:'♟　Team & Assignments'},
+  clientManagement:{ar:'▣　بوابة العملاء',en:'▣　Client Portal'},
+  settings:{ar:'⚙　النسخ الاحتياطي',en:'⚙　Backup'},
+  platformAdmin:{ar:'♛　إدارة المنصة',en:'♛　Platform Admin'}
+ };
+ const apply=next=>{
+  if(!supported.includes(next))return;
+  language=next;
+  document.documentElement.lang=next;
+  document.documentElement.dir=next==='ar'?'rtl':'ltr';
+  document.querySelectorAll('[data-q-language]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.qLanguage===next)));
+  document.querySelectorAll('nav button[data-page]').forEach(button=>{
+   const item=labels[button.dataset.page];if(item)button.textContent=item[next];
+  });
+  const title=document.getElementById('pageTitle');
+  if(title){
+   const page=document.querySelector('.page.active')?.id;
+   const pageTitles={
+    dashboard:{ar:'لوحة التحكم',en:'Dashboard'},clients:{ar:'العملاء وفرص البيع',en:'Clients & Leads'},
+    projects:{ar:'المشاريع',en:'Projects'},content:{ar:'تقويم المحتوى',en:'Content Calendar'},
+    finance:{ar:'الحسابات',en:'Finance'},settings:{ar:'النسخ الاحتياطي',en:'Backup'},
+    employeePortal:{ar:'الموظفون والتكليفات',en:'Team & Assignments'},
+    clientManagement:{ar:'بوابة العملاء',en:'Client Portal'},
+    platformAdmin:{ar:'إدارة المنصة',en:'Platform Admin'}
+   };
+   if(pageTitles[page])title.textContent=pageTitles[page][next];
+  }
+  try{localStorage.setItem(storageKey,next);}catch(e){}
+ };
+ document.querySelectorAll('[data-q-language]').forEach(button=>button.addEventListener('click',()=>apply(button.dataset.qLanguage)));
+ apply(language);
+ window.qentrivoSetLanguage=apply;
+})();
 
 </script></body></html>
