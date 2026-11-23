@@ -522,7 +522,7 @@ html[dir="ltr"] .client-project-cover .cover-mark{right:auto;left:13px}
   </div>
 </section>
 <div class="layout" id="appShell" style="display:none">
-<aside><div class="brand"><span id="organizationBrandName">اسم المؤسسة</span><small>· AGENCY WORKSPACE</small></div>
+<aside><div class="brand"><span id="organizationBrandName">اسم المؤسسة</span><small>· QENTRIVO WORKSPACE</small></div>
 <nav id="nav">
 <button class="active" data-page="dashboard">⌂　لوحة التحكم</button>
 <button data-page="clients">♙　العملاء</button>
@@ -1820,7 +1820,7 @@ function renderManagerTrialOptions(){
   const yearly=managerSubscriptionPlans.find(x=>x.id===p.id+'_yearly'&&x.is_active);
   const options='<option value="'+esc(p.id)+'">شهري · '+planPriceLabel(p)+' / شهر</option>'+(yearly?'<option value="'+esc(yearly.id)+'">سنوي · '+planPriceLabel(yearly)+' / سنة</option>':'');
   const limits=[p.employee_limit??'∞',p.client_limit??'∞',p.project_limit??'∞'].join(' / ');
-  return '<div class="card" style="padding:16px;min-width:0"><div class="eyebrow">WASLA PLAN</div><h3 style="margin:6px 0 4px">'+esc(p.name)+'</h3><div class="muted tiny">الموظفون / العملاء / المشاريع: '+limits+'</div><div class="field" style="margin-top:12px"><label>دورة الاشتراك</label><select id="managerTrialPlan-'+esc(p.id)+'">'+options+'</select></div><div class="note" style="margin:10px 0">تجربة مجانية 30 يوماً</div><button class="btn lime" style="width:100%" '+(managerTrialStarting?'disabled':'')+' onclick="startOrganizationTrial(\''+esc(p.id)+'\')">'+(managerTrialStarting?'جارٍ بدء التجربة…':'ابدأ التجربة المجانية')+'</button></div>';
+  return '<div class="card" style="padding:16px;min-width:0"><div class="eyebrow">QENTRIVO PLAN</div><h3 style="margin:6px 0 4px">'+esc(p.name)+'</h3><div class="muted tiny">الموظفون / العملاء / المشاريع: '+limits+'</div><div class="field" style="margin-top:12px"><label>دورة الاشتراك</label><select id="managerTrialPlan-'+esc(p.id)+'">'+options+'</select></div><div class="note" style="margin:10px 0">تجربة مجانية 30 يوماً</div><button class="btn lime" style="width:100%" '+(managerTrialStarting?'disabled':'')+' onclick="startOrganizationTrial(\''+esc(p.id)+'\')">'+(managerTrialStarting?'جارٍ بدء التجربة…':'ابدأ التجربة المجانية')+'</button></div>';
  }).join('');
  el.innerHTML='<div class="head" style="margin-bottom:12px"><div><h3 style="margin:0">اختر باقتك</h3><p class="muted tiny" style="margin:5px 0 0">تجربة واحدة لكل مؤسسة — 30 يوماً من تاريخ التفعيل.</p></div></div><div class="grid three" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">'+cards+'</div>';
 }
@@ -1869,7 +1869,7 @@ function renderManagerPaymentPanel(){
  const plans=managerSubscriptionPlans.filter(p=>p.is_active);
  el.innerHTML=plans.length?plans.map(p=>{
   const interval=p.billing_interval==='lifetime'?'دفعة واحدة مدى الحياة':p.billing_interval==='yearly'?'سنوي':'شهري';
-  return '<div class="card" style="padding:14px"><div class="eyebrow">WASLA PLAN</div><b>'+esc(p.name)+'</b><div class="stat-value" style="font-size:22px;margin:7px 0">'+waslaPlanAmount(p)+'</div><div class="muted tiny">'+interval+'</div><button class="btn lime sm" style="width:100%;margin-top:12px" onclick="openSubscriptionPayment(\''+esc(p.id)+'\')">اشترك الآن</button></div>';
+  return '<div class="card" style="padding:14px"><div class="eyebrow">QENTRIVO PLAN</div><b>'+esc(p.name)+'</b><div class="stat-value" style="font-size:22px;margin:7px 0">'+waslaPlanAmount(p)+'</div><div class="muted tiny">'+interval+'</div><button class="btn lime sm" style="width:100%;margin-top:12px" onclick="openSubscriptionPayment(\''+esc(p.id)+'\')">اشترك الآن</button></div>';
  }).join(''):'<div class="empty">لا توجد باقات متاحة حالياً.</div>';
 }
 function openSubscriptionPayment(planId){
@@ -3113,6 +3113,81 @@ refresh();
  document.querySelectorAll('[data-q-language]').forEach(button=>button.addEventListener('click',()=>apply(button.dataset.qLanguage)));
  apply(language);
  window.qentrivoSetLanguage=apply;
+})();
+
+
+/* QENTRIVO dashboard translations: presentation only; never translate user-entered records. */
+(function initQentrivoDashboardTranslations(){
+ const pairs=[
+ ['مرحباً بك في','Welcome to'],['مساحة المؤسسة','your workspace'],
+ ['نظرة شاملة على أعمالك ومشاريعك وعلاقات العملاء — كل شيء في مساحة واحدة.','A complete view of your work, projects, and client relationships — all in one place.'],
+ ['مساحة عملك الرقمية','Your digital workspace'],['إصدار تجريبي قابل للاستخدام المحلي','Local-use beta version'],
+ ['البيانات محدثة من السحابة','Cloud data is up to date'],['متصل بالسحابة','Connected to cloud'],
+ ['الباقة والاستخدام','Plan & Usage'],['ملخص اشتراك مؤسستك وحدود الاستخدام الحالية','Your organization subscription and current usage limits'],
+ ['جارٍ التحميل','Loading'],['الباقة الحالية','Current Plan'],['تاريخ انتهاء الفترة','Period End Date'],
+ ['الموظفون','Team Members'],['العملاء','Clients'],['المشاريع','Projects'],
+ ['يتم تحميل بيانات الباقة والاستخدام.','Loading plan and usage details.'],
+ ['تجديد أو ترقية الاشتراك','Renew or Upgrade Subscription'],['الدفع اليدوي الآمن عبر InstaPay','Secure manual payment via InstaPay'],
+ ['طلبات الدفع لا تفعّل الاشتراك تلقائياً. يراجع مالك المنصة التحويل ثم يعتمد الطلب.','Payment requests do not activate subscriptions automatically. The platform owner reviews and approves each transfer.'],
+ ['لا توجد طلبات دفع حتى الآن.','There are no payment requests yet.'],['نشط','Active'],['اشتراك شهري','Monthly subscription'],
+ ['اشترك الآن','Subscribe Now'],['سنوي','Yearly'],['شهري','Monthly'],['دفعة واحدة مدى الحياة','One-time lifetime payment'],
+ ['إدارة العلاقات','Relationship Management'],['إجمالي العملاء','Total Clients'],['كل العملاء المسجلين','All registered clients'],
+ ['إدارة التنفيذ','Delivery Management'],['المشاريع النشطة','Active Projects'],['قيد التنفيذ حالياً','Currently in progress'],
+ ['فرص تحتاج متابعة','Opportunities to Follow Up'],['فرص مفتوحة','Open Opportunities'],['عملاء محتملون أو تم التواصل','Leads or contacted clients'],
+ ['ملخص مالي','Financial Summary'],['صافي الحسابات','Net Balance'],['حسب العمليات المسجلة','Based on recorded transactions'],
+ ['حالة المشاريع','Project Status'],['توزيع المشاريع حسب مرحلة التنفيذ','Projects by execution stage'],['كل المشاريع ←','All Projects →'],
+ ['مخطط','Planned'],['قيد التنفيذ','In Progress'],['مكتمل','Completed'],['متوقف','On Hold'],
+ ['لا توجد بيانات كافية لعرض الرسم.','Not enough data to display the chart.'],
+ ['آخر المشاريع','Recent Projects'],['أحدث المشاريع المسجلة في مساحة العمل','The latest projects added to your workspace'],['عرض الكل','View All'],
+ ['المشاريع المتأخرة','Overdue Projects'],['موعد التسليم مضى والحالة لم تصبح مكتملة','The due date has passed and the project is not completed'],
+ ['لا توجد مشاريع متأخرة.','No overdue projects.'],['مراجعة المشاريع','Review Projects'],
+ ['مهام اليوم','Today’s Tasks'],['التكليفات المسندة بموعد تسليم اليوم','Assignments due today'],
+ ['لا توجد تكليفات موعدها اليوم.','No assignments are due today.'],['إدارة التكليفات','Manage Assignments'],
+ ['متابعة العملاء','Client Follow-ups'],['العملاء المحتملون ومن تم التواصل معهم','Leads and clients who have been contacted'],
+ ['لا توجد عملاء بحاجة إلى متابعة.','No clients need follow-up.'],['فتح سجل العملاء','Open Client Records'],
+ ['ملخص الأداء المالي','Financial Performance'],['حسابات المؤسسة فقط — لا تشمل تحصيلات اشتراكات المنصة','Organization accounts only — excludes platform subscription collections'],
+ ['الإيرادات','Revenue'],['المصروفات','Expenses'],['صافي الربح / الخسارة','Net Profit / Loss'],
+ ['تفاصيل الإيرادات والمصروفات','Revenue & Expense Details'],['أحدث العملاء','Recent Clients'],
+ ['آخر العملاء الذين تمت إضافتهم','The latest clients added'],['إدارة العملاء','Manage Clients'],
+ ['العميل','Client'],['الحالة','Status'],['تم التواصل','Contacted'],
+ ['التسليم','Due'],['بدون عميل','No client'],['غير مسند','Unassigned'],['موظف','Employee'],['لم يبدأ','Not Started'],
+ ['إدارة المنصة','Platform Admin'],['تقارير الموظفين','Team Reports'],['تعليقات العملاء','Client Comments'],
+ ['الإشعارات','Notifications'],['مزامنة الآن','Sync Now'],['مزامنة','Sync'],['إضافة عميل جديد','Add New Client'],
+ ['خروج','Log Out'],['مساحة العمل','Workspace'],['ج.م','EGP']
+ ];
+ const arToEn=pairs.slice().sort((a,b)=>b[0].length-a[0].length);
+ const enToAr=pairs.map(([a,b])=>[b,a]).sort((a,b)=>b[0].length-a[0].length);
+ const translate=(value,language)=>{
+  let result=value;
+  for(const [from,to] of (language==='en'?arToEn:enToAr)){
+   if(result.includes(from))result=result.split(from).join(to);
+  }
+  return result;
+ };
+ const apply=()=>{
+  const language=document.documentElement.lang==='en'?'en':'ar';
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{
+   acceptNode(node){
+    const parent=node.parentElement;
+    if(!parent||parent.closest('script,style,noscript,textarea,input,select,option,[data-user-content]'))return NodeFilter.FILTER_REJECT;
+    return NodeFilter.FILTER_ACCEPT;
+   }
+  });
+  let node;
+  while((node=walker.nextNode())){
+   const next=translate(node.nodeValue,language);
+   if(next!==node.nodeValue)node.nodeValue=next;
+  }
+  document.querySelectorAll('[title],[aria-label]').forEach(el=>{
+   for(const attr of ['title','aria-label']){
+    const value=el.getAttribute(attr);if(value){const next=translate(value,language);if(next!==value)el.setAttribute(attr,next);}
+   }
+  });
+ };
+ const observer=new MutationObserver(()=>apply());
+ observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+ document.querySelectorAll('[data-q-language]').forEach(button=>button.addEventListener('click',()=>requestAnimationFrame(apply)));
+ apply();
 })();
 
 </script></body></html>
