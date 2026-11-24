@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 echo ==========================================
-echo   WASLA STUDIO - Windows EXE Builder
+echo   QENTRIVO - Windows EXE Builder
 echo ==========================================
 where node >nul 2>nul || (echo [ERROR] Install Node.js 22 first.& pause & exit /b 1)
 where rustc >nul 2>nul || (echo [ERROR] Install Rust stable with MSVC toolchain first.& pause & exit /b 1)
