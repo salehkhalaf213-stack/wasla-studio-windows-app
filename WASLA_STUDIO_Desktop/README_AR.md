@@ -1,48 +1,60 @@
-# WASLA STUDIO — تطبيق Windows
+# QENTRIVO — تطبيق Windows
 
-هذه حزمة مصدر أولية لتحويل نسخة WASLA STUDIO الحالية إلى تطبيق سطح مكتب Windows باستخدام Tauri 2.
+حزمة تطبيق سطح المكتب مبنية باستخدام **Tauri 2**، ومحدّثة لتستخدم واجهة QENTRIVO الحالية.
 
-## ما تم الحفاظ عليه
-- ملف واجهة WASLA STUDIO الحالي بما فيه لوحة المدير والموظف.
-- تسجيل الدخول عبر Supabase Auth والجلسات المحفوظة محليًا.
-- مزامنة `workspace_data`.
-- تكليفات الموظفين وتحديثاتهم وإشعارات المدير.
-- لوحة أداء الموظفين وتفاصيل المهام.
-- النسخ الاحتياطي JSON والاستعادة.
-- نفس مشروع Supabase ومفتاح Publishable الموجود في نسخة الويب؛ لا يوجد Service Role Key داخل التطبيق.
+## ما تتضمنه النسخة 1.1.0
+- واجهة QENTRIVO الحالية، بما فيها شاشة الدخول المحسّنة والترجمة الإنجليزية.
+- تسجيل الدخول عبر Supabase Auth مع Cloudflare Turnstile.
+- إدارة العملاء والمشاريع والمحتوى والمالية والفريق وبوابة العميل.
+- مزامنة مساحة العمل والوظائف الحالية مع Supabase.
+- الاحتفاظ بمفاتيح التخزين المحلية الحالية لتجنب تغيير بنية بيانات التطبيق.
 
-## متطلبات بناء ملف EXE على Windows
-1. Windows 10/11.
-2. Node.js 22 LTS.
-3. Rust stable مع MSVC toolchain.
-4. Microsoft C++ Build Tools (Desktop development with C++).
-5. WebView2 Runtime (موجود عادةً في Windows 10/11).
+## حماية بيانات التطبيق المحلي
+- تم الإبقاء على معرّف التطبيق الحالي: `com.waslastudio.workspace`.
+- لا تغيّر `identifier` في `src-tauri/tauri.conf.json`.
+- لا تغيّر إعداد `useHttpsScheme` أو مخطط WebView الافتراضي؛ تغيير عنوان الأصل قد يجعل WebView ينشئ مخزناً محلياً جديداً.
+- لا تحذف النسخة القديمة ولا مجلد بياناتها أثناء الترقية.
+- لم يتم تعديل قاعدة بيانات Supabase أو سياسات RLS أو حسابات المستخدمين أو البيانات المالية.
 
-## البناء محليًا
-افتح PowerShell داخل مجلد المشروع ونفّذ:
+## إعدادات مطلوبة قبل اختبار تسجيل الدخول
+1. في Cloudflare Turnstile، افتح الـ widget المستخدم حالياً وأضف hostname التالي إلى قائمة النطاقات المسموح بها، مع الإبقاء على النطاق الحالي:
+   - `tauri.localhost`
+   - `wasla-workspace.pages.dev`
+2. في Supabase Auth > URL Configuration، تأكد من السماح بعنوان إعادة التوجيه:
+   - `https://wasla-workspace.pages.dev/`
+3. لا تغيّر Site Key أو Secret الحاليين داخل إعدادات التطبيق.
+
+## روابط البريد الإلكتروني
+- روابط تأكيد الحساب واستعادة كلمة المرور تُوجّه إلى نسخة الويب العامة: `https://wasla-workspace.pages.dev/`.
+- عند استعادة كلمة المرور، أكمل التغيير في المتصفح ثم ارجع إلى تطبيق QENTRIVO وسجّل الدخول بكلمة المرور الجديدة.
+- روابط تسجيل العملاء التي ينشئها التطبيق تستخدم نطاق QENTRIVO العام، وليس عنوان WebView المحلي.
+
+## متطلبات بناء ملف التثبيت
+- Windows 10 أو 11.
+- Node.js 22 LTS.
+- Rust stable مع MSVC toolchain.
+- Microsoft C++ Build Tools (Desktop development with C++).
+- WebView2 Runtime.
+
+## البناء محلياً
+افتح PowerShell داخل مجلد `WASLA_STUDIO_Desktop` ونفّذ:
 
 ```powershell
 npm install
+npm run build
 npm run tauri -- build --bundles nsis
 ```
 
-أو شغّل الملف `build-windows.bat` بنقرتين لبدء البناء تلقائيًا.
+أو شغّل `build-windows.bat`.
 
-سيظهر ملف التثبيت غالبًا في:
+سيظهر ملف التثبيت في المسار:
 
-`src-tauri\target\release\bundle\nsis\WASLA STUDIO_1.0.0_x64-setup.exe`
+`src-tauri\target\release\bundle\nsis\QENTRIVO_1.1.0_x64-setup.exe`
 
 ## البناء عبر GitHub Actions
-ارفع محتويات هذا المجلد إلى مستودع GitHub، ثم افتح Actions واختر `Build WASLA STUDIO for Windows` واضغط Run workflow. بعد اكتمال البناء نزّل Artifact باسم `WASLA-STUDIO-Windows-Installer`.
+يبدأ سير العمل تلقائياً عند دفع تحديث إلى الفرع `feature/wasla-web-v6`. بعد نجاحه، نزّل Artifact باسم `QENTRIVO-Windows-Installer` من صفحة Actions.
 
-## ملاحظات مهمة قبل التوزيع
-- هذه نسخة أولية مغلفة بسطح مكتب، وليست بعدُ نسخة موقعة رقميًا. قد يعرض Windows SmartScreen تحذيرًا عند التثبيت حتى يتم توقيع الملف بشهادة Code Signing.
-- الاتصال بالإنترنت مطلوب لتسجيل الدخول ومزامنة Supabase، وكذلك لتحميل مكتبة Supabase JS من jsDelivr.
-- استعادة كلمة المرور تُفتح عبر نسخة الويب الحالية على Netlify، ثم يمكن تسجيل الدخول في تطبيق سطح المكتب بكلمة المرور الجديدة.
-- يجب إضافة عنوان الموقع التالي إلى Supabase Auth > URL Configuration > Redirect URLs إذا لم يكن موجودًا بالفعل:
-  `https://elaborate-chimera-2d1aaa.netlify.app/`
-- لم يتم تعديل قاعدة بيانات Supabase أو سياسات RLS أو حسابات المستخدمين.
-- لا تضع أبدًا `service_role` أو أي مفتاح سري داخل تطبيق سطح المكتب.
-
-## اختبار ما قبل الاعتماد
-يجب اختبار تسجيل دخول المدير والموظف، تحميل المشاريع، إنشاء/تعديل سجل تجريبي، التكليفات، تحديث الموظف، إشعارات المدير، تسجيل الخروج، ثم النسخ الاحتياطي والاستعادة على جهاز Windows فعلي قبل توزيع النسخة.
+## ملاحظات
+- هذه نسخة غير موقّعة رقمياً؛ قد يعرض Windows SmartScreen تحذيراً عند التثبيت.
+- الاتصال بالإنترنت مطلوب لتسجيل الدخول ومزامنة Supabase وتحميل مكتبة Supabase JS وTurnstile.
+- يجب اختبار تسجيل دخول المدير والموظف، تحميل البيانات، التكليفات، بوابة العميل، النسخ الاحتياطي والاستعادة على جهاز Windows قبل اعتماد التوزيع.
