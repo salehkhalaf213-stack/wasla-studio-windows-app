@@ -2096,7 +2096,7 @@ function financeCanManage(){return currentRole==='owner'||currentRole==='admin'}
 function financeHasRole(role){return financeRoles.some(x=>x.finance_role===role)}
 function financeCanAccess(){return financeCanManage()||financeHasRole('accountant')||financeHasRole('project_manager')||financeHasRole('finance_viewer')}
 function financeCanWrite(){return financeCanManage()||financeHasRole('accountant')}
-function financeCurrencyLabel(code){if(document.documentElement.lang==='en')return code||'';return ({EGP:'ج.م',SAR:'ر.س',AED:'د.إ',USD:'
+function financeCurrencyLabel(code){if(document.documentElement.lang==='en')return code||'';return ({EGP:'ج.م',SAR:'ر.س',AED:'د.إ',USD:'$',EUR:'€',GBP:'£'})[code]||code||''}
 function financeSetVisible(id,visible){const el=$(id);if(el)el.style.display=visible?'':'none'}
 let financeInvoices=[];
 function financeInvoiceFillAccounts(){
