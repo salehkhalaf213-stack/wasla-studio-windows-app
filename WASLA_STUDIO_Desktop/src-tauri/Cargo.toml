@@ -1,8 +1,8 @@
 [package]
 name = "wasla-studio"
-version = "1.0.0"
-description = "WASLA STUDIO Cloud Workspace"
-authors = ["WASLA STUDIO"]
+version = "1.1.0"
+description = "QENTRIVO Cloud Workspace"
+authors = ["QENTRIVO"]
 edition = "2021"
 
 [lib]
