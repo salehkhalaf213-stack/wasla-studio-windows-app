@@ -43,7 +43,7 @@ footer{padding:22px 3px;color:#8a9385;font-size:11px}
 .auth-brand{display:flex;align-items:center;gap:11px;font-size:24px;font-weight:900;letter-spacing:2px;margin-bottom:12px;color:#101b2d}.auth-brand-mark{width:40px;height:40px;border-radius:11px;background:#101b2d;color:#d7b46a;display:grid;place-items:center;flex:none}.auth-brand-mark svg{width:26px;height:26px;display:block}.auth-brand-name{font-weight:900;letter-spacing:2px}
 .auth-card h1{font-size:19px;margin:18px 0 7px}.auth-card p{font-size:13px;color:var(--muted);line-height:1.8}
 .auth-card input{width:100%;padding:13px;border:1px solid var(--line);border-radius:9px;margin:6px 0 13px;direction:ltr;text-align:left}
-.auth-card label{font-size:12px;color:var(--muted)}.auth-card button{width:100%;margin-top:8px}.auth-card select{width:100%;padding:13px;border:1px solid var(--line);border-radius:9px;margin:6px 0 13px;background:#fff}.auth-link{border:0;background:transparent;color:#98702f;text-decoration:underline;font-size:12px;padding:8px}.auth-hidden{display:none!important}.auth-captcha{display:flex;justify-content:center;align-items:center;min-height:66px;margin:8px 0}
+.auth-card label{font-size:12px;color:var(--muted)}.auth-card button{width:100%;margin-top:8px}.auth-card select{width:100%;padding:13px;border:1px solid var(--line);border-radius:9px;margin:6px 0 13px;background:#fff}.auth-link{border:0;background:transparent;color:#98702f;text-decoration:underline;font-size:12px;padding:8px}.auth-hidden{display:none!important}.auth-captcha{display:flex;justify-content:center;align-items:center;width:100%;min-width:300px;min-height:74px;margin:10px 0;visibility:visible!important;opacity:1!important}.auth-captcha iframe{display:block!important;visibility:visible!important;opacity:1!important;max-width:100%}
 #authMessage{font-size:12px;line-height:1.8;margin-top:12px;color:#a33b2c;min-height:20px}
 .sync-pill{display:inline-block;border-radius:30px;background:#e7f5d6;color:#496b1d;padding:6px 9px;font-size:11px}
 @media(max-width:480px){.auth-card{padding:21px}}
@@ -864,9 +864,9 @@ function renderAuthCaptcha(view){
  const widgetKey={login:'login',signup:'signup',request:'recovery'}[view];
  if(!containerId||!$(containerId))return;
  loadTurnstileApi().then(turnstile=>{
-  const container=$(containerId);if(!container||container.offsetParent===null)return;
+  const container=$(containerId);if(!container)return;
   if(authCaptchaWidgets[widgetKey]!==null){turnstile.reset(authCaptchaWidgets[widgetKey]);return;}
-  authCaptchaWidgets[widgetKey]=turnstile.render(container,{sitekey:TURNSTILE_SITE_KEY,theme:'auto',callback:()=>{},'expired-callback':()=>{},'error-callback':(errorCode)=>{console.warn('[WASLA Turnstile] error-code:',errorCode||'unknown');$('authMessage').textContent='تعذر إكمال التحقق الأمني. أعد المحاولة.';return true;}});
+  authCaptchaWidgets[widgetKey]=turnstile.render(container,{sitekey:TURNSTILE_SITE_KEY,theme:'auto',size:'normal',appearance:'always',execution:'render',callback:()=>{},'expired-callback':()=>{},'error-callback':(errorCode)=>{console.warn('[WASLA Turnstile] error-code:',errorCode||'unknown');$('authMessage').textContent='تعذر إكمال التحقق الأمني. أعد المحاولة.';return true;}});
  }).catch(error=>{$('authMessage').textContent=error.message||'تعذر تحميل التحقق الأمني.';});
 }
 function getAuthCaptchaToken(view){
