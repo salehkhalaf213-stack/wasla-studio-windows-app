@@ -468,7 +468,8 @@ html[dir="ltr"] .client-project-cover .cover-mark{right:auto;left:13px}
 .auth-card>p{margin:0 0 19px;font-size:13px;line-height:1.9;color:#68738d}
 .auth-card h1{font-size:22px;letter-spacing:-.35px;margin:0 0 20px;color:#202944}
 .auth-card #loginForm label{display:block;clear:both;margin:0 0 5px;font-size:12px;font-weight:700;color:#4c5874}
-.auth-card #loginForm input{display:block;width:100%;margin:0 0 14px}
+.auth-card #loginForm .auth-login-field{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;margin:0 0 14px}
+.auth-card #loginForm .auth-login-field input{display:block;width:100%;margin:0}
 .auth-card input{min-height:48px;padding:13px 14px;border:1px solid #dfe4f0;border-radius:12px;background:#fbfcff;color:#202944;transition:border-color .18s,box-shadow .18s}
 .auth-card input:focus{outline:none;border-color:#7183e6;box-shadow:0 0 0 4px rgba(82,103,216,.12)}
 .auth-card input::placeholder{color:#a0a8ba}
@@ -501,10 +502,14 @@ html[data-theme="dark"] .auth-card .auth-link{color:#aebaff}
     <p>مساحة العمل الخاصة بإدارة العملاء والمشاريع والمحتوى والحسابات.</p>
     <h1>تسجيل الدخول إلى QENTRIVO</h1>
     <form id="loginForm">
-      <label for="loginEmail">البريد الإلكتروني</label>
-      <input id="loginEmail" type="email" autocomplete="username" placeholder="name@example.com" required>
-      <label for="loginPassword">كلمة المرور</label>
-      <input id="loginPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور" required>
+      <div class="field auth-login-field">
+        <label for="loginEmail">البريد الإلكتروني</label>
+        <input id="loginEmail" type="email" autocomplete="username" placeholder="name@example.com" required>
+      </div>
+      <div class="field auth-login-field">
+        <label for="loginPassword">كلمة المرور</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور" required>
+      </div>
       <div class="auth-captcha" id="loginCaptcha"></div>
       <button class="btn lime" id="loginButton" type="submit">دخول إلى مساحة العمل</button>
     </form>
