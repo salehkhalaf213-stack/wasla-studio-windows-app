@@ -7,11 +7,13 @@ const checks = [
   ['Employee performance', html.includes('loadAdminEmployees')],
   ['Notifications', html.includes('pollAdminNotifications')],
   ['Cloud workspace sync', html.includes('loadCloudData')],
-  ['Desktop password recovery redirect with CAPTCHA', /resetPasswordForEmail\s*\(\s*email\s*,\s*\{\s*redirectTo\s*,\s*captchaToken\s*\}\s*\)/.test(html) && /const\s+redirectTo\s*=\s*window\.location\.origin\s*\+\s*window\.location\.pathname/.test(html)],
+  ['Desktop password recovery and signup redirect with CAPTCHA', html.includes("const DESKTOP_WEB_URL='https://wasla-workspace.pages.dev/'") && /resetPasswordForEmail\\s*\\(\\s*email\\s*,\\s*\\{\\s*redirectTo\\s*,\\s*captchaToken\\s*\\}\\s*\\)/.test(html) && /emailRedirectTo:DESKTOP_WEB_URL/.test(html) && /const\\s+redirectTo\\s*=\\s*DESKTOP_WEB_URL/.test(html)],
   ['Cloudflare Turnstile site key and widgets', html.includes('const TURNSTILE_SITE_KEY=') && html.includes('id="loginCaptcha"') && html.includes('id="signupCaptcha"') && html.includes('id="recoveryCaptcha"')],
   ['Supabase Auth CAPTCHA token wiring', html.includes('options:{captchaToken}') && html.includes('captchaToken}') && html.includes('resetPasswordForEmail(email,{redirectTo,captchaToken})')],
   ['New account signup form', html.includes('id="signupForm"') && html.includes("sb.auth.signUp(")],
   ['Tenant-specific client signup form', html.includes('id="signupPhone"') && html.includes('client_registration_token') && html.includes('clientRegistrationToken')],
+  ['Client registration links use the public QENTRIVO web URL', /new URL\\(DESKTOP_WEB_URL\\)/.test(html)],
+  ['QENTRIVO desktop login interface', html.includes('تسجيل الدخول إلى QENTRIVO') && html.includes('auth-login-field') && html.includes('Sign in to QENTRIVO')],
   ['Admin approval queue', html.includes('pendingSignupTable') && html.includes("sb.rpc('approve_signup'")],
   ['Pending account access gate', html.includes("profile?.approval_status==='pending'") ]];
 for (const [label, ok] of checks) console.log(`${ok ? 'OK' : 'MISSING'}  ${label}`);
