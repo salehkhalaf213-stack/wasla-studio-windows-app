@@ -1,6 +1,6 @@
 [package]
 name = "wasla-studio"
-version = "1.1.0"
+version = "1.1.1"
 description = "QENTRIVO Cloud Workspace"
 authors = ["QENTRIVO"]
 edition = "2021"
@@ -14,3 +14,4 @@ tauri-build = { version = "2.0.0" }
 
 [dependencies]
 tauri = { version = "2.0.0" }
+tauri-plugin-updater = "=2.0.0"
