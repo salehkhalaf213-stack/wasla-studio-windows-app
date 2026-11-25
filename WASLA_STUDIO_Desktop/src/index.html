@@ -3149,10 +3149,199 @@ async function revokeFinanceProjectAccess(userId,projectRef){
 function openFinance(){openModal('تسجيل عملية مالية',select('k','نوع العملية',['إيراد','مصروف'],'إيراد')+input('v','المبلغ بالجنيه','','number')+input('d','التاريخ','','date')+input('m','الوصف'),()=>{let v=Number($('v').value);if(v<=0)return alert('أدخل مبلغاً صحيحاً');data.finance.push({id:Date.now(),kind:$('k').value,amount:v,date:$('d').value,memo:$('m').value});closeModal();persist()})}
 function renderFinance(){if(!$('financeTable'))return;const rows=data.finance.map(x=>`<tr><td>${esc(x.kind)}</td><td>${money(x.amount)}</td><td>${esc(x.date)}</td><td>${esc(x.memo)}</td><td><span class="muted tiny">أرشيف — للقراءة فقط</span></td></tr>`);$('financeLegacyTable').innerHTML=table(['النوع','المبلغ','التاريخ','الوصف','الحالة'],rows);$('financeTable').innerHTML=''}
 function del(group,id){if(!confirm('تأكيد حذف السجل؟'))return;data[group]=data[group].filter(x=>x.id!==id);persist()}
-function downloadBackupSnapshot(snapshot,suffix=''){const envelope={format:'WASLA_STUDIO_BACKUP',version:1,scope:['clients','projects','contents','finance'],createdAt:new Date().toISOString(),organizationId:currentOrganizationId||null,data:snapshot};const blob=new Blob([JSON.stringify(envelope,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='QENTRIVO-backup-'+new Date().toISOString().slice(0,10)+(suffix?'-'+suffix:'')+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-async function exportData(){if(cloudBusy){alert('توجد عملية مزامنة جارية. انتظر اكتمالها ثم أعد التنزيل.');return}if(currentUser&&currentOrganizationId){clearTimeout(cloudSaveTimer);cloudSaveTimer=null;const saved=await saveCloudData({quiet:true});if(!saved){alert('لم يتم تنزيل النسخة لأن تأكيد الحفظ السحابي لم ينجح. أعد المحاولة بعد فحص الاتصال.');return}}downloadBackupSnapshot(data);setSync('● تم تنزيل النسخة الاحتياطية')}
-function isValidBackupPayload(value){if(!value||typeof value!=='object'||Array.isArray(value))return false;return ['clients','projects','contents','finance'].every(key=>Array.isArray(value[key]))}
-async function importData(e){const file=e.target.files&&e.target.files[0];if(!file)return;try{if(file.size>50*1024*1024)throw new Error('حجم ملف النسخة يتجاوز 50 ميجابايت.');if(cloudBusy)throw new Error('توجد عملية مزامنة جارية. انتظر اكتمالها قبل الاستعادة.');const parsed=JSON.parse(await file.text());const isEnvelope=parsed&&parsed.format==='WASLA_STUDIO_BACKUP';if(isEnvelope&&parsed.version!==1)throw new Error('إصدار ملف النسخة الاحتياطية غير مدعوم.');const restored=isEnvelope?parsed.data:parsed;if(!isValidBackupPayload(restored))throw new Error('بنية ملف النسخة غير مكتملة أو غير صالحة.');if(isEnvelope&&parsed.organizationId&&currentOrganizationId&&parsed.organizationId!==currentOrganizationId)throw new Error('هذه النسخة تخص مؤسسة أخرى، ولا يمكن استعادتها داخل هذه المؤسسة.');if(!currentUser||!currentOrganizationId)throw new Error('يجب تسجيل الدخول إلى مساحة المؤسسة قبل استعادة البيانات.');if(!confirm('سيتم تنزيل نسخة أمان أولاً، ثم استبدال العملاء والمشاريع والمحتوى والأرشيف المالي المحلي فقط. لن تشمل الاستعادة القيود والفواتير أو الموظفين والتكليفات أو بيانات بوابة العملاء والملفات المرفوعة. هل تريد المتابعة؟'))return;clearTimeout(cloudSaveTimer);cloudSaveTimer=null;const beforeRestore=JSON.parse(JSON.stringify(data));downloadBackupSnapshot(beforeRestore,'قبل-الاستعادة');data=JSON.parse(JSON.stringify(restored));localDataRevision++;localStorage.setItem(KEY,JSON.stringify(data));refresh();const saved=await saveCloudData({quiet:true});if(!saved){data=beforeRestore;localStorage.setItem(KEY,JSON.stringify(data));refresh();throw new Error('تعذر تأكيد حفظ النسخة المستعادة في السحابة. أُعيدت بيانات هذا الجهاز إلى حالتها السابقة، واحتُفظ بملف نسخة الأمان الذي تم تنزيله.')}alert('تمت استعادة البيانات وتأكيد حفظها في Supabase بنجاح. احتفظ بملف نسخة الأمان أيضاً.')}catch(err){alert(err.message||'تعذرت استعادة النسخة الاحتياطية.')}finally{e.target.value=''}}
+const FINANCE_BACKUP_TABLES=[
+ 'finance_settings','finance_member_roles','finance_project_access','finance_accounts',
+ 'finance_journals','finance_journal_lines','finance_invoices','finance_invoice_lines',
+ 'finance_invoice_payments','finance_vendors','finance_vendor_bills',
+ 'finance_vendor_bill_lines','finance_vendor_bill_payments','finance_audit_log'
+];
+async function exportFinanceBackup(){
+ if(!currentUser||!currentOrganizationId||!financeCanManage())throw new Error('يجب تسجيل الدخول بصلاحية مالك المؤسسة أو مديرها لإنشاء نسخة مالية كاملة.');
+ const tables={};
+ for(const table of FINANCE_BACKUP_TABLES){
+  tables[table]=await financeFetchAllRows(sb.from(table).select('*').eq('organization_id',currentOrganizationId));
+ }
+ return {schemaVersion:1,organizationId:currentOrganizationId,exportedAt:new Date().toISOString(),tables};
+}
+function downloadBackupSnapshot(snapshot,suffix=''){
+ const envelope={format:'WASLA_STUDIO_BACKUP',version:2,scope:['clients','projects','contents','legacy_finance_archive','finance_center_all_tables'],createdAt:new Date().toISOString(),organizationId:currentOrganizationId||null,data:snapshot};
+ const blob=new Blob([JSON.stringify(envelope,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='QENTRIVO-backup-'+new Date().toISOString().slice(0,10)+(suffix?'-'+suffix:'')+'.json';
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+async function exportData(){
+ if(cloudBusy){alert('توجد عملية مزامنة جارية. انتظر اكتمالها ثم أعد التنزيل.');return;}
+ if(!currentUser||!currentOrganizationId){alert('سجّل الدخول إلى المؤسسة أولاً.');return;}
+ try{
+  clearTimeout(cloudSaveTimer);cloudSaveTimer=null;
+  const saved=await saveCloudData({quiet:true});
+  if(!saved)throw new Error('لم يتم تأكيد الحفظ السحابي للبيانات الحالية. أعد المحاولة بعد فحص الاتصال.');
+  const financeCloud=await exportFinanceBackup();
+  downloadBackupSnapshot({...JSON.parse(JSON.stringify(data)),financeCloud});
+  setSync('● تم تنزيل النسخة الاحتياطية الكاملة');
+  alert('تم تنزيل النسخة الاحتياطية. تشمل بيانات مساحة العمل وجميع جداول المركز المالي وسجل التدقيق.');
+ }catch(err){alert('لم يتم تنزيل النسخة الكاملة: '+(err.message||'خطأ غير معروف'));}
+}
+function isValidBackupPayload(value){
+ return !!value&&typeof value==='object'&&!Array.isArray(value)&&['clients','projects','contents','finance'].every(key=>Array.isArray(value[key]));
+}
+async function restoreFinanceBackup(financeCloud){
+ const tables=financeCloud&&financeCloud.tables;
+ if(!tables||typeof tables!=='object'||Array.isArray(tables))throw new Error('قسم النسخة المالية غير صالح.');
+ if(financeCloud.organizationId&&financeCloud.organizationId!==currentOrganizationId)throw new Error('النسخة المالية تخص مؤسسة أخرى.');
+ if(!financeCanManage())throw new Error('استعادة البيانات المالية تتطلب صلاحية مالك المؤسسة أو مديرها.');
+ const counts={};
+ for(const table of FINANCE_BACKUP_TABLES)counts[table]={added:0,skipped:0};
+ const rows=table=>Array.isArray(tables[table])?tables[table]:[];
+ const skip=(table,n=1)=>{counts[table].skipped+=n;};
+ const add=table=>{counts[table].added++;};
+ const org=currentOrganizationId,user=currentUser.id;
+ const excluded=['finance_member_roles','finance_project_access','finance_invoice_payments','finance_vendor_bill_payments','finance_audit_log'];
+ for(const table of excluded)skip(table,rows(table).length);
+ const [settingsNow,accountsNow,vendorsNow,journalsNow,journalLinesNow,invoicesNow,invoiceLinesNow,billsNow,billLinesNow]=await Promise.all([
+  sb.from('finance_settings').select('organization_id').eq('organization_id',org).maybeSingle(),
+  financeFetchAllRows(sb.from('finance_accounts').select('id,account_code,account_type,parent_id').eq('organization_id',org)),
+  financeFetchAllRows(sb.from('finance_vendors').select('id').eq('organization_id',org)),
+  financeFetchAllRows(sb.from('finance_journals').select('id,entry_number,status').eq('organization_id',org)),
+  financeFetchAllRows(sb.from('finance_journal_lines').select('id').eq('organization_id',org)),
+  financeFetchAllRows(sb.from('finance_invoices').select('id,invoice_number,status').eq('organization_id',org)),
+  financeFetchAllRows(sb.from('finance_invoice_lines').select('id').eq('organization_id',org)),
+  financeFetchAllRows(sb.from('finance_vendor_bills').select('id,bill_number,status').eq('organization_id',org)),
+  financeFetchAllRows(sb.from('finance_vendor_bill_lines').select('id').eq('organization_id',org))
+ ]);
+ if(settingsNow.error)throw settingsNow.error;
+ const insertRow=async(table,row)=>{
+  const payload={...row,organization_id:org};
+  const result=await sb.from(table).insert(payload);
+  if(result.error)return false;
+  return true;
+ };
+ if(rows('finance_settings').length){
+  if(settingsNow.data)skip('finance_settings',rows('finance_settings').length);
+  else{
+   const source=rows('finance_settings')[0];
+   if(await insertRow('finance_settings',source))add('finance_settings');else skip('finance_settings');
+   if(rows('finance_settings').length>1)skip('finance_settings',rows('finance_settings').length-1);
+  }
+ }
+ const accountMap=new Map(accountsNow.map(x=>[x.id,x.id]));
+ const accountByCode=new Map(accountsNow.map(x=>[x.account_code,x]));
+ const pendingAccounts=rows('finance_accounts').slice();
+ for(const row of pendingAccounts){
+  const sameId=accountsNow.find(x=>x.id===row.id);
+  if(sameId){
+   if(sameId.account_code===row.account_code&&sameId.account_type===row.account_type)accountMap.set(row.id,sameId.id);
+   skip('finance_accounts');
+  }else{
+   const sameCode=accountByCode.get(row.account_code);
+   if(sameCode){
+    if(sameCode.account_type===row.account_type)accountMap.set(row.id,sameCode.id);
+    skip('finance_accounts');
+   }
+  }
+ }
+ let accountProgress=true;
+ while(pendingAccounts.length&&accountProgress){
+  accountProgress=false;
+  for(let i=pendingAccounts.length-1;i>=0;i--){
+   const row=pendingAccounts[i];
+   if(accountMap.has(row.id)){pendingAccounts.splice(i,1);continue;}
+   if(row.parent_id&&!accountMap.has(row.parent_id))continue;
+   const payload={...row,organization_id:org,parent_id:row.parent_id?accountMap.get(row.parent_id):null};
+   if(await insertRow('finance_accounts',payload)){
+    accountMap.set(row.id,row.id);accountByCode.set(row.account_code,{id:row.id,account_code:row.account_code,account_type:row.account_type});
+    add('finance_accounts');pendingAccounts.splice(i,1);accountProgress=true;
+   }
+  }
+ }
+ skip('finance_accounts',pendingAccounts.length);
+ const vendorIds=new Set(vendorsNow.map(x=>x.id));
+ for(const row of rows('finance_vendors')){
+  if(vendorIds.has(row.id)){skip('finance_vendors');continue;}
+  if(row.created_by!==user){skip('finance_vendors');continue;}
+  if(await insertRow('finance_vendors',row)){vendorIds.add(row.id);add('finance_vendors');}else skip('finance_vendors');
+ }
+ const journalStatus=new Map(journalsNow.map(x=>[x.id,x.status]));
+ const journalNumbers=new Set(journalsNow.map(x=>x.entry_number));
+ for(const row of rows('finance_journals')){
+  if(row.status!=='draft'||row.reversal_of||row.created_by!==user){skip('finance_journals');continue;}
+  if(journalStatus.has(row.id)||journalNumbers.has(row.entry_number)){skip('finance_journals');continue;}
+  if(await insertRow('finance_journals',row)){journalStatus.set(row.id,'draft');journalNumbers.add(row.entry_number);add('finance_journals');}else skip('finance_journals');
+ }
+ const journalLineIds=new Set(journalLinesNow.map(x=>x.id));
+ for(const row of rows('finance_journal_lines')){
+  if(journalLineIds.has(row.id)){skip('finance_journal_lines');continue;}
+  if(row.created_by!==user||journalStatus.get(row.journal_id)!=='draft'||!accountMap.has(row.account_id)){skip('finance_journal_lines');continue;}
+  if(await insertRow('finance_journal_lines', {...row,account_id:accountMap.get(row.account_id)})){journalLineIds.add(row.id);add('finance_journal_lines');}else skip('finance_journal_lines');
+ }
+ const invoiceStatus=new Map(invoicesNow.map(x=>[x.id,x.status]));
+ const invoiceNumbers=new Set(invoicesNow.map(x=>x.invoice_number));
+ for(const row of rows('finance_invoices')){
+  if(row.status!=='draft'||row.issued_journal_id||row.created_by!==user||(row.client_user_id&&row.client_user_id!==user)||!accountMap.has(row.receivable_account_id)){skip('finance_invoices');continue;}
+  if(invoiceStatus.has(row.id)||invoiceNumbers.has(row.invoice_number)){skip('finance_invoices');continue;}
+  if(await insertRow('finance_invoices',{...row,receivable_account_id:accountMap.get(row.receivable_account_id)})){invoiceStatus.set(row.id,'draft');invoiceNumbers.add(row.invoice_number);add('finance_invoices');}else skip('finance_invoices');
+ }
+ const invoiceLineIds=new Set(invoiceLinesNow.map(x=>x.id));
+ for(const row of rows('finance_invoice_lines')){
+  if(invoiceLineIds.has(row.id)){skip('finance_invoice_lines');continue;}
+  if(row.created_by!==user||invoiceStatus.get(row.invoice_id)!=='draft'||!accountMap.has(row.revenue_account_id)){skip('finance_invoice_lines');continue;}
+  if(await insertRow('finance_invoice_lines',{...row,revenue_account_id:accountMap.get(row.revenue_account_id)})){invoiceLineIds.add(row.id);add('finance_invoice_lines');}else skip('finance_invoice_lines');
+ }
+ const billStatus=new Map(billsNow.map(x=>[x.id,x.status]));
+ const billNumbers=new Set(billsNow.map(x=>x.bill_number));
+ for(const row of rows('finance_vendor_bills')){
+  const vatAccount=row.vat_account_id;
+  if(row.status!=='draft'||row.issued_journal_id||row.created_by!==user||!vendorIds.has(row.vendor_id)||!accountMap.has(row.payable_account_id)||(vatAccount&&!accountMap.has(vatAccount))){skip('finance_vendor_bills');continue;}
+  if(billStatus.has(row.id)||billNumbers.has(row.bill_number)){skip('finance_vendor_bills');continue;}
+  const payload={...row,payable_account_id:accountMap.get(row.payable_account_id),vat_account_id:vatAccount?accountMap.get(vatAccount):null};
+  if(await insertRow('finance_vendor_bills',payload)){billStatus.set(row.id,'draft');billNumbers.add(row.bill_number);add('finance_vendor_bills');}else skip('finance_vendor_bills');
+ }
+ const billLineIds=new Set(billLinesNow.map(x=>x.id));
+ for(const row of rows('finance_vendor_bill_lines')){
+  if(billLineIds.has(row.id)){skip('finance_vendor_bill_lines');continue;}
+  if(row.created_by!==user||billStatus.get(row.bill_id)!=='draft'||!accountMap.has(row.expense_account_id)){skip('finance_vendor_bill_lines');continue;}
+  if(await insertRow('finance_vendor_bill_lines',{...row,expense_account_id:accountMap.get(row.expense_account_id)})){billLineIds.add(row.id);add('finance_vendor_bill_lines');}else skip('finance_vendor_bill_lines');
+ }
+ const lines=['نتيجة استعادة المركز المالي:'];
+ for(const table of FINANCE_BACKUP_TABLES){
+  const c=counts[table];
+  if(c.added||c.skipped)lines.push(table+': أُضيف '+c.added+'، تم تجاوز '+c.skipped);
+ }
+ return lines.join('\n');
+}
+async function importData(e){
+ const file=e.target.files&&e.target.files[0];if(!file)return;
+ try{
+  if(file.size>50*1024*1024)throw new Error('حجم ملف النسخة يتجاوز 50 ميجابايت.');
+  if(cloudBusy)throw new Error('توجد عملية مزامنة جارية. انتظر اكتمالها قبل الاستعادة.');
+  const parsed=JSON.parse(await file.text());
+  const isEnvelope=parsed&&parsed.format==='WASLA_STUDIO_BACKUP';
+  if(isEnvelope&&![1,2].includes(parsed.version))throw new Error('إصدار ملف النسخة الاحتياطية غير مدعوم.');
+  const restored=isEnvelope?parsed.data:parsed;
+  if(!isValidBackupPayload(restored))throw new Error('بنية ملف النسخة غير مكتملة أو غير صالحة.');
+  if(isEnvelope&&parsed.organizationId&&currentOrganizationId&&parsed.organizationId!==currentOrganizationId)throw new Error('هذه النسخة تخص مؤسسة أخرى، ولا يمكن استعادتها داخل هذه المؤسسة.');
+  if(!currentUser||!currentOrganizationId)throw new Error('يجب تسجيل الدخول إلى مساحة المؤسسة قبل استعادة البيانات.');
+  if(restored.financeCloud&&(!restored.financeCloud.tables||restored.financeCloud.organizationId!==currentOrganizationId))throw new Error('بيانات المركز المالي في الملف غير صالحة أو تخص مؤسسة أخرى.');
+  if(!confirm('سيتم تنزيل نسخة أمان كاملة أولاً، ثم استبدال العملاء والمشاريع والمحتوى والأرشيف المالي المحلي فقط. ستُضاف السجلات المالية القابلة للاستعادة بأمان فقط، ولن يُحذف أو يُعدّل أي سجل مالي موجود. القيود المرحلة والفواتير الصادرة والمدفوعات وسجل التدقيق وصلاحيات الأعضاء ستبقى داخل ملف النسخة ولن تُعاد إدخالها. هل تريد المتابعة؟'))return;
+  clearTimeout(cloudSaveTimer);cloudSaveTimer=null;
+  const beforeRestore=JSON.parse(JSON.stringify(data));
+  const safetyFinance=await exportFinanceBackup();
+  downloadBackupSnapshot({...beforeRestore,financeCloud:safetyFinance},'قبل-الاستعادة');
+  const workspaceRestored={clients:restored.clients,projects:restored.projects,contents:restored.contents,finance:restored.finance};
+  data=JSON.parse(JSON.stringify(workspaceRestored));localDataRevision++;
+  localStorage.setItem(KEY,JSON.stringify(data));refresh();
+  const saved=await saveCloudData({quiet:true});
+  if(!saved){
+   data=beforeRestore;localStorage.setItem(KEY,JSON.stringify(data));refresh();
+   throw new Error('تعذر تأكيد حفظ بيانات مساحة العمل المستعادة في السحابة. أُعيدت بيانات هذا الجهاز إلى حالتها السابقة، واحتُفظ بملف نسخة الأمان.');
+  }
+  let financeSummary='لم يتضمن الملف نسخة مستقلة من جداول المركز المالي.';
+  if(restored.financeCloud)financeSummary=await restoreFinanceBackup(restored.financeCloud);
+  alert('تمت استعادة بيانات مساحة العمل وحفظها. لم يتم حذف أو تعديل أي سجل مالي موجود.\n\n'+financeSummary+'\n\nاحتفظ بملف نسخة الأمان.');
+ }catch(err){alert(err.message||'تعذرت استعادة النسخة الاحتياطية.');}
+ finally{e.target.value='';}
+}
 refresh();
 
 
