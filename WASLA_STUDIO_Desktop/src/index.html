@@ -605,7 +605,7 @@ html[data-theme="dark"] .auth-card .auth-link{color:#aebaff}
   <div class="card"><div class="head"><div><h2>المشاريع المتأخرة</h2><p class="muted tiny">موعد التسليم مضى والحالة لم تصبح مكتملة</p></div><span class="pill task-overdue" id="dashboardOverdueProjectCount">0</span></div><div id="dashboardOverdueProjects"><div class="empty">لا توجد مشاريع متأخرة.</div></div><button class="btn soft sm" style="margin-top:12px" onclick="go('projects')">مراجعة المشاريع</button></div>
   <div class="card"><div class="head"><div><h2>مهام اليوم</h2><p class="muted tiny">التكليفات المسندة بموعد تسليم اليوم</p></div><span class="pill amber" id="dashboardTodayTaskCount">0</span></div><div id="dashboardTodayTasks"><div class="empty">جارٍ تحميل التكليفات…</div></div><button class="btn soft sm" style="margin-top:12px" onclick="go('employeePortal')">إدارة التكليفات</button></div>
   <div class="card"><div class="head"><div><h2>متابعة العملاء</h2><p class="muted tiny">العملاء المحتملون ومن تم التواصل معهم</p></div><span class="pill amber" id="dashboardFollowupCount">0</span></div><div id="dashboardClientFollowups"><div class="empty">لا توجد عملاء بحاجة إلى متابعة.</div></div><button class="btn soft sm" style="margin-top:12px" onclick="go('clients')">فتح سجل العملاء</button></div>
-  <div class="card" id="dashboardFinanceCard"><div class="head"><div><h2>ملخص الأداء المالي</h2><p class="muted tiny">حسابات المؤسسة فقط — لا تشمل تحصيلات اشتراكات المنصة</p></div><span class="pill">ج.م</span></div><div id="dashboardFinanceSummary"></div><button class="btn soft sm" style="margin-top:12px" onclick="go('finance')">تفاصيل الإيرادات والمصروفات</button></div>
+  <div class="card" id="dashboardFinanceCard"><div class="head"><div><h2>ملخص الأداء المالي</h2><p class="muted tiny">حسابات المؤسسة فقط — لا تشمل تحصيلات اشتراكات المنصة</p></div><span class="pill" id="dashboardFinanceCurrency">ج.م</span></div><div id="dashboardFinanceSummary"><div class="empty">جارٍ تحميل الملخص المالي…</div></div><button class="btn soft sm" style="margin-top:12px" onclick="go('finance')">تفاصيل الإيرادات والمصروفات</button></div>
  </div>
  <div class="card recent-client-card"><div class="head"><div><h2>أحدث العملاء</h2><p class="muted tiny">آخر العملاء الذين تمت إضافتهم</p></div><button class="btn soft sm" onclick="go('clients')">إدارة العملاء</button></div><div class="table-wrap" id="recentClients"></div></div>
 </section>
@@ -2108,13 +2108,7 @@ function renderDashboardOperations(){
  const followCount=$('dashboardFollowupCount'),followBox=$('dashboardClientFollowups');
  if(followCount)followCount.textContent=followups.length;
  if(followBox)followBox.innerHTML=followups.length?followups.slice(-5).reverse().map(x=>'<div class="dashboard-ops-item"><div><strong data-user-content>'+esc(x.name)+'</strong><small data-user-content>'+esc(x.type||'')+'</small></div><span class="pill amber">'+esc(x.status)+'</span></div>').join(''):'<div class="empty">لا توجد عملاء بحاجة إلى متابعة.</div>';
- const financeBox=$('dashboardFinanceSummary');
- const financeCard=$('dashboardFinanceCard');const showLegacyFinanceSummary=financeCanManage()||financeHasRole('accountant');if(financeCard)financeCard.style.display=showLegacyFinanceSummary?'':'none';
- if(financeBox&&showLegacyFinanceSummary){
-  const income=data.finance.filter(x=>x.kind==='إيراد').reduce((a,x)=>a+Number(x.amount||0),0);
-  const expense=data.finance.filter(x=>x.kind==='مصروف').reduce((a,x)=>a+Number(x.amount||0),0);
-  financeBox.innerHTML='<div class="dashboard-finance-line"><span>الإيرادات</span><b>'+money(income)+'</b></div><div class="dashboard-finance-line"><span>المصروفات</span><b>'+money(expense)+'</b></div><div class="dashboard-finance-line"><span>صافي الربح / الخسارة</span><b>'+money(income-expense)+'</b></div>';
- }
+ loadDashboardFinanceSummary();
 }
 function refresh(){let income=data.finance.filter(x=>x.kind==='إيراد').reduce((a,x)=>a+Number(x.amount),0),expense=data.finance.filter(x=>x.kind==='مصروف').reduce((a,x)=>a+Number(x.amount),0);$('sClients').textContent=data.clients.length;$('sLeads').textContent=data.clients.filter(x=>['عميل محتمل','تم التواصل'].includes(x.status)).length;$('sProjects').textContent=data.projects.filter(x=>x.status==='قيد التنفيذ').length;$('sBalance').textContent=money(income-expense);$('recentClients').innerHTML=table(['العميل','الحالة'],data.clients.slice(-5).reverse().map(x=>`<tr><td data-user-content>${esc(x.name)}</td><td>${esc(x.status)}</td></tr>`));$('income').textContent=money(income);$('expense').textContent=money(expense);$('balance').textContent=money(income-expense);$('transactions').textContent=data.finance.length;renderDashboardExtras();renderDashboardOperations();renderManagerSubscription();renderClients();renderProjects();renderContent();renderFinance()}
 function openModal(title,body,fn){$('modalTitle').textContent=title;$('modalBody').innerHTML=body;$('saveBtn').onclick=fn;$('modal').classList.add('show')}
@@ -2137,6 +2131,7 @@ function financeCanWrite(){return financeCanManage()||financeHasRole('accountant
 function financeCurrencyLabel(code){if(document.documentElement.lang==='en')return code||'';return ({EGP:'ج.م',SAR:'ر.س',AED:'د.إ',USD:'$',EUR:'€',GBP:'£'})[code]||code||''}
 function financeSetVisible(id,visible){const el=$(id);if(el)el.style.display=visible?'':'none'}
 let financeInvoices=[];
+let dashboardFinanceSummaryCache=null,dashboardFinanceSummaryCacheKey='',dashboardFinanceLoadPromise=null,dashboardFinanceLoadPromiseKey='';
 function financeInvoiceFillAccounts(){
  const assets=financeAccounts.filter(a=>a.is_active&&a.account_type==='asset');
  const receivables=assets.filter(a=>/(ذمم|عملاء|receivable|accounts receivable)/i.test(a.account_name||''));
@@ -2780,12 +2775,67 @@ async function loadFinanceWorkspace(showToast=false){
    $('financeProjectSummaryTable').innerHTML=table(['المشروع','الميزانية المسجلة','الإيرادات','المصروفات','الربحية','العملة'],financeProjectSummaries.map(x=>{const p=(data.projects||[]).find(y=>String(y.id)===String(x.project_ref));const budget=x.base_currency==='EGP'?Number(p?.value||0).toLocaleString('en-US',{minimumFractionDigits:2}):'غير متاح — محفوظ بالجنيه المصري';return '<tr><td>'+esc(p?.name||('مشروع '+x.project_ref))+'</td><td>'+budget+'</td><td>'+Number(x.revenue_base||0).toLocaleString('en-US',{minimumFractionDigits:2})+'</td><td>'+Number(x.expense_base||0).toLocaleString('en-US',{minimumFractionDigits:2})+'</td><td><b>'+Number(x.profit_base||0).toLocaleString('en-US',{minimumFractionDigits:2})+'</b></td><td>'+esc(x.base_currency||'')+'</td></tr>'}));
   }else financeProjectSummaries=[];
   if(financeCanManage())await loadFinanceMembers();
+  await loadDashboardFinanceSummary(true);
   if(showToast)alert('تم تحديث مساحة QENTRIVO FINANCE.');
  }catch(e){console.error(e);if($('financeJournalsTable'))$('financeJournalsTable').innerHTML='<div class="empty">تعذر تحميل البيانات المالية: '+esc(e.message||'')+'</div>';if(showToast)alert('تعذر تحديث QENTRIVO FINANCE: '+(e.message||'خطأ غير معروف'));}
 }
 function financeReportMoney(value,currency){
  const n=Number(value||0);
  return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+(currency||'');
+}
+function renderDashboardFinanceSummary(summary){
+ const box=$('dashboardFinanceSummary'),card=$('dashboardFinanceCard'),currencyLabel=$('dashboardFinanceCurrency');
+ if(!box||!card)return;
+ const locale=document.documentElement.lang==='en'?'en-US':'ar-EG',currency=summary.currency||'EGP';
+ const format=value=>Number(value||0).toLocaleString(locale,{minimumFractionDigits:2,maximumFractionDigits:2})+' '+financeCurrencyLabel(currency);
+ if(currencyLabel)currencyLabel.textContent=financeCurrencyLabel(currency);
+ box.innerHTML='<div class="dashboard-finance-line"><span>الإيرادات</span><b>'+format(summary.income)+'</b></div><div class="dashboard-finance-line"><span>المصروفات</span><b>'+format(summary.expense)+'</b></div><div class="dashboard-finance-line"><span>صافي الربح / الخسارة</span><b>'+format(summary.income-summary.expense)+'</b></div>';
+}
+async function loadDashboardFinanceSummary(force=false){
+ const box=$('dashboardFinanceSummary'),card=$('dashboardFinanceCard'),organizationId=currentOrganizationId,userId=currentUser?.id;
+ if(!box||!card||!organizationId||!userId)return;
+ const today=localDateKey(),yearStart=today.slice(0,4)+'-01-01',cacheKey=organizationId+'|'+userId+'|'+yearStart+'|'+today;
+ try{
+  if(!financeCanManage()&&!financeHasRole('accountant')){
+   const {data:roles,error:roleError}=await sb.from('finance_member_roles').select('finance_role').eq('organization_id',organizationId).eq('user_id',userId);
+   if(roleError)throw roleError;
+   if(currentOrganizationId!==organizationId||currentUser?.id!==userId)return;
+   financeRoles=roles||[];
+  }
+  const allowed=financeCanManage()||financeHasRole('accountant');card.style.display=allowed?'':'none';if(!allowed)return;
+  if(!force&&dashboardFinanceSummaryCacheKey===cacheKey&&dashboardFinanceSummaryCache){renderDashboardFinanceSummary(dashboardFinanceSummaryCache);return;}
+  if(dashboardFinanceLoadPromise&&dashboardFinanceLoadPromiseKey===cacheKey)return dashboardFinanceLoadPromise;
+  box.innerHTML='<div class="empty">جارٍ تجميع القيود المحاسبية المرحلة…</div>';dashboardFinanceLoadPromiseKey=cacheKey;
+  dashboardFinanceLoadPromise=(async()=>{
+   const [{data:settings,error:settingsError},{data:accounts,error:accountsError}]=await Promise.all([
+    sb.from('finance_settings').select('base_currency').eq('organization_id',organizationId).maybeSingle(),
+    sb.from('finance_accounts').select('id,account_type').eq('organization_id',organizationId)
+   ]);
+   if(settingsError)throw settingsError;if(accountsError)throw accountsError;
+   const accountTypes=new Map((accounts||[]).map(account=>[account.id,account.account_type])),journals=[];
+   for(let offset=0;;offset+=1000){
+    const {data,error}=await sb.from('finance_journals').select('id').eq('organization_id',organizationId).in('status',['posted','reversed']).gte('entry_date',yearStart).lte('entry_date',today).order('entry_date',{ascending:true}).range(offset,offset+999);
+    if(error)throw error;journals.push(...(data||[]));if(!data||data.length<1000)break;
+   }
+   let income=0,expense=0;
+   for(let batch=0;batch<journals.length;batch+=100){
+    const ids=journals.slice(batch,batch+100).map(journal=>journal.id);
+    for(let offset=0;;offset+=1000){
+     const {data,error}=await sb.from('finance_journal_lines').select('account_id,debit_base,credit_base').eq('organization_id',organizationId).in('journal_id',ids).range(offset,offset+999);
+     if(error)throw error;
+     for(const line of data||[]){const debit=Number(line.debit_base||0),credit=Number(line.credit_base||0),type=accountTypes.get(line.account_id);if(type==='revenue')income+=credit-debit;if(type==='expense')expense+=debit-credit;}
+     if(!data||data.length<1000)break;
+    }
+   }
+   return {income,expense,currency:settings?.base_currency||'EGP'};
+  })();
+  const summary=await dashboardFinanceLoadPromise;
+  if(currentOrganizationId!==organizationId||currentUser?.id!==userId)return;
+  dashboardFinanceSummaryCache=summary;dashboardFinanceSummaryCacheKey=cacheKey;renderDashboardFinanceSummary(summary);
+ }catch(error){
+  console.error('Dashboard finance summary:',error);
+  if(currentOrganizationId===organizationId&&currentUser?.id===userId)box.innerHTML='<div class="empty">تعذر تحميل الملخص المالي من القيود المحاسبية. افتح الحسابات لتحديث التقارير.</div>';
+ }finally{if(dashboardFinanceLoadPromiseKey===cacheKey){dashboardFinanceLoadPromise=null;dashboardFinanceLoadPromiseKey='';}}
 }
 async function loadFinanceReports(){
  if(!currentOrganizationId||!(financeCanManage()||financeHasRole('accountant')))return;
