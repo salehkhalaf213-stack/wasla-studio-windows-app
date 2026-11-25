@@ -26,13 +26,13 @@ for (const [label, ok] of checks) {
   if (!ok) failed = true;
 }
 
-if (!/<html\\b/i.test(html) || !/<\\/html\\s*>/i.test(html)) {
+if (!/<html\b/i.test(html) || !/<\/html\s*>/i.test(html)) {
   console.error('FAIL  HTML document boundaries');
   failed = true;
 }
 
-const jsonLdBlocks = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script\\s*>/gi)]
-  .filter(([, attrs]) => /type=["']application\\/ld\\+json["']/i.test(attrs));
+const jsonLdBlocks = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)]
+  .filter(([, attrs]) => /type=["']application\/ld\+json["']/i.test(attrs));
 
 for (let i = 0; i < jsonLdBlocks.length; i++) {
   try {
@@ -44,9 +44,9 @@ for (let i = 0; i < jsonLdBlocks.length; i++) {
   }
 }
 
-const executableScripts = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script\\s*>/gi)]
-  .filter(([, attrs]) => !/\\bsrc\\s*=/.test(attrs))
-  .filter(([, attrs]) => !/type=["']application\\/ld\\+json["']/i.test(attrs));
+const executableScripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)]
+  .filter(([, attrs]) => !/\bsrc\s*=/.test(attrs))
+  .filter(([, attrs]) => !/type=["']application\/ld\+json["']/i.test(attrs));
 
 if (executableScripts.length === 0) {
   console.error('FAIL  No inline application script found');
