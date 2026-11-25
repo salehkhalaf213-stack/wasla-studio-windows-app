@@ -58,6 +58,17 @@ jobs:
             WASLA_STUDIO_Desktop/QENTRIVO-Windows-Setup.exe
           if-no-files-found: error
 
+      - name: Publish Windows preview
+        if: github.ref == 'refs/heads/feature/wasla-web-v6'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: preview-${{ github.run_number }}
+          name: QENTRIVO Windows Preview #${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          make_latest: false
+          files: WASLA_STUDIO_Desktop/QENTRIVO-Windows-Setup.exe
+
       - name: Publish public Windows download
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
