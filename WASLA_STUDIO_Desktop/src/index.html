@@ -3263,44 +3263,47 @@ async function restoreFinanceBackup(financeCloud){
   if(await insertRow('finance_vendors',row)){vendorIds.add(row.id);add('finance_vendors');}else skip('finance_vendors');
  }
  const journalStatus=new Map(journalsNow.map(x=>[x.id,x.status]));
+ const restoredJournalIds=new Set();
  const journalNumbers=new Set(journalsNow.map(x=>x.entry_number));
  for(const row of rows('finance_journals')){
   if(row.status!=='draft'||row.reversal_of||row.created_by!==user){skip('finance_journals');continue;}
   if(journalStatus.has(row.id)||journalNumbers.has(row.entry_number)){skip('finance_journals');continue;}
-  if(await insertRow('finance_journals',row)){journalStatus.set(row.id,'draft');journalNumbers.add(row.entry_number);add('finance_journals');}else skip('finance_journals');
+  if(await insertRow('finance_journals',row)){journalStatus.set(row.id,'draft');restoredJournalIds.add(row.id);journalNumbers.add(row.entry_number);add('finance_journals');}else skip('finance_journals');
  }
  const journalLineIds=new Set(journalLinesNow.map(x=>x.id));
  for(const row of rows('finance_journal_lines')){
   if(journalLineIds.has(row.id)){skip('finance_journal_lines');continue;}
-  if(row.created_by!==user||journalStatus.get(row.journal_id)!=='draft'||!accountMap.has(row.account_id)){skip('finance_journal_lines');continue;}
+  if(row.created_by!==user||!restoredJournalIds.has(row.journal_id)||journalStatus.get(row.journal_id)!=='draft'||!accountMap.has(row.account_id)){skip('finance_journal_lines');continue;}
   if(await insertRow('finance_journal_lines', {...row,account_id:accountMap.get(row.account_id)})){journalLineIds.add(row.id);add('finance_journal_lines');}else skip('finance_journal_lines');
  }
  const invoiceStatus=new Map(invoicesNow.map(x=>[x.id,x.status]));
+ const restoredInvoiceIds=new Set();
  const invoiceNumbers=new Set(invoicesNow.map(x=>x.invoice_number));
  for(const row of rows('finance_invoices')){
   if(row.status!=='draft'||row.issued_journal_id||row.created_by!==user||(row.client_user_id&&row.client_user_id!==user)||!accountMap.has(row.receivable_account_id)){skip('finance_invoices');continue;}
   if(invoiceStatus.has(row.id)||invoiceNumbers.has(row.invoice_number)){skip('finance_invoices');continue;}
-  if(await insertRow('finance_invoices',{...row,receivable_account_id:accountMap.get(row.receivable_account_id)})){invoiceStatus.set(row.id,'draft');invoiceNumbers.add(row.invoice_number);add('finance_invoices');}else skip('finance_invoices');
+  if(await insertRow('finance_invoices',{...row,receivable_account_id:accountMap.get(row.receivable_account_id)})){invoiceStatus.set(row.id,'draft');restoredInvoiceIds.add(row.id);invoiceNumbers.add(row.invoice_number);add('finance_invoices');}else skip('finance_invoices');
  }
  const invoiceLineIds=new Set(invoiceLinesNow.map(x=>x.id));
  for(const row of rows('finance_invoice_lines')){
   if(invoiceLineIds.has(row.id)){skip('finance_invoice_lines');continue;}
-  if(row.created_by!==user||invoiceStatus.get(row.invoice_id)!=='draft'||!accountMap.has(row.revenue_account_id)){skip('finance_invoice_lines');continue;}
+  if(row.created_by!==user||!restoredInvoiceIds.has(row.invoice_id)||invoiceStatus.get(row.invoice_id)!=='draft'||!accountMap.has(row.revenue_account_id)){skip('finance_invoice_lines');continue;}
   if(await insertRow('finance_invoice_lines',{...row,revenue_account_id:accountMap.get(row.revenue_account_id)})){invoiceLineIds.add(row.id);add('finance_invoice_lines');}else skip('finance_invoice_lines');
  }
  const billStatus=new Map(billsNow.map(x=>[x.id,x.status]));
+ const restoredBillIds=new Set();
  const billNumbers=new Set(billsNow.map(x=>x.bill_number));
  for(const row of rows('finance_vendor_bills')){
   const vatAccount=row.vat_account_id;
   if(row.status!=='draft'||row.issued_journal_id||row.created_by!==user||!vendorIds.has(row.vendor_id)||!accountMap.has(row.payable_account_id)||(vatAccount&&!accountMap.has(vatAccount))){skip('finance_vendor_bills');continue;}
   if(billStatus.has(row.id)||billNumbers.has(row.bill_number)){skip('finance_vendor_bills');continue;}
   const payload={...row,payable_account_id:accountMap.get(row.payable_account_id),vat_account_id:vatAccount?accountMap.get(vatAccount):null};
-  if(await insertRow('finance_vendor_bills',payload)){billStatus.set(row.id,'draft');billNumbers.add(row.bill_number);add('finance_vendor_bills');}else skip('finance_vendor_bills');
+  if(await insertRow('finance_vendor_bills',payload)){billStatus.set(row.id,'draft');restoredBillIds.add(row.id);billNumbers.add(row.bill_number);add('finance_vendor_bills');}else skip('finance_vendor_bills');
  }
  const billLineIds=new Set(billLinesNow.map(x=>x.id));
  for(const row of rows('finance_vendor_bill_lines')){
   if(billLineIds.has(row.id)){skip('finance_vendor_bill_lines');continue;}
-  if(row.created_by!==user||billStatus.get(row.bill_id)!=='draft'||!accountMap.has(row.expense_account_id)){skip('finance_vendor_bill_lines');continue;}
+  if(row.created_by!==user||!restoredBillIds.has(row.bill_id)||billStatus.get(row.bill_id)!=='draft'||!accountMap.has(row.expense_account_id)){skip('finance_vendor_bill_lines');continue;}
   if(await insertRow('finance_vendor_bill_lines',{...row,expense_account_id:accountMap.get(row.expense_account_id)})){billLineIds.add(row.id);add('finance_vendor_bill_lines');}else skip('finance_vendor_bill_lines');
  }
  const lines=['نتيجة استعادة المركز المالي:'];
