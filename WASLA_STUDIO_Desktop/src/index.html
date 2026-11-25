@@ -939,7 +939,7 @@ function clearTenantState(){
  financeRoles=[];
  currentUser=null;currentRole=null;currentOrganizationId=null;currentOrganizationIsInternal=false;isPlatformAdmin=false;
  syncPlatformAdminVisibility();resetWorkspaceNavigation();
- KEY='wasla_mvp_02';data=JSON.parse(JSON.stringify(blank));
+ KEY='wasla_mvp_02';data=JSON.parse(JSON.stringify(blank));lastSyncedData=JSON.parse(JSON.stringify(blank));
 }
 function persist(){localDataRevision++;localStorage.setItem(KEY,JSON.stringify(data));refresh();if(currentUser)scheduleCloudSave()}
 function setSync(message,isError=false){const el=$('syncStatus');if(el){el.textContent=message;el.style.background=isError?'#fff0ed':'#e7f5d6';el.style.color=isError?'#a33b2c':'#496b1d'}}
