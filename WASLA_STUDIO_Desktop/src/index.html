@@ -3201,7 +3201,7 @@ async function restoreFinanceBackup(financeCloud){
  for(const table of excluded)skip(table,rows(table).length);
  const [settingsNow,accountsNow,vendorsNow,journalsNow,journalLinesNow,invoicesNow,invoiceLinesNow,billsNow,billLinesNow]=await Promise.all([
   sb.from('finance_settings').select('organization_id').eq('organization_id',org).maybeSingle(),
-  financeFetchAllRows(sb.from('finance_accounts').select('id,account_code,account_type,parent_id').eq('organization_id',org)),
+  financeFetchAllRows(sb.from('finance_accounts').select('id,account_code,account_name,account_type,parent_id').eq('organization_id',org)),
   financeFetchAllRows(sb.from('finance_vendors').select('id').eq('organization_id',org)),
   financeFetchAllRows(sb.from('finance_journals').select('id,entry_number,status').eq('organization_id',org)),
   financeFetchAllRows(sb.from('finance_journal_lines').select('id').eq('organization_id',org)),
@@ -3236,7 +3236,7 @@ async function restoreFinanceBackup(financeCloud){
   }else{
    const sameCode=accountByCode.get(row.account_code);
    if(sameCode){
-    if(sameCode.account_type===row.account_type)accountMap.set(row.id,sameCode.id);
+    if(sameCode.account_type===row.account_type&&sameCode.account_name===row.account_name)accountMap.set(row.id,sameCode.id);
     skip('finance_accounts');
    }
   }
