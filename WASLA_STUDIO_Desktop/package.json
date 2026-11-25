@@ -1,7 +1,7 @@
 {
   "name": "qentrivo-desktop",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "QENTRIVO Windows desktop application",
   "scripts": {
     "dev": "node scripts/dev-server.mjs",
