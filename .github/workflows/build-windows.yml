@@ -9,7 +9,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-windows:
@@ -39,9 +39,27 @@ jobs:
       - name: Build Windows EXE
         run: npm run tauri -- build --bundles nsis
 
+      - name: Prepare public installer
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe" | Select-Object -First 1
+          if (-not $installer) { throw "Windows installer was not generated." }
+          Copy-Item $installer.FullName "QENTRIVO-Windows-Setup.exe"
+
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: QENTRIVO-Windows-Installer
-          path: WASLA_STUDIO_Desktop/src-tauri/target/release/bundle/nsis/*.exe
+          path: |
+            WASLA_STUDIO_Desktop/src-tauri/target/release/bundle/nsis/*.exe
+            WASLA_STUDIO_Desktop/QENTRIVO-Windows-Setup.exe
           if-no-files-found: error
+
+      - name: Publish public Windows download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.1.${{ github.run_number }}
+          name: QENTRIVO Windows v1.1.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          files: WASLA_STUDIO_Desktop/QENTRIVO-Windows-Setup.exe
