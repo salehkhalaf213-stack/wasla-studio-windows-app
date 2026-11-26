@@ -3217,6 +3217,7 @@ async function restoreFinanceBackup(financeCloud){
  for(const table of FINANCE_BACKUP_TABLES){counts[table]={added:0,skipped:0};skippedReasons[table]={};}
  const rows=table=>Array.isArray(tables[table])?tables[table]:[];
  const skip=(table,n=1,reason='لم يستوفِ السجل شروط الاستعادة الآمنة أو تعذر إدخاله.')=>{
+  if(!Number.isFinite(n)||n<=0)return;
   counts[table].skipped+=n;
   skippedReasons[table][reason]=(skippedReasons[table][reason]||0)+n;
  };
