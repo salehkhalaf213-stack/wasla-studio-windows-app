@@ -3186,6 +3186,23 @@ async function exportData(){
 function isValidBackupPayload(value){
  return !!value&&typeof value==='object'&&!Array.isArray(value)&&['clients','projects','contents','finance'].every(key=>Array.isArray(value[key]));
 }
+function validateFinanceBackupEnvelope(financeCloud){
+ if(!financeCloud||typeof financeCloud!=='object'||Array.isArray(financeCloud))throw new Error('قسم النسخة المالية غير صالح.');
+ if(financeCloud.schemaVersion!==1)throw new Error('إصدار مخطط النسخة المالية غير مدعوم.');
+ if(financeCloud.organizationId!==currentOrganizationId)throw new Error('النسخة المالية تخص مؤسسة أخرى أو لا تحتوي على معرّف مؤسسة صحيح.');
+ if(!financeCloud.tables||typeof financeCloud.tables!=='object'||Array.isArray(financeCloud.tables))throw new Error('جداول المركز المالي غير موجودة أو غير صالحة.');
+ const missing=FINANCE_BACKUP_TABLES.filter(table=>!Array.isArray(financeCloud.tables[table]));
+ if(missing.length)throw new Error('النسخة المالية غير مكتملة. الجداول المفقودة أو غير الصالحة: '+missing.join('، '));
+ for(const table of FINANCE_BACKUP_TABLES){
+  const rows=financeCloud.tables[table];
+  for(let i=0;i<rows.length;i++){
+   const row=rows[i];
+   if(!row||typeof row!=='object'||Array.isArray(row))throw new Error('يوجد سجل غير صالح في جدول '+table+' (السجل '+(i+1)+').');
+   if(row.organization_id!==currentOrganizationId)throw new Error('يوجد سجل في جدول '+table+' لا ينتمي إلى المؤسسة المحددة في النسخة.');
+  }
+ }
+ return true;
+}
 async function restoreFinanceBackup(financeCloud){
  const tables=financeCloud&&financeCloud.tables;
  if(!tables||typeof tables!=='object'||Array.isArray(tables))throw new Error('قسم النسخة المالية غير صالح.');
@@ -3325,7 +3342,7 @@ async function importData(e){
   if(!isValidBackupPayload(restored))throw new Error('بنية ملف النسخة غير مكتملة أو غير صالحة.');
   if(isEnvelope&&parsed.organizationId&&currentOrganizationId&&parsed.organizationId!==currentOrganizationId)throw new Error('هذه النسخة تخص مؤسسة أخرى، ولا يمكن استعادتها داخل هذه المؤسسة.');
   if(!currentUser||!currentOrganizationId)throw new Error('يجب تسجيل الدخول إلى مساحة المؤسسة قبل استعادة البيانات.');
-  if(restored.financeCloud&&(!restored.financeCloud.tables||restored.financeCloud.organizationId!==currentOrganizationId))throw new Error('بيانات المركز المالي في الملف غير صالحة أو تخص مؤسسة أخرى.');
+  if(restored.financeCloud)validateFinanceBackupEnvelope(restored.financeCloud);
   if(!confirm('سيتم تنزيل نسخة أمان كاملة أولاً، ثم استبدال العملاء والمشاريع والمحتوى والأرشيف المالي المحلي فقط. ستُضاف السجلات المالية القابلة للاستعادة بأمان فقط، ولن يُحذف أو يُعدّل أي سجل مالي موجود. القيود المرحلة والفواتير الصادرة والمدفوعات وسجل التدقيق وصلاحيات الأعضاء ستبقى داخل ملف النسخة ولن تُعاد إدخالها. هل تريد المتابعة؟'))return;
   clearTimeout(cloudSaveTimer);cloudSaveTimer=null;
   const beforeRestore=JSON.parse(JSON.stringify(data));
