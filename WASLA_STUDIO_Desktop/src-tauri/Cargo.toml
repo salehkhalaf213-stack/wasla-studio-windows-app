@@ -10,7 +10,7 @@ name = "wasla_studio_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
-default = ["updater"]
+default = []
 updater = ["dep:tauri-plugin-updater"]
 portable = []
 
