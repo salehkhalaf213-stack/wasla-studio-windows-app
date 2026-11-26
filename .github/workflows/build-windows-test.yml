@@ -1,0 +1,71 @@
+name: Build QENTRIVO isolated Windows test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - test/windows-isolated-supabase
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: WASLA_STUDIO_Desktop
+    steps:
+      - name: Checkout isolated test branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: WASLA_STUDIO_Desktop/package.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Verify isolated test source
+        run: npm run build
+
+      - name: Build isolated portable executable (no updater)
+        run: npm run tauri -- build --no-bundle --features portable
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+
+      - name: Package isolated test ZIP
+        shell: pwsh
+        run: |
+          $appExe = "src-tauri/target/release/wasla-studio.exe"
+          if (-not (Test-Path $appExe)) { throw "Test executable was not generated: $appExe" }
+          $version = (Get-Content "src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json).version
+          $folder = "QENTRIVO-TEST-$version"
+          if (Test-Path $folder) { Remove-Item $folder -Recurse -Force }
+          New-Item -ItemType Directory -Path $folder | Out-Null
+          Copy-Item $appExe "$folder/QENTRIVO-TEST.exe"
+          @"
+          QENTRIVO ISOLATED WINDOWS TEST
+
+          This build uses the separate Supabase TEST project only.
+          It has a separate Windows application identity and does not overwrite the installed QENTRIVO application.
+          Automatic updates are disabled in this test build.
+          Do not use production credentials or production data.
+          Create or invite a dedicated test user in the TEST Supabase project before signing in.
+          "@ | Set-Content "$folder/README.txt" -Encoding utf8
+          Compress-Archive -Path "$folder/*" -DestinationPath "QENTRIVO-TEST-$version-Portable.zip" -CompressionLevel Optimal
+          if ((Get-Item "QENTRIVO-TEST-$version-Portable.zip").Length -lt 100000) { throw "Test ZIP is unexpectedly small." }
+
+      - name: Upload isolated test ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: QENTRIVO-ISOLATED-TEST-WINDOWS
+          path: WASLA_STUDIO_Desktop/QENTRIVO-TEST-*-Portable.zip
+          if-no-files-found: error
+          retention-days: 14
