@@ -3331,11 +3331,29 @@ async function restoreFinanceBackup(financeCloud){
   if(row.created_by!==user||!restoredBillIds.has(row.bill_id)||billStatus.get(row.bill_id)!=='draft'||!accountMap.has(row.expense_account_id)){skip('finance_vendor_bill_lines',1,'فاتورة المورد الأب لم تُستعد كمسودة مؤهلة، أو أن حساب المصروف غير متاح.');continue;}
   if(await insertRow('finance_vendor_bill_lines',{...row,expense_account_id:accountMap.get(row.expense_account_id)})){billLineIds.add(row.id);add('finance_vendor_bill_lines');}else skip('finance_vendor_bill_lines',1,insertErrors.finance_vendor_bill_lines||'تعذر إدخال بند فاتورة المورد.');
  }
- const lines=['نتيجة استعادة المركز المالي:'];
+ const tableLabels={
+  finance_settings:'إعدادات المركز المالي',
+  finance_member_roles:'صلاحيات أعضاء المالية',
+  finance_project_access:'صلاحيات الوصول للمشروعات',
+  finance_accounts:'دليل الحسابات',
+  finance_journals:'قيود اليومية',
+  finance_journal_lines:'بنود قيود اليومية',
+  finance_invoices:'فواتير العملاء',
+  finance_invoice_lines:'بنود فواتير العملاء',
+  finance_invoice_payments:'مدفوعات فواتير العملاء',
+  finance_vendors:'الموردون',
+  finance_vendor_bills:'فواتير الموردين',
+  finance_vendor_bill_lines:'بنود فواتير الموردين',
+  finance_vendor_bill_payments:'مدفوعات فواتير الموردين',
+  finance_audit_log:'سجل التدقيق'
+ };
+ const totalAdded=Object.values(counts).reduce((sum,c)=>sum+c.added,0);
+ const totalSkipped=Object.values(counts).reduce((sum,c)=>sum+c.skipped,0);
+ const lines=['نتيجة استعادة المركز المالي:','إجمالي السجلات المضافة: '+totalAdded,'إجمالي السجلات التي تم تجاوزها: '+totalSkipped];
  for(const table of FINANCE_BACKUP_TABLES){
-  const c=counts[table];
-  if(c.added||c.skipped)lines.push(table+': أُضيف '+c.added+'، تم تجاوز '+c.skipped);
-  for(const [reason,n] of Object.entries(skippedReasons[table]))lines.push('  سبب التجاوز ('+table+') — '+reason+': '+n);
+  const c=counts[table],label=tableLabels[table]||table;
+  if(c.added||c.skipped)lines.push(label+': أُضيف '+c.added+'، تم تجاوز '+c.skipped);
+  for(const [reason,n] of Object.entries(skippedReasons[table]))lines.push('  سبب التجاوز — '+reason+' (عدد السجلات: '+n+')');
  }
  return lines.join('\n');
 }
