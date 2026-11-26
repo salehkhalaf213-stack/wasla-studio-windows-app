@@ -39,8 +39,8 @@ jobs:
       - name: Verify desktop HTML and inline JavaScript
         run: npm run build
 
-      - name: Build signed Windows installer and portable app
-        run: npm run tauri -- build --bundles nsis,app
+      - name: Build signed Windows installer
+        run: npm run tauri -- build --bundles nsis
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -55,17 +55,28 @@ jobs:
       - name: Package portable ZIP
         shell: pwsh
         run: |
-          $appBundle = "src-tauri/target/release/bundle/app"
-          if (-not (Test-Path $appBundle)) { throw "Tauri Windows app bundle was not generated: $appBundle" }
-          $appExe = Get-ChildItem $appBundle -Recurse -Filter "QENTRIVO.exe" | Select-Object -First 1
-          if (-not $appExe) { throw "QENTRIVO.exe was not found in the portable app bundle." }
+          $appExe = "src-tauri/target/release/wasla-studio.exe"
+          if (-not (Test-Path $appExe)) { throw "Portable executable was not generated: $appExe" }
+          $portableDir = "QENTRIVO-1.1.2-Portable"
+          if (Test-Path $portableDir) { Remove-Item $portableDir -Recurse -Force }
+          New-Item -ItemType Directory -Path $portableDir | Out-Null
+          Copy-Item $appExe "$portableDir/QENTRIVO.exe"
+          @"
+          QENTRIVO Windows Portable
+          
+          Run QENTRIVO.exe to start the application.
+          The application interface and web assets are embedded in the executable.
+          Microsoft Edge WebView2 Runtime is required on Windows.
+          This portable package does not uninstall or overwrite an existing installation.
+          Your existing application data and cloud records are not included in this ZIP.
+          "@ | Set-Content "$portableDir/README.txt" -Encoding utf8
           $portableZip = "QENTRIVO-1.1.2-Portable.zip"
           if (Test-Path $portableZip) { Remove-Item $portableZip -Force }
-          Compress-Archive -Path "$appBundle/*" -DestinationPath $portableZip -CompressionLevel Optimal
+          Compress-Archive -Path "$portableDir/*" -DestinationPath $portableZip -CompressionLevel Optimal
           if (-not (Test-Path $portableZip) -or (Get-Item $portableZip).Length -lt 100000) {
             throw "Portable ZIP is missing or unexpectedly small."
           }
-          Write-Host "Portable executable: $($appExe.FullName)"
+          Write-Host "Portable executable: $appExe"
           Write-Host "Portable ZIP size: $((Get-Item $portableZip).Length) bytes"
 
       - name: Create Tauri updater manifest
