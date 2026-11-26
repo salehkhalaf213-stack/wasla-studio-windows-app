@@ -39,8 +39,8 @@ jobs:
       - name: Verify desktop HTML and inline JavaScript
         run: npm run build
 
-      - name: Build signed Windows updater
-        run: npm run tauri -- build --bundles nsis
+      - name: Build signed Windows installer and portable app
+        run: npm run tauri -- build --bundles nsis,app
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -51,6 +51,22 @@ jobs:
           $installer = Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe" | Select-Object -First 1
           if (-not $installer) { throw "Windows installer was not generated." }
           Copy-Item $installer.FullName "QENTRIVO-Windows-Setup.exe"
+
+      - name: Package portable ZIP
+        shell: pwsh
+        run: |
+          $appBundle = "src-tauri/target/release/bundle/app"
+          if (-not (Test-Path $appBundle)) { throw "Tauri Windows app bundle was not generated: $appBundle" }
+          $appExe = Get-ChildItem $appBundle -Recurse -Filter "QENTRIVO.exe" | Select-Object -First 1
+          if (-not $appExe) { throw "QENTRIVO.exe was not found in the portable app bundle." }
+          $portableZip = "QENTRIVO-1.1.2-Portable.zip"
+          if (Test-Path $portableZip) { Remove-Item $portableZip -Force }
+          Compress-Archive -Path "$appBundle/*" -DestinationPath $portableZip -CompressionLevel Optimal
+          if (-not (Test-Path $portableZip) -or (Get-Item $portableZip).Length -lt 100000) {
+            throw "Portable ZIP is missing or unexpectedly small."
+          }
+          Write-Host "Portable executable: $($appExe.FullName)"
+          Write-Host "Portable ZIP size: $((Get-Item $portableZip).Length) bytes"
 
       - name: Create Tauri updater manifest
         shell: pwsh
@@ -76,7 +92,7 @@ jobs:
           }
           $manifest | ConvertTo-Json -Depth 8 | Set-Content "latest.json" -Encoding utf8
 
-      - name: Upload installer and updater files
+      - name: Upload installer, portable ZIP and updater files
         uses: actions/upload-artifact@v4
         with:
           name: QENTRIVO-Windows-Installer
@@ -84,6 +100,7 @@ jobs:
             WASLA_STUDIO_Desktop/src-tauri/target/release/bundle/nsis/*.exe
             WASLA_STUDIO_Desktop/src-tauri/target/release/bundle/nsis/*.exe.sig
             WASLA_STUDIO_Desktop/QENTRIVO-Windows-Setup.exe
+            WASLA_STUDIO_Desktop/QENTRIVO-1.1.2-Portable.zip
             WASLA_STUDIO_Desktop/latest.json
           if-no-files-found: error
 
@@ -96,7 +113,9 @@ jobs:
           target_commitish: ${{ github.sha }}
           prerelease: true
           make_latest: false
-          files: WASLA_STUDIO_Desktop/QENTRIVO-Windows-Setup.exe
+          files: |
+            WASLA_STUDIO_Desktop/QENTRIVO-Windows-Setup.exe
+            WASLA_STUDIO_Desktop/QENTRIVO-1.1.2-Portable.zip
 
       - name: Publish automatic updater feed
         if: github.ref == 'refs/heads/feature/wasla-web-v6'
@@ -123,4 +142,5 @@ jobs:
           make_latest: true
           files: |
             WASLA_STUDIO_Desktop/QENTRIVO-Windows-Setup.exe
+            WASLA_STUDIO_Desktop/QENTRIVO-1.1.2-Portable.zip
             WASLA_STUDIO_Desktop/src-tauri/target/release/bundle/nsis/*.exe.sig
