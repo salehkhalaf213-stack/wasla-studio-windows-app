@@ -3209,9 +3209,14 @@ async function restoreFinanceBackup(financeCloud){
  if(financeCloud.organizationId&&financeCloud.organizationId!==currentOrganizationId)throw new Error('النسخة المالية تخص مؤسسة أخرى.');
  if(!financeCanManage())throw new Error('استعادة البيانات المالية تتطلب صلاحية مالك المؤسسة أو مديرها.');
  const counts={};
- for(const table of FINANCE_BACKUP_TABLES)counts[table]={added:0,skipped:0};
+ const skippedReasons={};
+ const insertErrors={};
+ for(const table of FINANCE_BACKUP_TABLES){counts[table]={added:0,skipped:0};skippedReasons[table]={};}
  const rows=table=>Array.isArray(tables[table])?tables[table]:[];
- const skip=(table,n=1)=>{counts[table].skipped+=n;};
+ const skip=(table,n=1,reason='لم يستوفِ السجل شروط الاستعادة الآمنة أو تعذر إدخاله.')=>{
+  counts[table].skipped+=n;
+  skippedReasons[table][reason]=(skippedReasons[table][reason]||0)+n;
+ };
  const add=table=>{counts[table].added++;};
  const org=currentOrganizationId,user=currentUser.id;
  const excluded=['finance_member_roles','finance_project_access','finance_invoice_payments','finance_vendor_bill_payments','finance_audit_log'];
@@ -3231,15 +3236,15 @@ async function restoreFinanceBackup(financeCloud){
  const insertRow=async(table,row)=>{
   const payload={...row,organization_id:org};
   const result=await sb.from(table).insert(payload);
-  if(result.error)return false;
+  if(result.error){insertErrors[table]=result.error.message||'رفضت قاعدة البيانات إدخال السجل.';return false;}
   return true;
  };
  if(rows('finance_settings').length){
   if(settingsNow.data)skip('finance_settings',rows('finance_settings').length);
   else{
    const source=rows('finance_settings')[0];
-   if(await insertRow('finance_settings',source))add('finance_settings');else skip('finance_settings');
-   if(rows('finance_settings').length>1)skip('finance_settings',rows('finance_settings').length-1);
+   if(await insertRow('finance_settings',source))add('finance_settings');else skip('finance_settings',1,insertErrors.finance_settings||'تعذر إدخال إعدادات المركز المالي.');
+   if(rows('finance_settings').length>1)skip('finance_settings',rows('finance_settings').length-1,'يوجد أكثر من سجل إعدادات؛ يُسمح باستعادة سجل واحد فقط.');
   }
  }
  const accountMap=new Map(accountsNow.map(x=>[x.id,x.id]));
@@ -3249,12 +3254,12 @@ async function restoreFinanceBackup(financeCloud){
   const sameId=accountsNow.find(x=>x.id===row.id);
   if(sameId){
    if(sameId.account_code===row.account_code&&sameId.account_type===row.account_type)accountMap.set(row.id,sameId.id);
-   skip('finance_accounts');
+   skip('finance_accounts',1,'الحساب موجود مسبقًا بالمعرّف نفسه؛ لم تتم الكتابة فوقه.');
   }else{
    const sameCode=accountByCode.get(row.account_code);
    if(sameCode){
     if(sameCode.account_type===row.account_type&&sameCode.account_name===row.account_name)accountMap.set(row.id,sameCode.id);
-    skip('finance_accounts');
+    skip('finance_accounts',1,'يوجد حساب بنفس كود الحساب؛ لم تتم إضافة نسخة مكررة.');
    }
   }
  }
@@ -3272,61 +3277,62 @@ async function restoreFinanceBackup(financeCloud){
    }
   }
  }
- skip('finance_accounts',pendingAccounts.length);
+ skip('finance_accounts',pendingAccounts.length,'تعذر استعادة الحساب بسبب عدم توفر الحساب الأب أو تعارض في بنية دليل الحسابات.');
  const vendorIds=new Set(vendorsNow.map(x=>x.id));
  for(const row of rows('finance_vendors')){
-  if(vendorIds.has(row.id)){skip('finance_vendors');continue;}
-  if(row.created_by!==user){skip('finance_vendors');continue;}
-  if(await insertRow('finance_vendors',row)){vendorIds.add(row.id);add('finance_vendors');}else skip('finance_vendors');
+  if(vendorIds.has(row.id)){skip('finance_vendors',1,'المورد موجود مسبقًا.');continue;}
+  if(row.created_by!==user){skip('finance_vendors',1,'المورد لم ينشئه المستخدم الحالي.');continue;}
+  if(await insertRow('finance_vendors',row)){vendorIds.add(row.id);add('finance_vendors');}else skip('finance_vendors',1,insertErrors.finance_vendors||'تعذر إدخال المورد.');
  }
  const journalStatus=new Map(journalsNow.map(x=>[x.id,x.status]));
  const restoredJournalIds=new Set();
  const journalNumbers=new Set(journalsNow.map(x=>x.entry_number));
  for(const row of rows('finance_journals')){
-  if(row.status!=='draft'||row.reversal_of||row.created_by!==user){skip('finance_journals');continue;}
-  if(journalStatus.has(row.id)||journalNumbers.has(row.entry_number)){skip('finance_journals');continue;}
-  if(await insertRow('finance_journals',row)){journalStatus.set(row.id,'draft');restoredJournalIds.add(row.id);journalNumbers.add(row.entry_number);add('finance_journals');}else skip('finance_journals');
+  if(row.status!=='draft'||row.reversal_of||row.created_by!==user){skip('finance_journals',1,'القيد ليس مسودة مؤهلة أنشأها المستخدم الحالي، أو أنه مرتبط بعكس محاسبي.');continue;}
+  if(journalStatus.has(row.id)||journalNumbers.has(row.entry_number)){skip('finance_journals',1,'معرّف القيد أو رقمه موجود مسبقًا.');continue;}
+  if(await insertRow('finance_journals',row)){journalStatus.set(row.id,'draft');restoredJournalIds.add(row.id);journalNumbers.add(row.entry_number);add('finance_journals');}else skip('finance_journals',1,insertErrors.finance_journals||'تعذر إدخال مسودة القيد.');
  }
  const journalLineIds=new Set(journalLinesNow.map(x=>x.id));
  for(const row of rows('finance_journal_lines')){
-  if(journalLineIds.has(row.id)){skip('finance_journal_lines');continue;}
-  if(row.created_by!==user||!restoredJournalIds.has(row.journal_id)||journalStatus.get(row.journal_id)!=='draft'||!accountMap.has(row.account_id)){skip('finance_journal_lines');continue;}
-  if(await insertRow('finance_journal_lines', {...row,account_id:accountMap.get(row.account_id)})){journalLineIds.add(row.id);add('finance_journal_lines');}else skip('finance_journal_lines');
+  if(journalLineIds.has(row.id)){skip('finance_journal_lines',1,'بند القيد موجود مسبقًا.');continue;}
+  if(row.created_by!==user||!restoredJournalIds.has(row.journal_id)||journalStatus.get(row.journal_id)!=='draft'||!accountMap.has(row.account_id)){skip('finance_journal_lines',1,'القيد الأب لم يُستعد كمسودة مؤهلة، أو أن الحساب المرتبط غير متاح.');continue;}
+  if(await insertRow('finance_journal_lines', {...row,account_id:accountMap.get(row.account_id)})){journalLineIds.add(row.id);add('finance_journal_lines');}else skip('finance_journal_lines',1,insertErrors.finance_journal_lines||'تعذر إدخال بند القيد.');
  }
  const invoiceStatus=new Map(invoicesNow.map(x=>[x.id,x.status]));
  const restoredInvoiceIds=new Set();
  const invoiceNumbers=new Set(invoicesNow.map(x=>x.invoice_number));
  for(const row of rows('finance_invoices')){
-  if(row.status!=='draft'||row.issued_journal_id||row.created_by!==user||(row.client_user_id&&row.client_user_id!==user)||!accountMap.has(row.receivable_account_id)){skip('finance_invoices');continue;}
-  if(invoiceStatus.has(row.id)||invoiceNumbers.has(row.invoice_number)){skip('finance_invoices');continue;}
-  if(await insertRow('finance_invoices',{...row,receivable_account_id:accountMap.get(row.receivable_account_id)})){invoiceStatus.set(row.id,'draft');restoredInvoiceIds.add(row.id);invoiceNumbers.add(row.invoice_number);add('finance_invoices');}else skip('finance_invoices');
+  if(row.status!=='draft'||row.issued_journal_id||row.created_by!==user||(row.client_user_id&&row.client_user_id!==user)||!accountMap.has(row.receivable_account_id)){skip('finance_invoices',1,'الفاتورة ليست مسودة مؤهلة للمستخدم الحالي، أو أن حساب العميل غير متاح.');continue;}
+  if(invoiceStatus.has(row.id)||invoiceNumbers.has(row.invoice_number)){skip('finance_invoices',1,'معرّف الفاتورة أو رقمها موجود مسبقًا.');continue;}
+  if(await insertRow('finance_invoices',{...row,receivable_account_id:accountMap.get(row.receivable_account_id)})){invoiceStatus.set(row.id,'draft');restoredInvoiceIds.add(row.id);invoiceNumbers.add(row.invoice_number);add('finance_invoices');}else skip('finance_invoices',1,insertErrors.finance_invoices||'تعذر إدخال مسودة الفاتورة.');
  }
  const invoiceLineIds=new Set(invoiceLinesNow.map(x=>x.id));
  for(const row of rows('finance_invoice_lines')){
-  if(invoiceLineIds.has(row.id)){skip('finance_invoice_lines');continue;}
-  if(row.created_by!==user||!restoredInvoiceIds.has(row.invoice_id)||invoiceStatus.get(row.invoice_id)!=='draft'||!accountMap.has(row.revenue_account_id)){skip('finance_invoice_lines');continue;}
-  if(await insertRow('finance_invoice_lines',{...row,revenue_account_id:accountMap.get(row.revenue_account_id)})){invoiceLineIds.add(row.id);add('finance_invoice_lines');}else skip('finance_invoice_lines');
+  if(invoiceLineIds.has(row.id)){skip('finance_invoice_lines',1,'بند الفاتورة موجود مسبقًا.');continue;}
+  if(row.created_by!==user||!restoredInvoiceIds.has(row.invoice_id)||invoiceStatus.get(row.invoice_id)!=='draft'||!accountMap.has(row.revenue_account_id)){skip('finance_invoice_lines',1,'الفاتورة الأب لم تُستعد كمسودة مؤهلة، أو أن حساب الإيراد غير متاح.');continue;}
+  if(await insertRow('finance_invoice_lines',{...row,revenue_account_id:accountMap.get(row.revenue_account_id)})){invoiceLineIds.add(row.id);add('finance_invoice_lines');}else skip('finance_invoice_lines',1,insertErrors.finance_invoice_lines||'تعذر إدخال بند الفاتورة.');
  }
  const billStatus=new Map(billsNow.map(x=>[x.id,x.status]));
  const restoredBillIds=new Set();
  const billNumbers=new Set(billsNow.map(x=>x.bill_number));
  for(const row of rows('finance_vendor_bills')){
   const vatAccount=row.vat_account_id;
-  if(row.status!=='draft'||row.issued_journal_id||row.created_by!==user||!vendorIds.has(row.vendor_id)||!accountMap.has(row.payable_account_id)||(vatAccount&&!accountMap.has(vatAccount))){skip('finance_vendor_bills');continue;}
-  if(billStatus.has(row.id)||billNumbers.has(row.bill_number)){skip('finance_vendor_bills');continue;}
+  if(row.status!=='draft'||row.issued_journal_id||row.created_by!==user||!vendorIds.has(row.vendor_id)||!accountMap.has(row.payable_account_id)||(vatAccount&&!accountMap.has(vatAccount))){skip('finance_vendor_bills',1,'فاتورة المورد ليست مسودة مؤهلة، أو أن المورد/حساب الالتزام/حساب الضريبة غير متاح.');continue;}
+  if(billStatus.has(row.id)||billNumbers.has(row.bill_number)){skip('finance_vendor_bills',1,'معرّف فاتورة المورد أو رقمها موجود مسبقًا.');continue;}
   const payload={...row,payable_account_id:accountMap.get(row.payable_account_id),vat_account_id:vatAccount?accountMap.get(vatAccount):null};
-  if(await insertRow('finance_vendor_bills',payload)){billStatus.set(row.id,'draft');restoredBillIds.add(row.id);billNumbers.add(row.bill_number);add('finance_vendor_bills');}else skip('finance_vendor_bills');
+  if(await insertRow('finance_vendor_bills',payload)){billStatus.set(row.id,'draft');restoredBillIds.add(row.id);billNumbers.add(row.bill_number);add('finance_vendor_bills');}else skip('finance_vendor_bills',1,insertErrors.finance_vendor_bills||'تعذر إدخال مسودة فاتورة المورد.');
  }
  const billLineIds=new Set(billLinesNow.map(x=>x.id));
  for(const row of rows('finance_vendor_bill_lines')){
-  if(billLineIds.has(row.id)){skip('finance_vendor_bill_lines');continue;}
-  if(row.created_by!==user||!restoredBillIds.has(row.bill_id)||billStatus.get(row.bill_id)!=='draft'||!accountMap.has(row.expense_account_id)){skip('finance_vendor_bill_lines');continue;}
-  if(await insertRow('finance_vendor_bill_lines',{...row,expense_account_id:accountMap.get(row.expense_account_id)})){billLineIds.add(row.id);add('finance_vendor_bill_lines');}else skip('finance_vendor_bill_lines');
+  if(billLineIds.has(row.id)){skip('finance_vendor_bill_lines',1,'بند فاتورة المورد موجود مسبقًا.');continue;}
+  if(row.created_by!==user||!restoredBillIds.has(row.bill_id)||billStatus.get(row.bill_id)!=='draft'||!accountMap.has(row.expense_account_id)){skip('finance_vendor_bill_lines',1,'فاتورة المورد الأب لم تُستعد كمسودة مؤهلة، أو أن حساب المصروف غير متاح.');continue;}
+  if(await insertRow('finance_vendor_bill_lines',{...row,expense_account_id:accountMap.get(row.expense_account_id)})){billLineIds.add(row.id);add('finance_vendor_bill_lines');}else skip('finance_vendor_bill_lines',1,insertErrors.finance_vendor_bill_lines||'تعذر إدخال بند فاتورة المورد.');
  }
  const lines=['نتيجة استعادة المركز المالي:'];
  for(const table of FINANCE_BACKUP_TABLES){
   const c=counts[table];
   if(c.added||c.skipped)lines.push(table+': أُضيف '+c.added+'، تم تجاوز '+c.skipped);
+  for(const [reason,n] of Object.entries(skippedReasons[table]))lines.push('  سبب التجاوز ('+table+') — '+reason+': '+n);
  }
  return lines.join('\n');
 }
