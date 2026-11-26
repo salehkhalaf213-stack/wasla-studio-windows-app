@@ -1,9 +1,13 @@
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_updater::Builder::new().build())
+    let builder = tauri::Builder::default();
+
+    #[cfg(feature = "updater")]
+    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+
+    builder
         .setup(|app| {
-            #[cfg(not(debug_assertions))]
+            #[cfg(all(not(debug_assertions), feature = "updater"))]
             {
                 use tauri_plugin_updater::UpdaterExt;
 
@@ -35,6 +39,11 @@ pub fn run() {
                         }
                     }
                 });
+            }
+
+            #[cfg(feature = "portable")]
+            {
+                println!("QENTRIVO portable build: installer-based updater is disabled.");
             }
 
             Ok(())
