@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "QENTRIVO",
-  "version": "1.1.5",
-  "identifier": "com.waslastudio.workspace",
+  "productName": "QENTRIVO TEST",
+  "version": "1.1.5-test.1",
+  "identifier": "com.qentrivo.workspace.test",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://127.0.0.1:1420",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "QENTRIVO | Workspace",
+        "title": "QENTRIVO TEST | Isolated Workspace",
         "width": 1440,
         "height": 920,
         "minWidth": 1080,
@@ -27,17 +27,12 @@
       "csp": null
     }
   },
-  "plugins": {
-    "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IEQ1RDFDMzBEMjAyNDA3QzQKUldURUJ5UWdEY1BSMVFiMDA4UXQ3bUN0eitBc0FKOER4WHhMRGxoa256QldMMjZjTENLWHBJUlIK",
-      "endpoints": [
-        "https://github.com/salehkhalaf213-stack/wasla-studio-windows-app/releases/download/preview-latest/latest.json"
-      ]
-    }
-  },
+  "plugins": {},
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
@@ -49,7 +44,7 @@
       "nsis": {
         "displayLanguageSelector": false,
         "installMode": "currentUser",
-        "startMenuFolder": "QENTRIVO"
+        "startMenuFolder": "QENTRIVO TEST"
       }
     }
   }
