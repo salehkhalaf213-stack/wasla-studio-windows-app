@@ -3220,7 +3220,7 @@ async function restoreFinanceBackup(financeCloud){
  const add=table=>{counts[table].added++;};
  const org=currentOrganizationId,user=currentUser.id;
  const excluded=['finance_member_roles','finance_project_access','finance_invoice_payments','finance_vendor_bill_payments','finance_audit_log'];
- for(const table of excluded)skip(table,rows(table).length);
+ for(const table of excluded)skip(table,rows(table).length,'هذا الجدول مستبعد عمدًا من الاستعادة لحماية المدفوعات والصلاحيات وسجل التدقيق.');
  const [settingsNow,accountsNow,vendorsNow,journalsNow,journalLinesNow,invoicesNow,invoiceLinesNow,billsNow,billLinesNow]=await Promise.all([
   sb.from('finance_settings').select('organization_id').eq('organization_id',org).maybeSingle(),
   financeFetchAllRows(sb.from('finance_accounts').select('id,account_code,account_name,account_type,parent_id').eq('organization_id',org)),
@@ -3240,7 +3240,7 @@ async function restoreFinanceBackup(financeCloud){
   return true;
  };
  if(rows('finance_settings').length){
-  if(settingsNow.data)skip('finance_settings',rows('finance_settings').length);
+  if(settingsNow.data)skip('finance_settings',rows('finance_settings').length,'إعدادات المؤسسة موجودة بالفعل؛ لم تتم الكتابة فوقها.');
   else{
    const source=rows('finance_settings')[0];
    if(await insertRow('finance_settings',source))add('finance_settings');else skip('finance_settings',1,insertErrors.finance_settings||'تعذر إدخال إعدادات المركز المالي.');
@@ -3277,7 +3277,7 @@ async function restoreFinanceBackup(financeCloud){
    }
   }
  }
- skip('finance_accounts',pendingAccounts.length,'تعذر استعادة الحساب بسبب عدم توفر الحساب الأب أو تعارض في بنية دليل الحسابات.');
+ skip('finance_accounts',pendingAccounts.length,insertErrors.finance_accounts||'تعذر استعادة الحساب بسبب عدم توفر الحساب الأب أو تعارض في بنية دليل الحسابات.');
  const vendorIds=new Set(vendorsNow.map(x=>x.id));
  for(const row of rows('finance_vendors')){
   if(vendorIds.has(row.id)){skip('finance_vendors',1,'المورد موجود مسبقًا.');continue;}
