@@ -41,9 +41,51 @@ pub fn run() {
                 });
             }
 
+            #[cfg(all(not(debug_assertions), feature = "portable", target_os = "windows"))]
+            {
+                use std::process::Command;
+                use std::os::windows::process::CommandExt;
+
+                match std::env::current_exe() {
+                    Ok(executable) => {
+                        if let Some(directory) = executable.parent() {
+                            let updater_script = directory.join("QENTRIVO-Portable-Updater.ps1");
+                            if updater_script.is_file() {
+                                let mut command = Command::new("powershell.exe");
+                                command
+                                    .arg("-NoProfile")
+                                    .arg("-NonInteractive")
+                                    .arg("-WindowStyle")
+                                    .arg("Hidden")
+                                    .arg("-ExecutionPolicy")
+                                    .arg("Bypass")
+                                    .arg("-File")
+                                    .arg(updater_script)
+                                    .arg("-CurrentVersion")
+                                    .arg(env!("CARGO_PKG_VERSION"))
+                                    .arg("-ProcessId")
+                                    .arg(std::process::id().to_string())
+                                    .arg("-AppPath")
+                                    .arg(executable)
+                                    .creation_flags(0x08000000);
+
+                                if let Err(error) = command.spawn() {
+                                    eprintln!("QENTRIVO portable update checker could not start: {error}");
+                                }
+                            } else {
+                                eprintln!("QENTRIVO portable update helper is missing.");
+                            }
+                        }
+                    }
+                    Err(error) => {
+                        eprintln!("QENTRIVO portable executable path is unavailable: {error}");
+                    }
+                }
+            }
+
             #[cfg(feature = "portable")]
             {
-                println!("QENTRIVO portable build: installer-based updater is disabled.");
+                println!("QENTRIVO portable build: ZIP-based updater is enabled; installer updater is disabled.");
             }
 
             Ok(())
