@@ -42,8 +42,8 @@ jobs:
       - name: Build signed Windows installer
         run: npm run tauri -- build --bundles nsis --features updater
         env:
-          TAURI_SIGNING_PRIVATE_KEY: \${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: \${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       - name: Prepare public installer
         shell: pwsh
@@ -144,9 +144,9 @@ jobs:
         if: github.ref == 'refs/heads/feature/wasla-web-v6'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: preview-\${{ github.run_number }}
-          name: QENTRIVO Windows Preview #\${{ github.run_number }}
-          target_commitish: \${{ github.sha }}
+          tag_name: preview-${{ github.run_number }}
+          name: QENTRIVO Windows Preview #${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
           prerelease: true
           make_latest: false
           files: |
@@ -159,7 +159,7 @@ jobs:
         with:
           tag_name: preview-latest
           name: QENTRIVO Windows Automatic Updates (Preview)
-          target_commitish: \${{ github.sha }}
+          target_commitish: ${{ github.sha }}
           prerelease: true
           make_latest: false
           overwrite_files: true
@@ -174,9 +174,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: \${{ github.ref_name }}
-          name: QENTRIVO Windows \${{ github.ref_name }}
-          target_commitish: \${{ github.sha }}
+          tag_name: ${{ github.ref_name }}
+          name: QENTRIVO Windows ${{ github.ref_name }}
+          target_commitish: ${{ github.sha }}
           make_latest: true
           files: |
             WASLA_STUDIO_Desktop/QENTRIVO-Windows-Setup.exe
