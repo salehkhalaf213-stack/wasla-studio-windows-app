@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feature/wasla-web-v6
+      - test/windows-isolated-supabase
     tags:
       - 'v*'
 
@@ -12,7 +13,58 @@ permissions:
   contents: write
 
 jobs:
+
+  build-isolated-test-windows:
+    if: github.ref == 'refs/heads/test/windows-isolated-supabase'
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: WASLA_STUDIO_Desktop
+    steps:
+      - name: Checkout isolated test branch
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: WASLA_STUDIO_Desktop/package.json
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify isolated test desktop
+        run: npm run build
+      - name: Build isolated test executable (no updater, no installer)
+        run: npm run tauri -- build --no-bundle
+      - name: Package isolated test ZIP
+        shell: pwsh
+        run: |
+          $appExe = "src-tauri/target/release/wasla-studio.exe"
+          if (-not (Test-Path $appExe)) { throw "Test executable missing: $appExe" }
+          $version = (Get-Content "src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json).version
+          $dir = "QENTRIVO-TEST-$version"
+          New-Item -ItemType Directory -Path $dir | Out-Null
+          Copy-Item $appExe "$dir/QENTRIVO-TEST.exe"
+          @"
+          QENTRIVO ISOLATED TEST BUILD
+          Connected only to the separate Supabase test project.
+          This build does not include automatic updater or installer.
+          Do not use production accounts or production data here.
+          "@ | Set-Content "$dir/README.txt" -Encoding utf8
+          $zip = "$dir-Portable.zip"
+          Compress-Archive -Path "$dir/*" -DestinationPath $zip -CompressionLevel Optimal
+          if ((Get-Item $zip).Length -lt 100000) { throw "Test ZIP unexpectedly small." }
+          Write-Host "Created $zip"
+      - name: Upload isolated test ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: QENTRIVO-ISOLATED-TEST-WINDOWS
+          path: WASLA_STUDIO_Desktop/QENTRIVO-TEST-*-Portable.zip
+          if-no-files-found: error
+
   build-windows:
+    if: github.ref == 'refs/heads/feature/wasla-web-v6' || startsWith(github.ref, 'refs/tags/v')
     runs-on: windows-latest
 
     defaults:
