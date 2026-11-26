@@ -448,6 +448,7 @@ footer{color:#8790a7}
 @media(max-width:480px){.finance-report-month{grid-template-columns:48px minmax(55px,1fr) 88px;font-size:10px}.finance-report-kpi .value{font-size:19px}}
 </style></head>
 <body>
+<div id="isolatedTestBanner" style="position:sticky;top:0;z-index:10000;background:#8b1e1e;color:#fff;text-align:center;padding:9px 12px;font-weight:800;font-size:13px">بيئة اختبار معزولة — لا تستخدم بيانات الإنتاج — TEST ENVIRONMENT</div>
 <style>
 #qentrivoLanguageControl{position:fixed;top:14px;left:14px;z-index:10000;display:flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid #d9e1eb;border-radius:12px;background:#fff;box-shadow:0 5px 18px #10203318;color:#172235;font:600 12px "Segoe UI",Tahoma,Arial,sans-serif}
 #qentrivoLanguageControl button{border:0;border-radius:7px;background:transparent;padding:6px 9px;color:inherit;cursor:pointer}
@@ -877,10 +878,11 @@ html[data-theme="dark"] .auth-card .auth-link{color:#aebaff}
 <div class="modal" id="modal"><div class="dialog"><h2 id="modalTitle">إضافة سجل</h2><div id="modalBody"></div><div class="dialog-actions"><button class="btn lime" id="saveBtn">حفظ</button><button class="btn soft" onclick="closeModal()">إلغاء</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0"></script>
 <script>
-const SUPABASE_URL='https://oqkmesadspiibllyjwmj.supabase.co';
-const SUPABASE_KEY='sb_publishable_-xiQKeiUSPw7nOCWRHivsw_gZHrYqdu';
+const ISOLATED_TEST_BUILD=true;
+const SUPABASE_URL='https://slzctrbxyexkdhqvnznn.supabase.co';
+const SUPABASE_KEY='sb_publishable_ImTqTpZeIElg2DXUjWIxVw_LmNy6z_S';
 const TURNSTILE_SITE_KEY='0x4AAAAAAGJqGsExdafsn-o4';
-const DESKTOP_WEB_URL='https://wasla-workspace.pages.dev/';
+const DESKTOP_WEB_URL='http://127.0.0.1:1420/';
 const clientRegistrationToken=new URLSearchParams(window.location.search).get('client_register')||'';
 let turnstileApiPromise=null;
 const authCaptchaWidgets={login:null,signup:null,recovery:null};
@@ -1530,6 +1532,7 @@ function closeAdminNotifications(){$('adminNotificationsModal').classList.remove
 
 
 function showAuthView(view,message=''){
+  if(ISOLATED_TEST_BUILD&&(view==='signup'||view==='request')){view='login';message='إنشاء الحساب واستعادة كلمة المرور غير متاحين في نسخة الاختبار المعزولة. استخدم حساب اختبار مُعدًّا مسبقًا.';}
   $('loginForm').classList.toggle('auth-hidden',view!=='login');
   $('forgotPasswordButton').classList.toggle('auth-hidden',view!=='login');
   $('showSignupButton').classList.toggle('auth-hidden',view!=='login'||!clientRegistrationToken);
