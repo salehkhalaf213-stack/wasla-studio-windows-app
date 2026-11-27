@@ -1,6 +1,4 @@
 User-agent: *
-Disallow: /
-Allow: /$
-Allow: /sitemap.xml
+Allow: /
 
 Sitemap: https://wasla-workspace.pages.dev/sitemap.xml
