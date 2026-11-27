@@ -843,6 +843,7 @@ html[data-theme="dark"] .auth-card .auth-link{color:#aebaff}
      <p class="muted tiny" style="line-height:1.8">اختر باقة وحالة الاشتراك وتاريخ الانتهاء لكل مؤسسة. لا يتم تفعيل اشتراك تلقائي للمؤسسات الحالية دون قرار من مالك المنصة.</p>
      <div class="table-wrap" id="platformSubscriptionsTable"><div class="empty">جارٍ تحميل الاشتراكات…</div></div>
    </div>
+   <div class="card" style="margin-bottom:16px"><div class="head"><h2>طلبات تأسيس المؤسسات الجديدة</h2><button class="btn soft sm" onclick="loadPlatformOrganizationApplications()">تحديث الطلبات</button></div><p class="muted tiny" style="line-height:1.8">راجع بيانات الشركة والمدير والباقة وإيصال التحويل. الموافقة تنشئ المؤسسة وترسل دعوة المدير، وتُبقي الاشتراك وطلب InstaPay قيد المراجعة حتى اعتماد التحويل من القسم التالي.</p><div class="table-wrap" id="platformOrganizationApplicationsTable"><div class="empty">جارٍ تحميل طلبات تأسيس المؤسسات…</div></div></div>
    <div class="card" style="margin-bottom:16px"><div class="head"><h2>طلبات اشتراك InstaPay</h2><button class="btn soft sm" onclick="loadPlatformAdmin()">تحديث الطلبات</button></div><div class="table-wrap" id="platformPaymentRequestsTable"><div class="empty">جارٍ تحميل طلبات الدفع…</div></div></div>
    <div class="card"><div class="head"><h2>المؤسسات المسجلة</h2><button class="btn soft sm" onclick="loadPlatformAdmin()">تحديث القائمة</button></div><div class="table-wrap" id="platformOrganizationsTable"><div class="empty">جارٍ تحميل المؤسسات…</div></div></div>
 </section>
@@ -1689,7 +1690,7 @@ async function loadPlatformAdmin(){
  $('platformManagerCount').textContent=membersError?'—':(members||[]).filter(x=>x.status==='active'&&x.role==='admin').length;
  $('platformSubscriptionCount').textContent=platformSubscriptions.length;
  if(tableEl)tableEl.innerHTML=platformOrganizations.length?'<table><thead><tr><th>المؤسسة</th><th>المعرّف</th><th>الحالة</th><th>تاريخ الإنشاء</th></tr></thead><tbody>'+platformOrganizations.map(o=>'<tr><td>'+esc(o.name)+(o.is_internal?' <span class="pill green">داخلي مجاني</span>':'')+'</td><td dir="ltr">'+esc(o.slug)+'</td><td><span class="pill '+(o.status==='active'?'green':'amber')+'">'+esc(o.status)+'</span></td><td>'+new Date(o.created_at).toLocaleDateString('ar-EG')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">لا توجد مؤسسات مسجلة.</div>';
- renderPlatformPlans();renderPlatformSubscriptions();await loadPlatformPaymentRequests();await loadPlatformFinancials();loadPlatformInvitations();
+ renderPlatformPlans();renderPlatformSubscriptions();await loadPlatformOrganizationApplications();await loadPlatformPaymentRequests();await loadPlatformFinancials();loadPlatformInvitations();
 }
 async function createSubscriptionPlan(){
  if(!isPlatformAdmin)return;
@@ -1953,6 +1954,47 @@ async function loadManagerPaymentRequests(){
  if(error){el.innerHTML='<div class="empty">تعذر تحميل طلبات الدفع: '+esc(error.message)+'</div>';return}
  const labels={pending:'قيد المراجعة',approved:'تم الاعتماد',rejected:'مرفوض'};
  el.innerHTML=data?.length?'<h4>طلبات الدفع السابقة</h4><table><thead><tr><th>الباقة</th><th>المبلغ</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>'+data.map(x=>'<tr><td>'+esc(managerSubscriptionPlans.find(p=>p.id===x.plan_id)?.name||x.plan_id)+'</td><td>'+((Number(x.amount_minor)/100).toLocaleString('ar-EG'))+' ج.م</td><td><span class="pill '+(x.status==='approved'?'green':x.status==='rejected'?'':'amber')+'">'+(labels[x.status]||x.status)+'</span>'+(x.review_note?'<div class="muted tiny">'+esc(x.review_note)+'</div>':'')+'</td><td>'+new Date(x.submitted_at).toLocaleDateString('ar-EG')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">لا توجد طلبات دفع حتى الآن.</div>';
+}
+async function loadPlatformOrganizationApplications(){
+ if(!isPlatformAdmin)return;
+ const el=$('platformOrganizationApplicationsTable');if(!el)return;
+ el.innerHTML='<div class="empty">جارٍ تحميل طلبات التأسيس…</div>';
+ const {data,error}=await sb.from('platform_organization_applications')
+  .select('id,company_name,manager_name,manager_email,manager_phone,plan_id,amount_minor,currency,transfer_reference,receipt_path,status,submitted_at,review_note')
+  .order('submitted_at',{ascending:false}).limit(50);
+ if(error){el.innerHTML='<div class="empty">تعذر تحميل الطلبات: '+esc(error.message)+'</div>';return}
+ const rows=data||[];
+ if(!rows.length){el.innerHTML='<div class="empty">لا توجد طلبات تأسيس جديدة.</div>';return}
+ el.innerHTML='<table><thead><tr><th>الشركة والمدير</th><th>الباقة والمبلغ</th><th>مرجع التحويل</th><th>الإيصال</th><th>تاريخ الطلب</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody>'+rows.map(x=>{
+  const plan=platformPlans.find(p=>p.id===x.plan_id);
+  const actions=x.status==='pending'?'<button class="btn lime sm" onclick="reviewPlatformOrganizationApplication(\''+x.id+'\',\'approved\')">موافقة وإنشاء</button> <button class="btn danger sm" onclick="reviewPlatformOrganizationApplication(\''+x.id+'\',\'rejected\')">رفض</button>':'—';
+  const status=x.status==='pending'?'قيد المراجعة':x.status==='approved'?'تمت الموافقة':'مرفوض';
+  return '<tr><td><b>'+esc(x.company_name)+'</b><div class="muted tiny">'+esc(x.manager_name)+'</div><div class="muted tiny" dir="ltr">'+esc(x.manager_email)+'</div><div class="muted tiny" dir="ltr">'+esc(x.manager_phone)+'</div></td><td>'+esc(plan?.name||x.plan_id)+'<div class="muted tiny">'+(Number(x.amount_minor)/100).toLocaleString('ar-EG')+' ج.م</div></td><td dir="ltr">'+esc(x.transfer_reference||'—')+'</td><td><button class="btn soft sm" onclick="viewOrganizationApplicationReceipt(\''+esc(x.receipt_path)+'\')">عرض الإيصال</button></td><td>'+new Date(x.submitted_at).toLocaleDateString('ar-EG')+'</td><td><span class="pill '+(x.status==='approved'?'green':x.status==='pending'?'amber':'')+'">'+status+'</span>'+(x.review_note?'<div class="muted tiny">'+esc(x.review_note)+'</div>':'')+'</td><td>'+actions+'</td></tr>';
+ }).join('')+'</tbody></table>';
+}
+async function viewOrganizationApplicationReceipt(path){
+ const {data,error}=await sb.storage.from('organization-applications').createSignedUrl(path,300);
+ if(error)return alert('تعذر فتح الإيصال: '+error.message);
+ let overlay=document.getElementById('organizationApplicationReceiptViewer');if(overlay)overlay.remove();
+ overlay=document.createElement('div');overlay.id='organizationApplicationReceiptViewer';
+ overlay.style.cssText='position:fixed;inset:0;z-index:10050;background:rgba(10,15,25,.88);display:flex;flex-direction:column;padding:18px;gap:12px';
+ overlay.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;color:white"><b>إيصال طلب تأسيس المؤسسة — رابط مؤقت 5 دقائق</b><button class="btn lime" type="button">إغلاق</button></div><iframe title="إيصال التحويل" style="background:white;border:0;border-radius:12px;flex:1;width:100%" referrerpolicy="no-referrer"></iframe>';
+ overlay.querySelector('iframe').src=data.signedUrl;overlay.querySelector('button').onclick=()=>overlay.remove();document.body.appendChild(overlay);
+}
+async function reviewPlatformOrganizationApplication(id,decision){
+ if(!isPlatformAdmin||!['approved','rejected'].includes(decision))return;
+ const message=decision==='approved'
+  ?'سيتم إنشاء المؤسسة ودعوة المدير وربط إيصال التحويل بطلب InstaPay قيد المراجعة. لن يتم تفعيل الاشتراك حتى تعتمد التحويل بنفسك لاحقاً. هل تريد المتابعة؟'
+  :'هل تريد رفض طلب تأسيس المؤسسة؟';
+ if(!confirm(message))return;
+ const note=prompt(decision==='approved'?'ملاحظة داخلية (اختياري):':'سبب الرفض (اختياري):')||'';
+ try{
+  const {data,error}=await sb.functions.invoke('organization-applications?action=review',{body:{id,decision,note}});
+  if(error)throw error;
+  if(data?.error)throw new Error(data.error);
+  alert(decision==='approved'?'تم إنشاء المؤسسة وإرسال دعوة المدير. أُضيف طلب التحويل إلى مراجعة InstaPay دون تفعيل الاشتراك.':'تم رفض طلب تأسيس المؤسسة.');
+  await loadPlatformAdmin();
+ }catch(e){alert('تعذرت مراجعة طلب التأسيس: '+(e.message||'خطأ غير معروف'))}
 }
 async function loadPlatformPaymentRequests(page=0){
  const el=$('platformPaymentRequestsTable');if(!el)return;
