@@ -27,7 +27,7 @@ section{padding:86px 0}.section-head{text-align:center;max-width:700px;margin:0 
 footer{background:#0b1422;color:#d0d8e3;padding:42px 0 20px}.footer-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:30px}.footer-grid p,.footer-grid a{font-size:12px;color:#aeb9c8}.footer-grid h4{color:white;margin:0 0 12px}.footer-links{display:grid;gap:7px}.copyright{border-top:1px solid #ffffff18;margin-top:28px;padding-top:16px;text-align:center;color:#8492a5;font-size:11px}
 @media(max-width:900px){.navlinks{gap:13px}.hero-grid{gap:28px}.pricing-grid{grid-template-columns:repeat(2,1fr)}.feature-grid{grid-template-columns:repeat(2,1fr)}.steps{grid-template-columns:repeat(2,1fr)}.step:nth-child(2):after{display:none}}
 @media(max-width:650px){.container{width:min(100% - 28px,540px)}.nav{height:66px}.menu-toggle{display:block}.navlinks{display:none;position:absolute;top:66px;right:0;left:0;background:#101b2d;padding:18px 22px 22px;flex-direction:column;align-items:stretch;border-top:1px solid #ffffff20}.navlinks.open{display:flex}.nav-actions .btn-outline{display:none}.nav-actions .btn{padding:9px 12px;font-size:11px}.hero{padding:65px 0 55px}.hero-grid{grid-template-columns:1fr}.hero p{font-size:15px}.visual-wrap{margin:15px 5px 0}.dashboard{transform:none}.floating-note{left:-6px;bottom:-18px}.stats-grid{grid-template-columns:repeat(2,1fr);gap:20px}.stat:nth-child(2){border:0}.stat{border-left:1px solid var(--line)}section{padding:62px 0}.feature-grid{grid-template-columns:1fr}.steps{grid-template-columns:1fr}.step:after{display:none!important}.showcase-grid,.payment-box{grid-template-columns:1fr}.pricing-grid{grid-template-columns:1fr}.price-card.featured{transform:none;margin-top:8px}.footer-grid{grid-template-columns:1fr}.section-head{margin-bottom:30px}.payment-box{padding:25px 20px}.payment-number b{font-size:22px}}
-.application-form{display:grid;gap:16px;margin-top:22px}.application-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.application-grid label{display:grid;gap:7px;font-weight:700;font-size:14px;color:var(--navy)}.application-grid input,.application-grid select{width:100%;min-height:46px;border:1px solid #d7deea;border-radius:10px;padding:10px 12px;font:inherit;background:white;color:#152238}.application-grid .application-file{grid-column:1/-1}.application-grid input[type=file]{padding:9px}.application-security{display:grid;gap:8px}.application-security p,.application-note{font-size:12px;line-height:1.8;color:#a7b2c4;margin:0}.application-alternative{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px}.application-alternative span{font-size:13px;color:#a7b2c4}@media(max-width:700px){.application-grid{grid-template-columns:1fr}.application-grid .application-file{grid-column:auto}}</style>
+</style>
 </head>
 <body>
 <header class="topbar"><div class="container nav">
@@ -67,34 +67,7 @@ footer{background:#0b1422;color:#d0d8e3;padding:42px 0 20px}.footer-grid{display
 <article class="price-card"><h3>Pro</h3><p class="desc">للشركات والوكالات ذات حجم العمل الكبير</p><div class="price">1,999 <small>جنيه / شهرياً</small></div><div class="annual">أو 7,000 جنيه سنوياً</div><ul><li>حتى 30 موظفاً</li><li>حتى 100 عميل</li><li>حتى 200 مشروع</li><li>سعة أكبر لإدارة العمليات</li></ul><a class="btn btn-outline" style="color:var(--navy);border-color:#cbd3df" href="#subscribe" data-plan="Pro">اختر Pro</a></article>
 <article class="price-card lifetime"><h3>Lifetime</h3><p class="desc">ترخيص دائم بدفعة واحدة</p><div class="price">12,000 <small>جنيه مرة واحدة</small></div><div class="annual">بدون تجديد شهري أو سنوي</div><ul><li>ترخيص دائم للمنصة</li><li>دفعة واحدة</li><li>تواصل معنا لتأكيد تفاصيل الترخيص</li></ul><a class="btn btn-gold" href="#subscribe" data-plan="Lifetime">اختر Lifetime</a></article>
 </div></div></section>
-<section class="payment" id="subscribe"><div class="container"><div class="payment-box" style="display:block">
- <div class="section-head"><span class="eyebrow">طلب تأسيس مساحة عمل</span><h2>ابدأ اشتراكك في QENTRIVO</h2><p>أرسل بيانات شركتك والمدير والباقة، وأرفق إيصال التحويل. سيراجع مالك المنصة الطلب قبل إنشاء المؤسسة وإرسال دعوة المدير.</p></div>
- <div class="payment-number" style="margin-bottom:22px"><small>رقم InstaPay للتحويل</small><b dir="ltr">01012517123</b><button class="btn btn-outline" id="copyNumber" style="padding:7px 12px;margin-right:12px">نسخ الرقم</button></div>
- <form id="organizationApplicationForm" class="application-form" enctype="multipart/form-data" novalidate>
-  <div class="application-grid">
-   <label>اسم الشركة أو المؤسسة<input name="company_name" required minlength="2" maxlength="180" autocomplete="organization" placeholder="اسم الشركة"></label>
-   <label>اسم المدير المسؤول<input name="manager_name" required minlength="2" maxlength="160" autocomplete="name" placeholder="الاسم بالكامل"></label>
-   <label>البريد الإلكتروني للمدير<input name="manager_email" type="email" required maxlength="254" autocomplete="email" placeholder="name@example.com"></label>
-   <label>رقم الهاتف<input name="manager_phone" type="tel" required minlength="6" maxlength="40" autocomplete="tel" placeholder="رقم الهاتف مع مفتاح الدولة"></label>
-   <label>الباقة المطلوبة<select name="plan_id" id="applicationPlan" required>
-    <option value="basic">Basic — شهري · 499 ج.م</option>
-    <option value="basic_yearly">Basic — سنوي · 5,000 ج.م</option>
-    <option value="growth">Growth — شهري · 999 ج.م</option>
-    <option value="growth_yearly">Growth — سنوي · 6,000 ج.م</option>
-    <option value="pro">Pro — شهري · 1,999 ج.م</option>
-    <option value="pro_yearly">Pro — سنوي · 7,000 ج.م</option>
-    <option value="lifetime">Lifetime — مدى الحياة · 12,000 ج.م</option>
-   </select></label>
-   <label>مرجع التحويل (اختياري)<input name="transfer_reference" maxlength="160" placeholder="رقم العملية أو المرجع"></label>
-   <label class="application-file">إيصال التحويل (PDF أو JPG أو PNG أو WEBP، بحد أقصى 10MB)<input name="receipt" type="file" required accept="application/pdf,image/jpeg,image/png,image/webp"></label>
-  </div>
-  <div class="application-security"><div id="applicationTurnstile"></div><p id="applicationStatus" role="status" aria-live="polite">أكمل التحقق الأمني ثم أرسل طلبك.</p></div>
-  <button class="btn btn-gold" id="submitApplicationButton" type="submit">إرسال طلب تأسيس المؤسسة</button>
-  <p class="application-note">لن يتم إنشاء المؤسسة أو تفعيل الاشتراك تلقائياً عند إرسال الطلب. بعد المراجعة، تُنشأ المؤسسة وتصل دعوة المدير، ويبقى التحويل قيد مراجعة InstaPay حتى اعتماده.</p>
- </form>
- <div class="application-alternative"><span>تفضّل التواصل المباشر؟</span> <a class="btn btn-outline" id="whatsappBtn" href="https://wa.me/201012517123" target="_blank" rel="noopener">إرسال طلب الاشتراك عبر واتساب</a></div>
- <ol class="payment-steps" style="margin-top:22px"><li><b>1.</b> اختر الباقة المناسبة.</li><li><b>2.</b> حوّل المبلغ إلى رقم InstaPay الموضح.</li><li><b>3.</b> أرسل بياناتك وإيصال التحويل عبر النموذج.</li><li><b>4.</b> راجع حالة طلبك عبر فريق QENTRIVO بعد المراجعة.</li></ol>
- </div></div></section>
+<section class="payment" id="subscribe"><div class="container"><div class="payment-box"><div><span class="eyebrow">خطوات الاشتراك</span><h2>ابدأ اشتراكك في QENTRIVO</h2><p>اختر الباقة، حوّل قيمة الاشتراك عبر InstaPay، ثم أرسل إيصال التحويل وبياناتك لمراجعة الطلب وتفعيل الاشتراك.</p><div class="payment-number"><small>رقم InstaPay للتحويل</small><b dir="ltr">01012517123</b><button class="btn btn-outline" id="copyNumber" style="padding:7px 12px;margin-right:12px">نسخ الرقم</button></div><a class="btn btn-gold" id="whatsappBtn" href="https://wa.me/201012517123" target="_blank" rel="noopener">إرسال طلب الاشتراك عبر واتساب</a></div><div><ol class="payment-steps"><li><b>1.</b> اختر الباقة المناسبة من جدول الأسعار.</li><li><b>2.</b> حوّل المبلغ إلى رقم InstaPay الموضح.</li><li><b>3.</b> افتح واتساب وأرسل اسمك واسم الشركة والباقة وفترة الاشتراك.</li><li><b>4.</b> أرفق صورة إيصال التحويل ليتم التحقق من الطلب.</li><li><b>5.</b> بعد مراجعة الدفع واعتماد الطلب، يتم تفعيل الاشتراك وإبلاغك.</li></ol><p style="font-size:11px;color:#9eacc0">تنبيه: إرسال الطلب لا يعني تفعيل الاشتراك تلقائياً؛ التفعيل يتم بعد مراجعة التحويل واعتماده.</p></div></div></div></section>
 <section class="faq" id="faq"><div class="container"><div class="section-head"><span class="eyebrow">الأسئلة الشائعة</span><h2>إجابات سريعة قبل الاشتراك</h2></div><div class="faq-list">
 <details><summary>هل المنصة مناسبة لشركات التسويق والوكالات؟</summary><p>تم تصميم مساحة العمل لتنظيم العملاء والمشاريع والموظفين والمحتوى والحسابات، ويمكن أن تساعد الوكالات والفرق التي تدير أعمالاً ومشاريع لعملائها.</p></details>
 <details><summary>هل يمكن للموظف رؤية الحسابات وإدارة الموظفين؟</summary><p>تختلف الواجهة والصلاحيات حسب نوع الحساب والدور الممنوح له. الموظف يعمل من واجهة المهام المخصصة له ولا تظهر له أقسام الإدارة غير المصرح بها.</p></details>
@@ -109,40 +82,8 @@ footer{background:#0b1422;color:#d0d8e3;padding:42px 0 20px}.footer-grid{display
 const toggle=document.getElementById('menuToggle'), nav=document.getElementById('navLinks');
 toggle.addEventListener('click',()=>nav.classList.toggle('open'));
 nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>nav.classList.remove('open')));
-const applicationPlan=document.getElementById('applicationPlan');
-document.querySelectorAll('[data-plan]').forEach(a=>a.addEventListener('click',()=>{const p=a.dataset.plan;const map={Basic:'basic',Growth:'growth',Pro:'pro',Lifetime:'lifetime'};if(map[p])applicationPlan.value=map[p];const msg='مرحباً، أرغب في الاشتراك في باقة '+p+' من QENTRIVO. أرجو إرسال خطوات الاشتراك.';document.getElementById('whatsappBtn').href='https://wa.me/201012517123?text='+encodeURIComponent(msg)}));
+document.querySelectorAll('[data-plan]').forEach(a=>a.addEventListener('click',()=>{const p=a.dataset.plan;const msg='مرحباً، أرغب في الاشتراك في باقة '+p+' من QENTRIVO. أرجو إرسال خطوات الاشتراك.';document.getElementById('whatsappBtn').href='https://wa.me/201012517123?text='+encodeURIComponent(msg)}));
 document.getElementById('copyNumber').addEventListener('click',async()=>{try{await navigator.clipboard.writeText('01012517123');document.getElementById('copyNumber').textContent='تم النسخ'}catch(e){document.getElementById('copyNumber').textContent='01012517123'}});
-const APPLICATION_SUPABASE_URL='https://slzctrbxyexkdhqvnznn.supabase.co';
-const APPLICATION_PUBLISHABLE_KEY='sb_publishable_ImTqTpZeIElg2DXUjWIxVw_LmNy6z_S';
-const APPLICATION_FUNCTION_URL=APPLICATION_SUPABASE_URL+'/functions/v1/organization-applications';
-const APPLICATION_TURNSTILE_SITE_KEY='0x4AAAAAAGJqGsExdafsn-o4';
-let applicationTurnstileWidget=null;
-const applicationStatus=document.getElementById('applicationStatus');
-function loadApplicationTurnstile(){
- if(!window.turnstile){applicationStatus.textContent='تعذر تحميل التحقق الأمني. حدّث الصفحة وحاول مرة أخرى.';return}
- if(applicationTurnstileWidget!==null)return;
- applicationTurnstileWidget=window.turnstile.render('#applicationTurnstile',{sitekey:APPLICATION_TURNSTILE_SITE_KEY,theme:'auto',callback:()=>{applicationStatus.textContent='اكتمل التحقق الأمني. يمكنك إرسال الطلب.'},'expired-callback':()=>{applicationStatus.textContent='انتهت صلاحية التحقق؛ أعد المحاولة.'}});
-}
-const turnstileScript=document.createElement('script');turnstileScript.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';turnstileScript.async=true;turnstileScript.defer=true;turnstileScript.onload=loadApplicationTurnstile;turnstileScript.onerror=()=>{applicationStatus.textContent='تعذر تحميل أداة التحقق الأمني.'};document.head.appendChild(turnstileScript);
-document.getElementById('organizationApplicationForm').addEventListener('submit',async event=>{
- event.preventDefault();
- const form=event.currentTarget,button=document.getElementById('submitApplicationButton');
- if(!form.reportValidity())return;
- const token=applicationTurnstileWidget!==null&&window.turnstile?window.turnstile.getResponse(applicationTurnstileWidget):'';
- if(!token){applicationStatus.textContent='أكمل التحقق الأمني أولاً.';return}
- const receipt=form.elements.receipt.files[0];
- if(!receipt||receipt.size>10*1024*1024){applicationStatus.textContent='اختر إيصالاً صالحاً لا يتجاوز 10MB.';return}
- const payload=new FormData(form);payload.set('turnstile_token',token);
- button.disabled=true;button.textContent='جارٍ إرسال الطلب…';applicationStatus.textContent='يتم إرسال بيانات الطلب والإيصال بأمان…';
- try{
-  const response=await fetch(APPLICATION_FUNCTION_URL,{method:'POST',headers:{apikey:APPLICATION_PUBLISHABLE_KEY},body:payload});
-  const result=await response.json();
-  if(!response.ok||!result.success)throw new Error(result.error||'تعذر إرسال الطلب.');
-  applicationStatus.textContent='تم استلام طلبك بنجاح. سيُراجع مالك المنصة البيانات والتحويل قبل إنشاء المؤسسة.';
-  form.reset();applicationPlan.value='basic';if(window.turnstile&&applicationTurnstileWidget!==null)window.turnstile.reset(applicationTurnstileWidget);
- }catch(error){applicationStatus.textContent=error.message||'حدث خطأ أثناء الإرسال. حاول مرة أخرى.';if(window.turnstile&&applicationTurnstileWidget!==null)window.turnstile.reset(applicationTurnstileWidget)}
- finally{button.disabled=false;button.textContent='إرسال طلب تأسيس المؤسسة'}
-});
 document.getElementById('year').textContent=new Date().getFullYear();
 </script>
 </body></html>
