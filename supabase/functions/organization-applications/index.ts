@@ -112,7 +112,7 @@ async function submitApplication(req: Request, origin: string | null) {
   const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
   if (!allowedTypes.has(receipt.type)) return json({ error: "صيغة الإيصال غير مدعومة." }, 400, origin);
 
-  const ip = req.headers.get("cf-connecting-ip") || "";
+  const ip = req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") || (req.headers.get("x-forwarded-for") || "").split(",")[0].trim();
   const challenge = await verifyTurnstile(token, ip);
   if (challenge.unavailable) return json({ error: "لم يتم إعداد مفتاح التحقق في الخادم بعد." }, 503, origin);
   if (!challenge.ok) return json({ error: "فشل التحقق الأمني. أعد التحقق ثم حاول مرة أخرى." }, 403, origin);
