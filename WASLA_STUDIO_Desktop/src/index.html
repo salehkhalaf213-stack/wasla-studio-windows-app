@@ -3277,6 +3277,7 @@ async function restoreFinanceBackup(financeCloud){
   }
   pendingAccounts.push(row);
  }
+ const accountInsertErrors=new Map();
  let accountProgress=true;
  while(pendingAccounts.length&&accountProgress){
   accountProgress=false;
@@ -3288,10 +3289,18 @@ async function restoreFinanceBackup(financeCloud){
    if(await insertRow('finance_accounts',payload)){
     accountMap.set(row.id,row.id);accountByCode.set(row.account_code,{id:row.id,account_code:row.account_code,account_type:row.account_type});
     add('finance_accounts');pendingAccounts.splice(i,1);accountProgress=true;
+   }else{
+    accountInsertErrors.set(row.id,insertErrors.finance_accounts||'رفضت قاعدة البيانات إدخال الحساب دون إرجاع تفاصيل إضافية.');
    }
   }
  }
- skip('finance_accounts',pendingAccounts.length,insertErrors.finance_accounts||'تعذر استعادة الحساب بسبب عدم توفر الحساب الأب أو تعارض في بنية دليل الحسابات.');
+ for(const row of pendingAccounts){
+  if(row.parent_id&&!accountMap.has(row.parent_id)){
+   skip('finance_accounts',1,'الحساب الأب غير متاح أو لم تتم استعادته؛ تم تجاوز الحساب التابع.');
+  }else{
+   skip('finance_accounts',1,accountInsertErrors.get(row.id)||'تعذر استعادة الحساب بسبب تعارض في بنية دليل الحسابات.');
+  }
+ }
  const vendorIds=new Set(vendorsNow.map(x=>x.id));
  for(const row of rows('finance_vendors')){
   if(vendorIds.has(row.id)){skip('finance_vendors',1,'المورد موجود مسبقًا.');continue;}
