@@ -1,15 +1,25 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const ALLOWED_ORIGINS = new Set([
-  "https://751af364.wasla-studio-windows-app.pages.dev",
-  "https://wasla-studio-windows-app.pages.dev",
-]);
+function isAllowedOrigin(value: string | null) {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return false;
+    const host = url.hostname.toLowerCase();
+    return host === "wasla-studio-windows-app.pages.dev" ||
+      host.endsWith(".wasla-studio-windows-app.pages.dev") ||
+      host === "wasla-workspace.pages.dev" ||
+      host.endsWith(".wasla-workspace.pages.dev");
+  } catch {
+    return false;
+  }
+}
 const BUCKET_APPLICATIONS = "organization-applications";
 const BUCKET_RECEIPTS = "subscription-receipts";
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 function cors(origin: string | null) {
-  const allowed = origin && ALLOWED_ORIGINS.has(origin) ? origin : "";
+  const allowed = isAllowedOrigin(origin) ? origin! : "";
   return {
     "Access-Control-Allow-Origin": allowed,
     "Access-Control-Allow-Headers": "authorization, apikey, x-client-info, content-type",
@@ -67,7 +77,10 @@ async function verifyTurnstile(token: string, ip: string) {
   if (!response.ok) return { ok: false, unavailable: false, hostname: "" };
   const result = await response.json();
   return {
-    ok: result.success === true && result.hostname === "751af364.wasla-studio-windows-app.pages.dev",
+    ok: result.success === true && (
+      result.hostname === "wasla-studio-windows-app.pages.dev" ||
+      result.hostname.endsWith(".wasla-studio-windows-app.pages.dev")
+    ),
     unavailable: false,
     hostname: String(result.hostname || ""),
   };
@@ -160,7 +173,12 @@ async function reviewApplication(req: Request, origin: string | null, body: Reco
   const authHeader = req.headers.get("Authorization") || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
   if (!token) return json({ error: "يلزم تسجيل الدخول." }, 401, origin);
-  const caller = createClient(supabaseUrl, env("SUPABASE_ANON_KEY"), {
+  let publishable = env("SUPABASE_ANON_KEY");
+  if (!publishable) {
+    try { publishable = JSON.parse(env("SUPABASE_PUBLISHABLE_KEYS") || "{}").default || ""; } catch { /* missing publishable key */ }
+  }
+  if (!publishable) return json({ error: "إعداد التحقق من الجلسة غير مكتمل." }, 503, origin);
+  const caller = createClient(supabaseUrl, publishable, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: authHeader } },
   });
@@ -260,13 +278,13 @@ async function reviewApplication(req: Request, origin: string | null, body: Reco
       payment_request_id: paymentId, manager_invitation_sent: true }, 200, origin);
   } catch (error) {
     if (paymentId) await service.from("subscription_payment_requests").delete().eq("id", paymentId);
+    await service.auth.admin.deleteUser(userId);
     if (organizationId) {
-      await service.from("organization_subscriptions").delete().eq("organization_id", organizationId);
       await service.from("organization_members").delete().eq("organization_id", organizationId);
+      await service.from("organization_subscriptions").delete().eq("organization_id", organizationId);
       await service.from("organizations").delete().eq("id", organizationId);
     }
     if (copiedReceiptPath) await service.storage.from(BUCKET_RECEIPTS).remove([copiedReceiptPath]);
-    await service.auth.admin.deleteUser(userId);
     return json({ error: error instanceof Error ? error.message : "تعذر إكمال إنشاء المؤسسة." }, 500, origin);
   }
 }
@@ -275,7 +293,7 @@ Deno.serve(async (req: Request) => {
   const origin = req.headers.get("Origin");
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(origin) });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, origin);
-  if (!origin || !ALLOWED_ORIGINS.has(origin)) return json({ error: "Origin not allowed" }, 403, origin);
+  if (!isAllowedOrigin(origin)) return json({ error: "Origin not allowed" }, 403, origin);
   const action = new URL(req.url).searchParams.get("action") || "submit";
   try {
     if (action === "submit") return await submitApplication(req, origin);
