@@ -3253,19 +3253,29 @@ async function restoreFinanceBackup(financeCloud){
  }
  const accountMap=new Map(accountsNow.map(x=>[x.id,x.id]));
  const accountByCode=new Map(accountsNow.map(x=>[x.account_code,x]));
- const pendingAccounts=rows('finance_accounts').slice();
- for(const row of pendingAccounts){
+ const pendingAccounts=[];
+ for(const row of rows('finance_accounts')){
   const sameId=accountsNow.find(x=>x.id===row.id);
   if(sameId){
-   if(sameId.account_code===row.account_code&&sameId.account_type===row.account_type)accountMap.set(row.id,sameId.id);
-   skip('finance_accounts',1,'الحساب موجود مسبقًا بالمعرّف نفسه؛ لم تتم الكتابة فوقه.');
-  }else{
-   const sameCode=accountByCode.get(row.account_code);
-   if(sameCode){
-    if(sameCode.account_type===row.account_type&&sameCode.account_name===row.account_name)accountMap.set(row.id,sameCode.id);
-    skip('finance_accounts',1,'يوجد حساب بنفس كود الحساب؛ لم تتم إضافة نسخة مكررة.');
+   if(sameId.account_code===row.account_code&&sameId.account_type===row.account_type){
+    accountMap.set(row.id,sameId.id);
+    skip('finance_accounts',1,'الحساب موجود مسبقًا بالمعرّف نفسه؛ تمت مطابقة مرجعه دون الكتابة فوقه.');
+   }else{
+    skip('finance_accounts',1,'معرّف الحساب موجود مسبقًا لكن بياناته الأساسية مختلفة؛ تم تجاوز السجل لحماية الحساب الحالي.');
    }
+   continue;
   }
+  const sameCode=accountByCode.get(row.account_code);
+  if(sameCode){
+   if(sameCode.account_type===row.account_type&&sameCode.account_name===row.account_name){
+    accountMap.set(row.id,sameCode.id);
+    skip('finance_accounts',1,'يوجد حساب مطابق بنفس كود الحساب؛ تمت مطابقة المرجع دون إنشاء نسخة مكررة.');
+   }else{
+    skip('finance_accounts',1,'كود الحساب مستخدم لحساب ببيانات مختلفة؛ تم تجاوز السجل لتجنب تعارض دليل الحسابات.');
+   }
+   continue;
+  }
+  pendingAccounts.push(row);
  }
  let accountProgress=true;
  while(pendingAccounts.length&&accountProgress){
