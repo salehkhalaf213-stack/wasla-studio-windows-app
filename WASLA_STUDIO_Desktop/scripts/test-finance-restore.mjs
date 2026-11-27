@@ -76,7 +76,6 @@ const checks = [
   ['insert failure detail', 'SIMULATED_INSERT_FAILURE_insert-fail']
 ];
 for (const [name, phrase] of checks) assert.ok(report.includes(phrase), name + ' should appear in the restore report');
-assert.equal((report.match(/تم تجاوز 1/g) || []).length >= 0, true);
 assert.equal(inserts.filter(x => x.table === 'finance_accounts').length, 3, 'only failed root plus valid root and child should be attempted');
 assert.match(report, /إجمالي السجلات التي تم تجاوزها: 6/, 'each ineligible account must be counted exactly once');
 assert.match(report, /دليل الحسابات: أُضيف 2، تم تجاوز 6/, 'account additions and skips must match fixture totals');
