@@ -3285,6 +3285,7 @@ async function restoreFinanceBackup(financeCloud){
    const row=pendingAccounts[i];
    if(accountMap.has(row.id)){pendingAccounts.splice(i,1);continue;}
    if(row.parent_id&&!accountMap.has(row.parent_id))continue;
+   if(accountInsertErrors.has(row.id))continue;
    const payload={...row,organization_id:org,parent_id:row.parent_id?accountMap.get(row.parent_id):null};
    if(await insertRow('finance_accounts',payload)){
     accountMap.set(row.id,row.id);accountByCode.set(row.account_code,{id:row.id,account_code:row.account_code,account_type:row.account_type});
