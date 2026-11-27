@@ -35,6 +35,9 @@ jobs:
       - name: Verify isolated test source
         run: npm run build
 
+      - name: Run isolated finance restore regression tests
+        run: node scripts/test-finance-restore.mjs
+
       - name: Build isolated portable executable (no updater)
         run: npm run tauri -- build --no-bundle --features portable
         env:
