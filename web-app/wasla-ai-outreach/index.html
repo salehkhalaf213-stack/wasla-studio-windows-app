@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WASLA AI Outreach — Prototype</title>
+<style>
+:root{--bg:#121110;--panel:#211e1b;--panel2:#2b2520;--gold:#d9a45a;--gold2:#f1c27a;--text:#f6f1e9;--muted:#b9ada0;--line:#41372e;--green:#548c64}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Tahoma,sans-serif}
+header{padding:20px 28px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.brand{font-weight:800;letter-spacing:.08em;color:var(--gold);font-size:20px}.brand small{display:block;color:var(--muted);font-size:11px;letter-spacing:.15em;margin-top:5px}
+main{max-width:1180px;margin:auto;padding:24px}.intro h1{margin:0 0 8px;color:var(--gold2);font-size:26px}.intro p{color:var(--muted);margin:0 0 20px}
+.grid{display:grid;grid-template-columns:340px 1fr;gap:18px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+h2{font-size:17px;margin:0 0 16px;color:var(--gold2)}label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+input,select,textarea{width:100%;background:#151311;border:1px solid var(--line);color:var(--text);border-radius:9px;padding:11px;font:inherit;outline:none}
+textarea{min-height:230px;line-height:1.75;resize:vertical}input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+button{border:0;border-radius:10px;padding:11px 15px;cursor:pointer;font-weight:700;font:inherit;background:var(--gold);color:#20170d}
+button.secondary{background:var(--panel2);border:1px solid var(--line);color:var(--text)}button.green{background:var(--green);color:#fff}button:disabled{opacity:.5;cursor:not-allowed}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}.notice{margin-top:12px;padding:11px;background:#30271c;border:1px solid #665033;border-radius:9px;color:#e4c28d;font-size:12px;line-height:1.7}
+.leads{display:flex;flex-direction:column;gap:9px}.lead{padding:12px;border-radius:10px;background:#171513;border:1px solid var(--line);cursor:pointer}.lead:hover,.lead.active{border-color:var(--gold)}.lead strong{display:block;margin-bottom:4px}.lead span{font-size:12px;color:var(--muted)}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.toolbar select{max-width:210px}.contactLink{display:inline-flex;margin-top:10px;color:var(--gold2);text-decoration:none;word-break:break-all}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.leadPanel{order:2}main{padding:16px}header{padding:16px}}
+</style></head>
+<body>
+<header><div class="brand">WASLA STUDIO<small>GROW • CONNECT • THRIVE</small></div><div>مساعد التواصل مع العملاء المحتملين</div></header>
+<main><section class="intro"><h1>WASLA AI Outreach</h1><p>نموذج أولي لإدارة العملاء وصياغة رسائل تواصل مخصصة. الإرسال غير مفعّل.</p></section>
+<div class="grid">
+<aside class="panel leadPanel"><h2>قائمة العملاء المحتملين</h2><div class="leads" id="leads"></div>
+<div class="notice">هذه بيانات تجريبية مستندة إلى قائمة مقاهي بحثنا عنها سابقًا. بيانات الاتصال بحاجة إلى التحقق قبل استخدامها.</div>
+<button class="secondary" style="width:100%;margin-top:12px" id="newLead">+ إضافة عميل تجريبي</button>
+</aside>
+<section class="panel"><h2>صياغة رسالة مخصصة</h2>
+<label>اسم العميل / المقهى</label><input id="name" placeholder="اسم المقهى">
+<label>نوع النشاط أو ملاحظة عنه</label><input id="info" placeholder="قهوة مختصة، كتب، أجواء هادئة...">
+<label>قناة التواصل</label><select id="channel"><option>WhatsApp</option><option>Instagram DM</option><option>Email</option><option>Facebook</option></select>
+<label>نبرة الرسالة</label><select id="tone"><option value="warm">ودودة ومهنية</option><option value="short">مختصرة</option><option value="formal">رسمية</option></select>
+<div class="toolbar" style="margin-top:14px"><button id="generate">✨ إنشاء مسودة</button><button class="secondary" id="clear">مسح</button></div>
+<label>المسودة</label><textarea id="draft" placeholder="ستظهر مسودة الرسالة هنا بعد الضغط على إنشاء مسودة…"></textarea>
+<div class="actions"><button id="copy">نسخ الرسالة</button><button class="secondary" id="wa">إنشاء رابط WhatsApp</button><button class="green" disabled title="الإرسال غير متاح في النموذج الأولي">إرسال (غير مفعّل)</button></div>
+<a id="waLink" class="contactLink" target="_blank" rel="noopener" style="display:none"></a>
+<div class="notice">ملاحظة: مولّد النص في هذه النسخة نموذج أولي محلي، وليس متصلًا بخدمة AI حتى الآن. سيتم ربط نموذج AI عبر خادم آمن بعد إعداد مزود الخدمة والمفتاح. لن تُرسل رسائل دون اعتماد صريح.</div>
+</section></div></main>
+<script>
+const seed=[
+{name:"COVA Coffee Store",info:"مقهى في الزمالك؛ طابع القهوة وتجربة المكان",channel:"Instagram",status:"بيانات الاتصال تحتاج تحقق"},
+{name:"Haven Specialty Coffee",info:"قهوة مختصة؛ إبراز المنتجات وتجربة القهوة",channel:"Instagram",status:"قناة عامة مرصودة"},
+{name:"Sip",info:"مقهى؛ محتوى منتجات وتجربة الزوار",channel:"Website",status:"رقم التواصل بحاجة تحقق"},
+{name:"Sufi Cafe & Bookstore",info:"قهوة وكتب؛ فكرة محتوى تجمع التجربتين",channel:"Facebook",status:"تحقق من الصفحة الرسمية"}
+];
+let leads=[...seed],selected=0;
+const el=id=>document.getElementById(id);
+function render(){el("leads").innerHTML=leads.map((l,i)=>'<div class="lead '+(i===selected?'active':'')+'" data-i="'+i+'"><strong>'+esc(l.name)+'</strong><span>'+esc(l.status)+'</span></div>').join('');
+document.querySelectorAll(".lead").forEach(n=>n.onclick=()=>select(Number(n.dataset.i)));
+}
+function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function select(i){selected=i;const l=leads[i];el("name").value=l.name;el("info").value=l.info;el("channel").value=l.channel==="Instagram"?"Instagram DM":l.channel==="Facebook"?"Facebook":l.channel==="Website"?"WhatsApp":l.channel;el("draft").value="";el("waLink").style.display="none";render();}
+function generate(){let n=el("name").value.trim()||"مقهىكم", info=el("info").value.trim(), tone=el("tone").value;
+let opening=tone==="formal"?"تحية طيبة لفريق":"مرحبًا فريق";
+let intro=tone==="short"?"نحن WASLA STUDIO (وصلة)، نساعد المقاهي في تطوير حضورها الرقمي عبر المحتوى والتصميم والفيديوهات القصيرة والتسويق.":"نحن WASLA STUDIO (وصلة)، وكالة تسويق تساعد المقاهي على تطوير حضورها الرقمي من خلال المحتوى الإبداعي، التصاميم، أفكار الفيديوهات القصيرة، والحملات التسويقية.";
+let personalization=info?("لاحظنا أن "+info+"، ونود مشاركة أفكار تناسب طبيعة نشاطكم وتبرز ما يميز المكان.\n\n"):"يسعدنا مشاركة أفكار تسويقية مناسبة لطبيعة نشاطكم وتساعد في إبراز ما يميز المكان.\n\n";
+let close=tone==="formal"?"إذا رغبتم، يسعدنا تحديد موعد مختصر للتعرف على احتياجاتكم ومشاركة تصور أولي.":"إذا أحببتم، يسعدنا التعارف ومشاركة أفكار أولية دون أي التزام.";
+el("draft").value=opening+" "+n+" ☕\n\n"+intro+"\n\n"+personalization+close+"\n\nWASLA STUDIO\nمن حضور رقمي أفضل… إلى فرص نمو حقيقية.";
+}
+el("generate").onclick=generate;
+el("clear").onclick=()=>{el("draft").value="";el("waLink").style.display="none";};
+el("copy").onclick=async()=>{if(!el("draft").value.trim())return alert("أنشئ المسودة أولًا");try{await navigator.clipboard.writeText(el("draft").value);alert("تم نسخ المسودة");}catch{el("draft").select();document.execCommand("copy");alert("تم نسخ المسودة");}};
+el("wa").onclick=()=>{let text=el("draft").value.trim();if(!text)return alert("أنشئ المسودة أولًا");let url="https://wa.me/?text="+encodeURIComponent(text);el("waLink").href=url;el("waLink").textContent="فتح WhatsApp لإكمال اختيار جهة الاتصال";el("waLink").style.display="inline-flex";};
+el("newLead").onclick=()=>{leads.push({name:"عميل جديد",info:"",channel:"WhatsApp",status:"مسودة عميل"});selected=leads.length-1;render();select(selected);};
+render();select(0);
+</script></body></html>
